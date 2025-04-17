@@ -1,7 +1,8 @@
 flake: { config, lib, pkgs, ... }:
 
 {
-  imports = []
+  imports = [
+  ]
     ++
     map (n: "${./programs}/${n}") (builtins.attrNames (builtins.readDir ./programs));
 }

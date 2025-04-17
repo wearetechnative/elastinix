@@ -1,8 +1,13 @@
 {
   description = "Elastix, getting Nix to the Cloud";
 
-  outputs = { self }: {
+  inputs = {
+    agenix.url = "github:ryantm/agenix";
+  };
+
+  outputs = { self, agenix }: {
+
     nixosModules.default = import ./modules self;
-    mylib = import ./lib;
+    lib = import ./lib;
   };
 }
