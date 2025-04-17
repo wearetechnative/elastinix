@@ -3,6 +3,6 @@
 
   outputs = { self }: {
     nixosModules.default = import ./modules self;
-    lib = import ./lib;
+    mylib = import ./lib;
   };
 }
