@@ -6,6 +6,10 @@ let
 
 in {
 
+  options.elastinix.programs.awsUtils.enable = lib.mkEnableOption ''
+    AWS Utilities
+  '';
+
   config = lib.mkIf cfg.enable {
 
     environment.systemPackages = with pkgs; [
