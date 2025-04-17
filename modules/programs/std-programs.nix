@@ -13,7 +13,6 @@
     git
     wget
     curl
-
     openssl
 
     nfs-utils
