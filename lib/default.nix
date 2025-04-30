@@ -15,8 +15,7 @@
     pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
     format = "amazon";
     modules = minimalModules ++ [
-
-      "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
+      #"${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
       { amazonImage.name = "nixos_image"; amazonImage.sizeMB = 16 * 1024;}
     ];
   };
