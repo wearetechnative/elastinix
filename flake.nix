@@ -12,7 +12,7 @@
   outputs = {
     self,
     #elNixpkgs,
-    nixos-generators,
+    #    nixos-generators,
     agenix
     # , nixpkgs-oldterraform
     }:
