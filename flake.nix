@@ -11,31 +11,41 @@
 
   outputs = { self, nixpkgs, nixos-generators, agenix , nixpkgs-oldterraform } :
 
-  let
-    supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
-    forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
-    nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; config.allowUnfree = true; overlays = [  ];  });
-
-  in {
-
-    nixosModules = forAllSystems (system:
     let
-      pkgs = nixpkgsFor.${system};
-    in
-    {
-      default = { config, pkgs, ... }: {
-        imports = [
+      supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
+      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+      nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; config.allowUnfree = true; overlays = [  ];  });
 
+    in {
 
-            ];
-        options = {};
-        config = {};
+      nixosModules = {
+        #        forAllSystems (system:
+        #    let
+        #      pkgs = nixpkgsFor.${system};
+        #    in
+        #    {
+        default = { config, pkgs, ... }:
+          let
+            system = pkgs.stdenv.hostPlatform.system;
+
+          in{
+
+            imports = [
+              {
+                environment.systemPackages = [ agenix.packages."${system}".agenix ];
+              }
+              agenix.nixosModules.default
+            ] ++
+              map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
+
+            options = {};
+            config = {};
+          };
+
+        #xx = import ./modules self;
+
       };
 
-      #xx = import ./modules self;
-
-    });
-
-    lib = import ./lib;
-  };
+      lib = import ./lib;
+    };
 }
