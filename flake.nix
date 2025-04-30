@@ -11,12 +11,13 @@
 
   outputs = { self, nixpkgs, nixos-generators, agenix , nixpkgs-oldterraform } :
 
-    let
-      supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
-      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
-      nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; config.allowUnfree = true; overlays = [  ];  });
-
-    in {
+    #    let
+    #      supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
+    #      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+    #      nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; config.allowUnfree = true; overlays = [  ];  });
+    #
+    #    in
+    {
 
       nixosModules = {
         #        forAllSystems (system:
@@ -46,6 +47,6 @@
 
       };
 
-      lib = import ./lib;
+      lib = import ./lib {inherit nixpkgs; inherit nixos-generators;};
     };
 }
