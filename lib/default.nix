@@ -1,4 +1,3 @@
-{elNixpkgs, nixos-generators }:
 {
   tf_command2 = import ./tf_command.nix;
 
@@ -11,16 +10,18 @@
       ${pkgs.terraform}/bin/terraform ${cmd} ${varfile_arg} $@
     '';
 
-  create_bootstrap_img_minimal = { system, minimalModules } : nixos-generators.nixosGenerate {
+  create_bootstrap_img_minimal = { system, minimalModules, nixpkgs, nixos-generators } : nixos-generators.nixosGenerate {
     inherit system;
-    pkgs = import elNixpkgs { inherit system; config.allowUnfree = true; };
+    pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
     format = "amazon";
     modules = minimalModules ++ [
 
-      "${elNixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
+      "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
       { amazonImage.name = "nixos_image"; amazonImage.sizeMB = 16 * 1024;}
     ];
   };
+
+
 
 
 }
