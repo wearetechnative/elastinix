@@ -2,15 +2,16 @@
   description = "Elastix, getting Nix to the Cloud";
   inputs = {
 
-    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
-    #nixpkgs-oldterraform.url = "github:NixOS/nixpkgs/nixos-23.05";
+    elNixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs-oldterraform.url = "github:NixOS/nixpkgs/nixos-23.05";
     nixos-generators.url = "github:nix-community/nixos-generators";
-    nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
+    nixos-generators.inputs.nixpkgs.follows = "elNixpkgs";
     agenix.url = "github:ryantm/agenix";
   };
 
   outputs = {
     self,
+    elNixpkgs,
     nixos-generators,
     agenix
     # , nixpkgs-oldterraform
@@ -39,6 +40,6 @@
 
       };
 
-      lib = import ./lib {inherit nixos-generators;};
+      lib = import ./lib {inherit nixos-generators; inherit elNixpkgs;};
     };
 }
