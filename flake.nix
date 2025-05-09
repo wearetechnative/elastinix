@@ -18,30 +18,29 @@
     agenix
     # , nixpkgs-oldterraform
     }:
-    {
-      nixosModules = {
-        default = { config, pkgs, ... }:
-          let
-            system = pkgs.stdenv.hostPlatform.system;
+    let
+      elastinixModule = { config, pkgs, ... }:
+        let
+          system = pkgs.stdenv.hostPlatform.system;
 
-          in {
+        in {
 
-            imports = [
-              {
-                environment.systemPackages = [ agenix.packages."${system}".agenix ];
-              }
-              agenix.nixosModules.default
-            ] ++
-              map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
+          imports = [
+            {
+              environment.systemPackages = [ agenix.packages."${system}".agenix ];
+            }
+            agenix.nixosModules.default
+          ] ++
+            map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
 
-            options = {};
-            config = {};
-          };
+          options = {};
+          config = {};
+        };
 
-        #xx = import ./modules self;
+    in
+      {
+      nixosModules.default = elastinixModule;
 
-      };
-
-      lib = import ./lib { inherit nixpkgs; };
+      lib = import ./lib { inherit nixpkgs; inherit elastinixModule; };
     };
 }
