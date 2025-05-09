@@ -10,6 +10,9 @@
     zsh
     sudo
     bat
+
+    fortune
+
     git
     wget
     curl
