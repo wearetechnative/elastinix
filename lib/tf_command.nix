@@ -1,4 +1,4 @@
-{nixpkgs,..} : { pkgs, tfBin, cmd ? "", varsfile ? "", bootstrap_img_minimal, ec2conf } :
+{ nixpkgs, ... } : { pkgs, tfBin, cmd ? "", varsfile ? "", bootstrap_img_minimal, ec2conf } :
 
 let
   varfile_arg = if varsfile == "" then "" else "-var-file=${varsfile}";
