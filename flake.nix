@@ -2,7 +2,7 @@
   description = "Elastix, getting Nix to the Cloud";
   inputs = {
 
-    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
 
     #elNixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     #nixpkgs-oldterraform.url = "github:NixOS/nixpkgs/nixos-23.05";
@@ -13,7 +13,7 @@
 
   outputs = {
     self,
-    #elNixpkgs,
+    nixpkgs,
     #    nixos-generators,
     agenix
     # , nixpkgs-oldterraform
@@ -42,6 +42,6 @@
 
       };
 
-      lib = import ./lib {};
+      lib = import ./lib { nixpkgs; };
     };
 }
