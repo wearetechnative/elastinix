@@ -1,7 +1,10 @@
-{ nixpkgs, ... } : { pkgs, tfBin, cmd ? "", varsfile ? "", bootstrap_img_minimal, ec2conf } :
+{ nixpkgs, ... } : { runSystem, tfBin, cmd ? "", varsfile ? "", bootstrap_img_minimal, ec2conf } :
 
 let
   varfile_arg = if varsfile == "" then "" else "-var-file=${varsfile}";
+
+  pkgs = import nixpkgs { inherit runSystem; config.allowUnfree = true; };
+
 
   prelude = ''
     export TF_VAR_ec2_bootstrap_img_path="${bootstrap_img_minimal}/nixos_image.vhd";
