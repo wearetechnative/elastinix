@@ -1,4 +1,4 @@
-{ nixpkgs, elastinixModule, nixos-generators, ... } : { runSystem, targetSystem, tfBin, cmd ? "", varsfile ? "", bootstrap_img_minimal, machineFile, bootstrap-config-module } :
+{ nixpkgs, elastinixModule, nixos-generators, ... } : { runSystem, targetSystem, tfBin, cmd ? "", varsfile ? "", machineFile, bootstrap-config-module } :
 
 let
   varfile_arg = if varsfile == "" then "" else "-var-file=${varsfile}";
