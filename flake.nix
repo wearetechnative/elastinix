@@ -42,6 +42,6 @@
 
       };
 
-      lib = import ./lib { nixpkgs; };
+      lib = import ./lib { inherit nixpkgs; };
     };
 }
