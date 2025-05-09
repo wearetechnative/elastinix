@@ -1,4 +1,4 @@
-{ nixpkgs, elastinixModule, ... } : { runSystem, targetSystem, tfBin, cmd ? "", varsfile ? "", bootstrap_img_minimal, machineFile, bootstrap-config-module } :
+{ nixpkgs, elastinixModule, nixos-generators, ... } : { runSystem, targetSystem, tfBin, cmd ? "", varsfile ? "", bootstrap_img_minimal, machineFile, bootstrap-config-module } :
 
 let
   varfile_arg = if varsfile == "" then "" else "-var-file=${varsfile}";
@@ -14,14 +14,14 @@ let
     "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
   ];
 
-  #  bootstrap_img_minimal = nixos-generators.nixosGenerate {
-  #    system = "x86_64-linux";
-  #    pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
-  #    format = "amazon";
-  #    modules = minimal-modules ++ [
-  #      { amazonImage.name = "nixos_image"; amazonImage.sizeMB = 16 * 1024;}
-  #    ];
-  #  };
+  bootstrap_img_minimal = nixos-generators.nixosGenerate {
+    system = targetSystem;
+    pkgs = import nixpkgs { system = runSystem; config.allowUnfree = true; };
+    format = "amazon";
+    modules = minimal-modules ++ [
+      { amazonImage.name = "nixos_image"; amazonImage.sizeMB = 16 * 1024;}
+    ];
+  };
 
   createEC2Host = machineFile: tfvarsfile:
     let
