@@ -1,5 +1,5 @@
-{...}:
+{nixpkgs, ...}:
 {
-  tf_command = import ./tf_command.nix;
+  tf_command = import ./tf_command.nix {inherit nixpkgs;};
 }
 
