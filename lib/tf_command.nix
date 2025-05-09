@@ -29,7 +29,7 @@ let
       };
 
       liveConfig = (nixpkgs.lib.nixosSystem {
-        inherit targetSystem;
+        system = targetSystem;
         specialArgs = { inherit tfvarsfile; ec2orAmi = "ec2"; };
         modules =
           minimal-modules ++
