@@ -3,7 +3,7 @@
 let
   varfile_arg = if varsfile == "" then "" else "-var-file=${varsfile}";
 
-  pkgs = import nixpkgs { inherit runSystem; config.allowUnfree = true; };
+  pkgs = import nixpkgs { system = runSystem; config.allowUnfree = true; };
 
 
   prelude = ''
