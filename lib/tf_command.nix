@@ -16,7 +16,7 @@ let
 
   bootstrap_img_minimal = nixos-generators.nixosGenerate {
     system = targetSystem;
-    pkgs = import nixpkgs { system = runSystem; config.allowUnfree = true; };
+    pkgs = import nixpkgs { system = targetSystem; config.allowUnfree = true; };
     format = "amazon";
     modules = minimal-modules ++ [
       { amazonImage.name = "nixos_image"; amazonImage.sizeMB = 16 * 1024;}
