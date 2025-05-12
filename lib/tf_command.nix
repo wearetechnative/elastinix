@@ -1,4 +1,5 @@
-{ nixpkgs, elastinixModule, nixos-generators, ... } : { runSystem, targetSystem, tfBin, cmd ? "", varsfile ? "", machineFile, bootstrap-config-module } :
+{ nixpkgs, elastinixModule, nixos-generators, ... } :
+  { runSystem, targetSystem, tfBin, cmd ? "", varsfile ? "", machineFile, rootAuthKeys ? [] } :
 
 let
   varfile_arg = if varsfile == "" then "" else "-var-file=${varsfile}";
@@ -7,7 +8,7 @@ let
 
   ec2conf = createEC2Host machineFile varsfile;
 
-  #bootstrap-config-module = import ../../lib/ec2nix/nix-modules/10-base-conf-2405.nix;
+  bootstrap-config-module = import ./modules/bootstrap/base-conf.nix { inherit rootAuthKeys; } ;
 
   minimal-modules = [
     bootstrap-config-module
@@ -42,8 +43,6 @@ let
       });
 
     in liveConfig.config.system.build.toplevel;
-
-
 
   prelude = ''
     export TF_VAR_ec2_bootstrap_img_path="${bootstrap_img_minimal}/nixos_image.vhd";

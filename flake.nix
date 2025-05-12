@@ -4,10 +4,7 @@
 
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
 
-    #elNixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     #nixpkgs-oldterraform.url = "github:NixOS/nixpkgs/nixos-23.05";
-    #nixos-generators.url = "github:nix-community/nixos-generators";
-    #nixos-generators.inputs.nixpkgs.follows = "elNixpkgs";
 
     nixos-generators.url = "github:nix-community/nixos-generators/7c60ba4bc8d6aa2ba3e5b0f6ceb9fc07bc261565";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
