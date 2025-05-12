@@ -8,7 +8,7 @@ let
 
   ec2conf = createEC2Host machineFile varsfile;
 
-  bootstrap-config-module = import ./modules/bootstrap/base-conf.nix { inherit rootAuthorizedKeys; } ;
+  bootstrap-config-module = import ../modules/bootstrap/base-conf.nix { inherit rootAuthorizedKeys; } ;
 
   minimal-modules = [
     bootstrap-config-module
