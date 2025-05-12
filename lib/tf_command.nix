@@ -8,7 +8,7 @@ let
 
   pkgsTf153 = import nixpkgs-terraform-1-5-3 { system = runSystem; config.allowUnfree = true; };
 
-  useTfBin = if tfBin == "" then "${pkgsTf153}/bin/terraform" else tfBin;
+  useTfBin = if tfBin == "" then "${pkgsTf153.terraform}/bin/terraform" else tfBin;
 
   ec2conf = createEC2Host machineFile varsfile;
 
