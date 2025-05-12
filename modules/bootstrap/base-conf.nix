@@ -1,4 +1,4 @@
-{ rootAuthKeys ? [] } : { pkgs, config, ... } :
+{ rootAuthorizedKeys ? [] } : { pkgs, config, ... } :
 
 {
   system.stateVersion = "24.05";
@@ -11,7 +11,7 @@
     config.boot.kernelPackages.ena
   ];
 
-  users.users.root.openssh.authorizedKeys.keys = rootAuthKeys;
+  users.users.root.openssh.authorizedKeys.keys = rootAuthorizedKeys;
 
   services.openssh.enable = true;
   services.amazon-ssm-agent.enable = true;
