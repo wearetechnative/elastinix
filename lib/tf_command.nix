@@ -1,8 +1,8 @@
 { nixpkgs, elastinixModule, nixos-generators, nixpkgs-terraform-1-5-3 } :
-  { runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", cmd ? "apply", varsfile ? "", rootAuthorizedKeys ? [] } :
+  { runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", cmd ? "apply", varsfile, rootAuthorizedKeys ? [] } :
 
 let
-  varfile_arg = if varsfile == "" then "" else "-var-file=${varsfile}";
+  varfile_arg = "-var-file=${varsfile}";
 
   pkgs = import nixpkgs { system = runSystem; config.allowUnfree = true; };
 
