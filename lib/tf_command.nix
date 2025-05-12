@@ -2,7 +2,7 @@
   { runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", cmd ? "apply", varsfile, rootAuthorizedKeys ? [] } :
 
 let
-  varfile_arg = "-var-file=${varsfile}";
+  varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
 
   pkgs = import nixpkgs { system = runSystem; config.allowUnfree = true; };
 
