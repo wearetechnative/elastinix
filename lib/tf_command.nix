@@ -1,5 +1,5 @@
 { nixpkgs, elastinixModule, nixos-generators, ... } :
-  { runSystem, targetSystem, tfBin, cmd ? "", varsfile ? "", machineFile, rootAuthKeys ? [] } :
+  { runSystem, targetSystem, tfBin, cmd ? "", varsfile ? "", machineFile, rootAuthorizedKeys ? [] } :
 
 let
   varfile_arg = if varsfile == "" then "" else "-var-file=${varsfile}";
@@ -8,7 +8,7 @@ let
 
   ec2conf = createEC2Host machineFile varsfile;
 
-  bootstrap-config-module = import ./modules/bootstrap/base-conf.nix { inherit rootAuthKeys; } ;
+  bootstrap-config-module = import ./modules/bootstrap/base-conf.nix { inherit rootAuthorizedKeys; } ;
 
   minimal-modules = [
     bootstrap-config-module
