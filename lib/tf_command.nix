@@ -1,10 +1,14 @@
-{ nixpkgs, elastinixModule, nixos-generators, ... } :
-  { runSystem, targetSystem, tfBin, cmd ? "", varsfile ? "", machineFile, rootAuthorizedKeys ? [] } :
+{ nixpkgs, elastinixModule, nixos-generators, nixpkgs-terraform-1-5-3 } :
+  { runSystem, targetSystem, tfBin ? "", cmd ? "apply", varsfile ? "", machineFile, rootAuthorizedKeys ? [] } :
 
 let
   varfile_arg = if varsfile == "" then "" else "-var-file=${varsfile}";
 
   pkgs = import nixpkgs { system = runSystem; config.allowUnfree = true; };
+
+  pkgsTf153 = import nixpkgs-terraform-1-5-3 { system = runSystem; config.allowUnfree = true; };
+
+  useTfBin = if tfBin == "" then "${pkgsTf153}/bin/terraform" else tfBin;
 
   ec2conf = createEC2Host machineFile varsfile;
 
@@ -52,5 +56,5 @@ let
 in
 pkgs.writeShellScriptBin "terraform" ''
   ${prelude}
-  ${tfBin} ${cmd} ${varfile_arg} $@
+  ${useTfBin} ${cmd} ${varfile_arg} $@
 ''

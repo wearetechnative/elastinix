@@ -4,7 +4,7 @@
 
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
 
-    #nixpkgs-oldterraform.url = "github:NixOS/nixpkgs/nixos-23.05";
+    nixpkgs-terraform-1-5-3.url = "github:NixOS/nixpkgs/nixos-23.05";
 
     nixos-generators.url = "github:nix-community/nixos-generators/7c60ba4bc8d6aa2ba3e5b0f6ceb9fc07bc261565";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
@@ -16,8 +16,8 @@
     self,
     nixpkgs,
     nixos-generators,
-    agenix
-    # , nixpkgs-oldterraform
+    agenix,
+    nixpkgs-terraform-1-5-3
     }:
     let
       elastinixModule = { config, pkgs, ... }:
@@ -42,6 +42,6 @@
       {
       nixosModules.default = elastinixModule;
 
-      lib = import ./lib { inherit nixpkgs; inherit elastinixModule; inherit nixos-generators; };
+      lib = import ./lib { inherit nixpkgs; inherit elastinixModule; inherit nixos-generators; inherit nixpkgs-terraform-1-5-3; };
     };
 }
