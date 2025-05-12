@@ -1,5 +1,5 @@
 { nixpkgs, elastinixModule, nixos-generators, nixpkgs-terraform-1-5-3 } :
-  { runSystem, targetSystem, tfBin ? "", cmd ? "apply", varsfile ? "", machineFile, rootAuthorizedKeys ? [] } :
+  { runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", cmd ? "apply", varsfile ? "", rootAuthorizedKeys ? [] } :
 
 let
   varfile_arg = if varsfile == "" then "" else "-var-file=${varsfile}";
