@@ -21,15 +21,31 @@ in {
       type = lib.types.str;
       description = "Password for login user freshrss";
     };
+    acme_email = lib.mkOption {
+      type = lib.types.str;
+      description = "Email for acme";
+    };
   };
 
   config = lib.mkIf cfg.enable {
+    security.acme = {
+      acceptTerms = true;
+      defaults.email = cfg.acme_email;
+    };
+
+    services.nginx = {
+      enable = true;
+      recommendedGzipSettings = true;
+      recommendedOptimisation = true;
+      recommendedProxySettings = true;
+      recommendedTlsSettings = true;
+      clientMaxBodySize = "25m";
+    };
 
     services.nginx.virtualHosts."${cfg.baseurl}" = {
       enableACME = true;
       forceSSL = true;
     };
-
 
     services.freshrss = {
       enable = true;
