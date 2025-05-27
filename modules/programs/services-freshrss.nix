@@ -38,7 +38,7 @@ in {
         user = "freshrss";
         passFile = cfg.database_passfile;
         type = "pgsql";
-        port = 3306;
+        port = 5432;
         tableprefix = "freshrss";
       };
     };
