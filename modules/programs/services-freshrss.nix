@@ -36,7 +36,7 @@ in {
         name = "freshrss";
         host = cfg.database_host;
         user = "freshrss";
-        passFile = cfg.passfile;
+        passFile = cfg.database_passfile;
         type = "pgsql";
         port = 3306;
         tableprefix = "freshrss";
