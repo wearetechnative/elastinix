@@ -24,28 +24,10 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    security.acme = {
-      acceptTerms = true;
-      defaults.email = "sysadmin@technative.eu";
-    };
-
-    services.nginx = {
-      enable = true;
-      recommendedGzipSettings = true;
-      recommendedOptimisation = true;
-      recommendedProxySettings = true;
-      recommendedTlsSettings = true;
-      clientMaxBodySize = "25m";
-    };
 
     services.nginx.virtualHosts."${cfg.baseurl}" = {
       enableACME = true;
       forceSSL = true;
-      locations = {
-        "/" = {
-          proxyPass = "http://127.0.0.1:80";
-        };
-      };
     };
 
 
