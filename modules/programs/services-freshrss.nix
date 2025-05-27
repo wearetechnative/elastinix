@@ -5,17 +5,21 @@ let
 in {
   options.elastinix.programs.freshrss = {
     enable = lib.mkEnableOption "FreshRSS RSS reader";
-    passfile = lib.mkOption {
+    database_passfile = lib.mkOption {
       type = lib.types.str;
-      description = "Location of passfile";
+      description = "Password for database user";
     };
     database_host = lib.mkOption {
       type = lib.types.str;
-      description = "Database hostname";
+      description = "Hostname of the database";
     };
     baseurl = lib.mkOption {
       type = lib.types.str;
       description = "Domain name";
+    };
+    passwordfile = lib.mkOption {
+      type = lib.types.str;
+      description = "Password for login user freshrss";
     };
   };
 
@@ -26,6 +30,7 @@ in {
       user = "freshrss";
       baseUrl = cfg.baseurl;
       virtualHost = "freshrss";
+      passwordFile = cfg.passwordfile;
 
       database = {
         name = "freshrss";
