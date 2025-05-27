@@ -38,6 +38,17 @@ in {
       clientMaxBodySize = "25m";
     };
 
+    services.nginx.virtualHosts."${cfg.baseurl}" = {
+      enableACME = true;
+      forceSSL = true;
+      locations = {
+        "/" = {
+          proxyPass = "http://127.0.0.1:80";
+        };
+      };
+    };
+
+
     services.freshrss = {
       enable = true;
       package = pkgs.freshrss;
