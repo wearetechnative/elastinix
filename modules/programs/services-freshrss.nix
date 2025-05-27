@@ -24,6 +24,20 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    security.acme = {
+      acceptTerms = true;
+      defaults.email = "sysadmin@technative.eu";
+    };
+
+    services.nginx = {
+      enable = true;
+      recommendedGzipSettings = true;
+      recommendedOptimisation = true;
+      recommendedProxySettings = true;
+      recommendedTlsSettings = true;
+      clientMaxBodySize = "25m";
+    };
+
     services.freshrss = {
       enable = true;
       package = pkgs.freshrss;
