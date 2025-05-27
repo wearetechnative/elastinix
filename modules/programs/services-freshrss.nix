@@ -31,6 +31,7 @@ in {
       baseUrl = cfg.baseurl;
       virtualHost = "freshrss";
       passwordFile = cfg.passwordfile;
+      dataDir = "/var/lib/freshrss";
 
       database = {
         name = "freshrss";
