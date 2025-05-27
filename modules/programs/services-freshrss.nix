@@ -43,7 +43,7 @@ in {
       package = pkgs.freshrss;
       user = "freshrss";
       baseUrl = cfg.baseurl;
-      virtualHost = "freshrss";
+      virtualHost = cfg.baseurl;
       passwordFile = cfg.passwordfile;
       dataDir = "/var/lib/freshrss";
 
