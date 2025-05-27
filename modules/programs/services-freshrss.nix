@@ -38,15 +38,15 @@ in {
       clientMaxBodySize = "25m";
     };
 
-    #services.nginx.virtualHosts."${domainName}" = {
-    #  enableACME = true;
-    #  forceSSL = true;
-    #  locations = {
-    #    "/" = {
-    #      proxyPass = "http://127.0.0.1:${forwardPort}";
-    #    };
-    #  };
-    #};
+    services.nginx.virtualHosts."${cfg.baseurl}" = {
+      enableACME = true;
+      forceSSL = true;
+      locations = {
+        "/" = {
+          proxyPass = "http://127.0.0.1:8080";
+        };
+      };
+    };
 
 
     services.freshrss = {
@@ -65,7 +65,6 @@ in {
         passFile = cfg.database_passfile;
         type = "pgsql";
         port = 5432;
-        tableprefix = "freshrss";
       };
     };
   };
