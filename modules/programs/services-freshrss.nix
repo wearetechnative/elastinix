@@ -43,8 +43,8 @@ in {
         tableprefix = "freshrss";
       };
     };
-  };
     environment.systemPackages = with pkgs; [
       php
     ];
+  };
 }
