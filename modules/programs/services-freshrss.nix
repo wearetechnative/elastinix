@@ -44,4 +44,7 @@ in {
       };
     };
   };
+    environment.systemPackages = with pkgs; [
+      php
+    ];
 }
