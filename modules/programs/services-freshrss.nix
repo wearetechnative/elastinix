@@ -38,12 +38,24 @@ in {
       clientMaxBodySize = "25m";
     };
 
+    #services.nginx.virtualHosts."${domainName}" = {
+    #  enableACME = true;
+    #  forceSSL = true;
+    #  locations = {
+    #    "/" = {
+    #      proxyPass = "http://127.0.0.1:${forwardPort}";
+    #    };
+    #  };
+    #};
+
+
     services.freshrss = {
       enable = true;
       package = pkgs.freshrss;
       user = "freshrss";
       baseUrl = cfg.baseurl;
-      virtualHost = null;
+      virtualHost = "freshrss";
+      webserver = "nginx";
       passwordFile = cfg.passwordfile;
       dataDir = "/var/lib/freshrss";
 
