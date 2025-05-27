@@ -55,7 +55,6 @@ in {
       user = "freshrss";
       baseUrl = cfg.baseurl;
       virtualHost = "freshrss";
-      webserver = "nginx";
       passwordFile = cfg.passwordfile;
       dataDir = "/var/lib/freshrss";
 
