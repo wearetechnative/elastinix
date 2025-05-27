@@ -29,7 +29,7 @@ in {
       package = pkgs.freshrss;
       user = "freshrss";
       baseUrl = cfg.baseurl;
-      virtualHost = "freshrss";
+      virtualHost = null;
       passwordFile = cfg.passwordfile;
       dataDir = "/var/lib/freshrss";
 
@@ -43,8 +43,5 @@ in {
         tableprefix = "freshrss";
       };
     };
-    environment.systemPackages = with pkgs; [
-      php
-    ];
   };
 }
