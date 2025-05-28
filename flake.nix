@@ -34,35 +34,43 @@
           let
             system = pkgs.stdenv.hostPlatform.system;
           in {
-            imports = [
-              agenix.nixosModules.default
-              nixos-healthchecks.nixosModules.default
-            ] ++ map (n: import "${./modules/programs}/${n}")
-                 (builtins.filter (n: builtins.match ".*\\.nix" n != null)
-                  (builtins.attrNames (builtins.readDir ./modules/programs)));
-
-            options = {};
-            config = {
-              environment.systemPackages = [
-                agenix.packages.${system}.agenix
-                nixos-healthchecks.packages.${system}.healthchecks
+            nixosConfigurations.compute1 = inputs.nixpkgs.lib.nixosSystem {
+              #inherit system pkgs;
+              system = "x86_64-linux";
+              modules = [
+                ./modules/programs/e2e-testing.nix
               ];
             };
+
+              imports = [
+                agenix.nixosModules.default
+                nixos-healthchecks.nixosModules.default
+              ] ++ map (n: import "${./modules/programs}/${n}")
+                (builtins.filter (n: builtins.match ".*\\.nix" n != null)
+                  (builtins.attrNames (builtins.readDir ./modules/programs)));
+
+              options = {};
+              config = {
+                environment.systemPackages = [
+                  agenix.packages.${system}.agenix
+                  nixos-healthchecks.packages.${system}.healthchecks
+                ];
+              };
+            };
+            in {
+            nixosModules.default = elastinixModule;
+            lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
           };
-      in {
-        nixosModules.default = elastinixModule;
-        lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
-      };
-      systems = [
-        "x86_64-linux"
-      ];
-      perSystem = { config, pkgs, ... }: {
-        # Recommended: move all package definitions here.
-        # e.g. (assuming you have a nixpkgs input)
-        # packages.foo = pkgs.callPackage ./foo/package.nix { };
-        # packages.bar = pkgs.callPackage ./bar/package.nix {
-        #   foo = config.packages.foo;
-        # };
-      };
+        systems = [
+          "x86_64-linux"
+        ];
+        perSystem = { config, pkgs, ... }: {
+          # Recommended: move all package definitions here.
+          # e.g. (assuming you have a nixpkgs input)
+          # packages.foo = pkgs.callPackage ./foo/package.nix { };
+          # packages.bar = pkgs.callPackage ./bar/package.nix {
+          #   foo = config.packages.foo;
+          # };
+        };
     };
 }
