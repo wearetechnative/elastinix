@@ -24,6 +24,10 @@ in {
         };
 
         environment.systemPackages = [
+            pkgs.jetbrains.rust-rover
+            pkgs.rustup
+            pkgs.cargo-insta
+            pkgs.python312Packages.playwright
             pkgs.playwright-test
             pkgs.chromium
         ];
