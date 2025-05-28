@@ -18,6 +18,7 @@
     agenix.url = "github:ryantm/agenix";
 
     flake-parts.url = "github:hercules-ci/flake-parts";
+    devshell.url = "github:numtide/devshell";
   };
   outputs = inputs@{
     flake-parts,
@@ -32,13 +33,20 @@
       imports = [
         inputs.nixos-healthchecks.flakeModule
         inputs.nixos-healthchecks.nixosModules.default
-        {
-          environment.systemPackages = [
-            agenix.packages."x86_64-linux".agenix
-            nixos-healthchecks.packages."x86_64-linux".healthchecks
-          ];
-        }
       ];
+
+      systems = [
+        "x86_64-linux"
+      ];
+
+      perSystem = { config, self', inputs', pkgs, system, agenix, nixos-generators, nixpkgs-terraform-1-5-3, nixos-healthchecks, ... }: {
+        # Recommended: move all package definitions here.
+        # e.g. (assuming you have a nixpkgs input)
+        # packages.foo = pkgs.callPackage ./foo/package.nix { };
+        # packages.bar = pkgs.callPackage ./bar/package.nix {
+        #   foo = config.packages.foo;
+        # };
+      };
 
       flake = let
         elastinixModule = { config, pkgs, ... }:
@@ -47,34 +55,28 @@
           in {
             imports = [
               agenix.nixosModules.default
+              nixos-healthchecks.nixosModules.default
+              {
+                environment.systemPackages = [
+                  agenix.packages.${system}.agenix
+                  nixos-healthchecks.packages.${system}.healthchecks
+                ];
+              }
             ] ++ map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
-              options = {};
-              config = {};
-            };
-            in {
-            nixosModules.default = elastinixModule;
-            lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
-
-            nixosConfigurations.twenty = inputs.nixpkgs.lib.nixosSystem {
-              system = "x86_64-linux";
-              modules = [
-                ./modules/programs/e2e-testing.nix
-                nixos-healthchecks.nixosModules.default
-              ];
-            };
+            options = {};
+            config = {};
           };
+      in {
+        nixosModules.default = elastinixModule;
+        lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
 
-        systems = [
-          "x86_64-linux"
-        ];
-
-        perSystem = { config, pkgs, ... }: {
-          # Recommended: move all package definitions here.
-          # e.g. (assuming you have a nixpkgs input)
-          # packages.foo = pkgs.callPackage ./foo/package.nix { };
-          # packages.bar = pkgs.callPackage ./bar/package.nix {
-          #   foo = config.packages.foo;
-          # };
+        nixosConfigurations.twenty = inputs.nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            ./modules/programs/e2e-testing.nix
+            nixos-healthchecks.nixosModules.default
+          ];
         };
+      };
     };
 }
