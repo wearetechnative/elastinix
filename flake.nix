@@ -28,7 +28,7 @@
     nixos-healthchecks,
     ...
     }:
-    flake-parts.lib.mkFlake { inherit inputs; } (top@{ config, withSystem, moduleWithSystem, ... }: {
+    flake-parts.lib.mkFlake { inherit inputs; } ({ }: {
       imports = [
         inputs.nixos-healthchecks.flakeModule
         inputs.nixos-healthchecks.nixosModules.default
