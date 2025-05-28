@@ -25,6 +25,7 @@
     agenix,
     nixos-generators,
     nixpkgs-terraform-1-5-3,
+    nixos-healthchecks,
     ...
     }:
     flake-parts.lib.mkFlake { inherit inputs; } {
