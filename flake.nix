@@ -53,8 +53,8 @@
             system = pkgs.stdenv.hostPlatform.system;
           in {
             imports = [
-              nixos-healthchecks.nixosModules.default
               agenix.nixosModules.default
+              nixos-healthchecks.nixosModules.default
               {
                 environment.systemPackages = [
                   agenix.packages.${system}.agenix
