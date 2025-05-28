@@ -28,7 +28,7 @@
     nixos-healthchecks,
     ...
     }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
+    flake-parts.lib.mkFlake { inherit inputs; } (top@{ config, withSystem, moduleWithSystem, ... }: {
       imports = [
         inputs.nixos-healthchecks.flakeModule
         inputs.nixos-healthchecks.nixosModules.default
@@ -48,9 +48,7 @@
                   nixos-healthchecks.packages.${system}.healthchecks
                 ];
               }
-            ] ++
-                  map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
-
+            ] ++ map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
               options = {};
               config = {};
             };
@@ -69,6 +67,7 @@
         systems = [
           "x86_64-linux"
         ];
+
         perSystem = { config, pkgs, ... }: {
           # Recommended: move all package definitions here.
           # e.g. (assuming you have a nixpkgs input)
@@ -77,5 +76,5 @@
           #   foo = config.packages.foo;
           # };
         };
-    };
+    });
 }
