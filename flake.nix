@@ -17,7 +17,6 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
   };
   outputs = inputs@{
-    self,
     flake-parts,
     nixpkgs,
     agenix,
@@ -36,7 +35,7 @@
               {
                 environment.systemPackages = [
                   agenix.packages.${system}.agenix
-                  self.packages.${system}.healthchecks
+                  nixos-healthchecks.packages.${system}.healthchecks
                 ];
               }
               agenix.nixosModules.default
