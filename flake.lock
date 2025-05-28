@@ -43,6 +43,24 @@
         "type": "github"
       }
     },
+    "devshell": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1741473158,
+        "narHash": "sha256-kWNaq6wQUbUMlPgw8Y+9/9wP0F8SHkjy24/mN3UAppg=",
+        "owner": "numtide",
+        "repo": "devshell",
+        "rev": "7c9e793ebe66bcba8292989a68c0419b737a22a0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "devshell",
+        "type": "github"
+      }
+    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": "nixpkgs-lib"
@@ -223,11 +241,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1748190013,
-        "narHash": "sha256-R5HJFflOfsP5FBtk+zE8FpL8uqE7n62jqOsADvVshhE=",
+        "lastModified": 1748370509,
+        "narHash": "sha256-QlL8slIgc16W5UaI3w7xHQEP+Qmv/6vSNTpoZrrSlbk=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "62b852f6c6742134ade1abdd2a21685fd617a291",
+        "rev": "4faa5f5321320e49a78ae7848582f684d64783e9",
         "type": "github"
       },
       "original": {
@@ -238,6 +256,22 @@
       }
     },
     "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1722073938,
+        "narHash": "sha256-OpX0StkL8vpXyWOGUD6G+MA26wAXK6SpT94kLJXo6B4=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "e36e9f57337d0ff0cf77aceb58af4c805472bfae",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_3": {
       "locked": {
         "lastModified": 1735563628,
         "narHash": "sha256-OnSAY7XDSx7CtDoqNh8jwVwh4xNL/2HaJxGjryLWzX8=",
@@ -256,10 +290,11 @@
     "root": {
       "inputs": {
         "agenix": "agenix",
+        "devshell": "devshell",
         "flake-parts": "flake-parts",
         "nixos-generators": "nixos-generators",
         "nixos-healthchecks": "nixos-healthchecks",
-        "nixpkgs": "nixpkgs_2",
+        "nixpkgs": "nixpkgs_3",
         "nixpkgs-terraform-1-5-3": "nixpkgs-terraform-1-5-3",
         "nixpkgs-unstable": "nixpkgs-unstable"
       }
