@@ -30,7 +30,7 @@ in {
             pkgs.python312Packages.playwright
             pkgs.playwright-test
             pkgs.chromium
-            pkgs.foo
+            pkgs.cowsay
         ];
 
         nixpkgs.config.allowUnfree = true;
