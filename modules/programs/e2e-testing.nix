@@ -3,7 +3,7 @@ let
     cfg = config.elastinix.programs.freshrss;
 in {
     options.elastinix.programs.e2e-twenty = {
-        enable = lib.mkEnableOption "FreshRSS RSS reader";
+        enable = lib.mkEnableOption "Twenty e2e testing";
         twenty_url = lib.mkOption {
             type = lib.types.str;
             description = "The twenty domainurl";
@@ -22,14 +22,16 @@ in {
         healthchecks.http.twenty = {
             url = cfg.twenty_url;
         };
-        environment.systemPackages = [
-            pkgs.playwright-test
-            pkgs.chromium
-        ];
-        environment.variables = {
-            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.libuuid ];
-            PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
-        };
+
+        #environment.systemPackages = [
+        #    pkgs.playwright-test
+        #    pkgs.chromium
+        #];
+
+        #environment.variables = {
+        #    LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.libuuid ];
+        #    PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+        #};
 
 
         healthchecks.localCommands.twenty_Login = pkgs.writers.writePython3 "test" { } ''
