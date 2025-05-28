@@ -41,23 +41,23 @@ in {
         };
 
 
-        healthchecks.localCommand.twenty_Login = pkgs.writers.writePython3 "test" { } ''
+        healthchecks.localCommands.twenty_Login = pkgs.writers.writePython3 "test" { } ''
 import re
 from playwright.sync_api import Page, expect, sync_playwright
 import time
 
 
 def login(page: Page):
-    page.goto(${cfg.twenty_url})
+    page.goto("${cfg.twenty_url}")
 
     # Expect a title "to contain" a substring.
     expect(page).to_have_title(re.compile("Twenty"))
 
     page.get_by_text("Continue with Email").click()
 
-    page.get_by_placeholder("Email").fill(${cfg.twenty_username})
+    page.get_by_placeholder("Email").fill("${cfg.twenty_username}")
     page.locator('[type="submit"]').click()
-    page.get_by_placeholder("Password").fill(${cfg.twenty_password})
+    page.get_by_placeholder("Password").fill("${cfg.twenty_password}")
 
     page.locator('[type="submit"]').click()
 
