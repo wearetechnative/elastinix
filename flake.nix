@@ -1,16 +1,19 @@
 {
   description = "Elastix, getting Nix to the Cloud";
   inputs = {
-
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+
+    # Use a newer nixpkgs for Rust tooling
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     nixpkgs-terraform-1-5-3.url = "github:NixOS/nixpkgs/nixos-23.05";
 
     nixos-generators.url = "github:nix-community/nixos-generators/7c60ba4bc8d6aa2ba3e5b0f6ceb9fc07bc261565";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
-    nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs";
     nixos-healthchecks.url = "github:mrvandalo/nixos-healthchecks";
+    # Override nixos-healthchecks to use unstable for Rust
+    nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     agenix.url = "github:ryantm/agenix";
 
@@ -32,19 +35,19 @@
             system = pkgs.stdenv.hostPlatform.system;
           in {
             imports = [
-              {
-                environment.systemPackages = [
-                  agenix.packages.${system}.agenix
-                  nixos-healthchecks.packages.${system}.healthchecks
-                ];
-              }
               agenix.nixosModules.default
               nixos-healthchecks.nixosModules.default
-            ] ++ map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
-
+            ] ++ map (n: import "${./modules/programs}/${n}")
+                 (builtins.filter (n: builtins.match ".*\\.nix" n != null)
+                  (builtins.attrNames (builtins.readDir ./modules/programs)));
 
             options = {};
-            config = {};
+            config = {
+              environment.systemPackages = [
+                agenix.packages.${system}.agenix
+                nixos-healthchecks.packages.${system}.healthchecks
+              ];
+            };
           };
       in {
         nixosModules.default = elastinixModule;
