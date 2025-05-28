@@ -41,7 +41,7 @@ in {
         };
 
 
-        healthchecks.localCommands.twenty_Login = pkgs.writers.writePython3 "test" { } ''
+        healthchecks.localCommand.twenty_Login = pkgs.writers.writePython3 "test" { } ''
 import re
 from playwright.sync_api import Page, expect, sync_playwright
 import time
