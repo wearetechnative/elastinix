@@ -11,9 +11,12 @@
     nixos-generators.url = "github:nix-community/nixos-generators/7c60ba4bc8d6aa2ba3e5b0f6ceb9fc07bc261565";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
-    nixos-healthchecks.url = "github:mrvandalo/nixos-healthchecks";
-    # Override nixos-healthchecks to use unstable for Rust
-    nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    nixos-healthchecks = {
+      url = "github:mrvandalo/nixos-healthchecks";
+      # Use the unstable nixpkgs for Rust tooling
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+      inputs.flake-parts.follows = "flake-parts";
+    };
 
     agenix.url = "github:ryantm/agenix";
 
@@ -68,6 +71,17 @@
       in {
         nixosModules.default = elastinixModule;
         lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
+
+        nixosConfigurations.twenty = inputs.nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            ./modules/programs/e2e-testing.nix
+            nixos-healthchecks.nixosModules.default
+            {
+              environment.systemPackages = [];
+            }
+          ];
+        };
       };
     };
 }
