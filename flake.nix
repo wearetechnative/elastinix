@@ -11,12 +11,9 @@
     nixos-generators.url = "github:nix-community/nixos-generators/7c60ba4bc8d6aa2ba3e5b0f6ceb9fc07bc261565";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
-    nixos-healthchecks = {
-      url = "github:mrvandalo/nixos-healthchecks/main";
-      # Use the unstable nixpkgs for Rust tooling
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
-      inputs.flake-parts.follows = "flake-parts";
-    };
+    nixos-healthchecks.url = "github:mrvandalo/nixos-healthchecks";
+    # Override nixos-healthchecks to use unstable for Rust
+    nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     agenix.url = "github:ryantm/agenix";
 
