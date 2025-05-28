@@ -1,6 +1,6 @@
 { config, pkgs, lib, ... }:
 let
-    cfg = config.elastinix.programs.freshrss;
+    cfg = config.elastinix.programs.e2e-twenty;
 in {
     options.elastinix.programs.e2e-twenty = {
         enable = lib.mkEnableOption "Twenty e2e testing";
