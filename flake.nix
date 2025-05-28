@@ -28,7 +28,7 @@
     nixos-healthchecks,
     ...
     }:
-    flake-parts.lib.mkFlake { inherit inputs; } ({ }: {
+    flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.nixos-healthchecks.flakeModule
         inputs.nixos-healthchecks.nixosModules.default
@@ -55,6 +55,7 @@
             in {
             nixosModules.default = elastinixModule;
             lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
+
             nixosConfigurations.twenty = inputs.nixpkgs.lib.nixosSystem {
               system = "x86_64-linux";
               modules = [
@@ -76,5 +77,5 @@
           #   foo = config.packages.foo;
           # };
         };
-    });
+    };
 }
