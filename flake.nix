@@ -12,7 +12,7 @@
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
     nixos-healthchecks = {
-      url = "github:mrvandalo/nixos-healthchecks";
+      url = "github:mrvandalo/nixos-healthchecks/main";
       # Use the unstable nixpkgs for Rust tooling
       inputs.nixpkgs.follows = "nixpkgs-unstable";
       inputs.flake-parts.follows = "flake-parts";
