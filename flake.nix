@@ -42,9 +42,8 @@
               imports = [
                 agenix.nixosModules.default
                 nixos-healthchecks.nixosModules.default
-              ] ++ map (n: import "${./modules/programs}/${n}")
-                (builtins.filter (n: builtins.match ".*\\.nix" n != null)
-                  (builtins.attrNames (builtins.readDir ./modules/programs)));
+              ] ++
+                  map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
 
               options = {};
               config = {
