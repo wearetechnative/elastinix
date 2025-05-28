@@ -32,7 +32,6 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.nixos-healthchecks.flakeModule
-        inputs.nixos-healthchecks.nixosModules.default
       ];
 
       systems = [
@@ -55,11 +54,9 @@
           in {
             imports = [
               agenix.nixosModules.default
-              nixos-healthchecks.nixosModules.default
               {
                 environment.systemPackages = [
                   agenix.packages.${system}.agenix
-                  nixos-healthchecks.packages.${system}.healthchecks
                 ];
               }
             ] ++ map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
@@ -75,6 +72,9 @@
           modules = [
             ./modules/programs/e2e-testing.nix
             nixos-healthchecks.nixosModules.default
+            {
+              environment.systemPackages = [ nixos-healthchecks.packages.${system}.healthchecks ];
+            }
           ];
         };
       };
