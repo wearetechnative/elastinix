@@ -34,14 +34,6 @@
           let
             system = pkgs.stdenv.hostPlatform.system;
           in {
-            nixosConfigurations.compute1 = inputs.nixpkgs.lib.nixosSystem {
-              #inherit system pkgs;
-              system = "x86_64-linux";
-              modules = [
-                ./modules/programs/e2e-testing.nix
-              ];
-            };
-
               imports = [
                 agenix.nixosModules.default
                 nixos-healthchecks.nixosModules.default
@@ -60,6 +52,14 @@
             in {
             nixosModules.default = elastinixModule;
             lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
+
+            # Add test machine for healthchecks
+            nixosConfigurations.compute1 = nixpkgs.lib.nixosSystem {
+              modules = [
+                ./modules/programs/e2e-testing.nix
+                nixos-healthchecks.nixosModules.default
+              ];
+            };
           };
         systems = [
           "x86_64-linux"
