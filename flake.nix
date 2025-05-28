@@ -57,6 +57,13 @@
             in {
             nixosModules.default = elastinixModule;
             lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
+            nixosConfigurations.twenty = inputs.nixpkgs.lib.nixosSystem {
+              system = "x86_64-linux";
+              modules = [
+                ./modules/programs/e2e-testing.nix
+                nixos-healthchecks.nixosModules.default
+              ];
+            };
           };
 
         systems = [
