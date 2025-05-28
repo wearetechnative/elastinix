@@ -57,6 +57,7 @@
               {
                 environment.systemPackages = [
                   agenix.packages.${system}.agenix
+                  nixos-healthchecks.packages.${system}.healthchecks
                 ];
               }
             ] ++ map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
@@ -73,7 +74,7 @@
             ./modules/programs/e2e-testing.nix
             nixos-healthchecks.nixosModules.default
             {
-              environment.systemPackages = [ nixos-healthchecks.packages.${system}.healthchecks ];
+              environment.systemPackages = [];
             }
           ];
         };
