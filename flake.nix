@@ -25,10 +25,14 @@
     agenix,
     nixos-generators,
     nixpkgs-terraform-1-5-3,
-    nixos-healthchecks,
     ...
     }:
     flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        inputs.nixos-healthchecks.flakeModule
+        inputs.nixos-healthchecks.nixosModules.default
+      ];
+
       flake = let
         elastinixModule = { config, pkgs, ... }:
           let
@@ -36,7 +40,6 @@
           in {
               imports = [
                 agenix.nixosModules.default
-                nixos-healthchecks.nixosModules.default
               ] ++ map (n: import "${./modules/programs}/${n}")
                 (builtins.filter (n: builtins.match ".*\\.nix" n != null)
                   (builtins.attrNames (builtins.readDir ./modules/programs)));
@@ -45,21 +48,14 @@
               config = {
                 environment.systemPackages = [
                   agenix.packages.${system}.agenix
-                  nixos-healthchecks.packages.${system}.healthchecks
                 ];
               };
             };
             in {
             nixosModules.default = elastinixModule;
             lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
-
-            nixosConfigurations.compute1 = nixpkgs.lib.nixosSystem {
-              modules = [
-                ./modules/programs/e2e-testing.nix
-                nixos-healthchecks.nixosModules.default
-              ];
-            };
           };
+
         systems = [
           "x86_64-linux"
         ];
