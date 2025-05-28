@@ -41,6 +41,7 @@
           in {
               imports = [
                 agenix.nixosModules.default
+                nixos-healthchecks.nixosModules.default
               ] ++ map (n: import "${./modules/programs}/${n}")
                 (builtins.filter (n: builtins.match ".*\\.nix" n != null)
                   (builtins.attrNames (builtins.readDir ./modules/programs)));
@@ -49,6 +50,7 @@
               config = {
                 environment.systemPackages = [
                   agenix.packages.${system}.agenix
+                  nixos-healthchecks.packages.${system}.healthchecks
                 ];
               };
             };
