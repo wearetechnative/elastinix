@@ -53,7 +53,6 @@
             nixosModules.default = elastinixModule;
             lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
 
-            # Add test machine for healthchecks
             nixosConfigurations.compute1 = nixpkgs.lib.nixosSystem {
               modules = [
                 ./modules/programs/e2e-testing.nix
