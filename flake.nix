@@ -39,19 +39,20 @@
           let
             system = pkgs.stdenv.hostPlatform.system;
           in {
-              imports = [
-                agenix.nixosModules.default
-                nixos-healthchecks.nixosModules.default
-              ] ++
-                  map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
-
-              options = {};
-              config = {
+            imports = [
+              agenix.nixosModules.default
+              nixos-healthchecks.nixosModules.default
+              {
                 environment.systemPackages = [
                   agenix.packages.${system}.agenix
                   nixos-healthchecks.packages.${system}.healthchecks
                 ];
-              };
+              }
+            ] ++
+                  map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
+
+              options = {};
+              config = {};
             };
             in {
             nixosModules.default = elastinixModule;
