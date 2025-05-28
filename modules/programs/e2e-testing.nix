@@ -23,15 +23,15 @@ in {
             url = cfg.twenty_url;
         };
 
-        #environment.systemPackages = [
-        #    pkgs.playwright-test
-        #    pkgs.chromium
-        #];
+        environment.systemPackages = [
+            pkgs.playwright-test
+            pkgs.chromium
+        ];
 
-        #environment.variables = {
-        #    LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.libuuid ];
-        #    PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
-        #};
+        environment.variables = {
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.libuuid ];
+            PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+        };
 
 
         healthchecks.localCommands.twenty_Login = pkgs.writers.writePython3 "test" { } ''

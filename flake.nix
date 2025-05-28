@@ -33,14 +33,16 @@
             system = pkgs.stdenv.hostPlatform.system;
           in {
             imports = [
+              {
+                environment.systemPackages = [
+                  agenix.packages.${system}.agenix
+                  self.packages.${system}.healthchecks
+                ];
+              }
               agenix.nixosModules.default
               nixos-healthchecks.nixosModules.default
             ] ++ map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
 
-            environment.systemPackages = [
-              agenix.packages.${system}.agenix
-              self.packages.${system}.healthchecks
-            ];
 
             options = {};
             config = {};
