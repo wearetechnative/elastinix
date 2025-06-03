@@ -3,7 +3,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
 
-    # Use a newer nixpkgs for Rust tooling
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     nixpkgs-terraform-1-5-3.url = "github:NixOS/nixpkgs/nixos-23.05";
@@ -12,7 +11,6 @@
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
     nixos-healthchecks.url = "github:mrvandalo/nixos-healthchecks";
-    # Override nixos-healthchecks to use unstable for Rust
     nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     agenix.url = "github:ryantm/agenix";
@@ -23,6 +21,7 @@
   outputs = inputs@{
     flake-parts,
     nixpkgs,
+    nixpkgs-unstable,
     agenix,
     nixos-generators,
     nixpkgs-terraform-1-5-3,

@@ -18,7 +18,7 @@ in {
         };
     };
 
-    #config = lib.mkIf cfg.enable {
+    config = lib.mkIf cfg.enable {
         healthchecks.http.twenty = {
             url = cfg.twenty_url;
         };
@@ -118,6 +118,6 @@ if __name__ == "__main__":
         context.close()
         browser.close()
         '';
-    #};
+    };
 }
 
