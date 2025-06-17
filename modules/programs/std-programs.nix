@@ -11,7 +11,7 @@
     sudo
     bat
 
-    fortune
+    #fortune
 
     git
     wget
