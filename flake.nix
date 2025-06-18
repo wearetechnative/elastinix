@@ -37,7 +37,7 @@
         "x86_64-linux"
       ];
 
-      perSystem = { config, self', inputs', pkgs, system, agenix, nixos-generators, nixpkgs-terraform-1-5-3, nixos-healthchecks, ... }: {
+      perSystem = { config, self', inputs', pkgs, system, agenix, nixos-generators, nixpkgs-terraform-1-5-3, ... }: {
       };
 
       flake = let
