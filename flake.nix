@@ -10,6 +10,8 @@
     nixos-generators.url = "github:nix-community/nixos-generators/7c60ba4bc8d6aa2ba3e5b0f6ceb9fc07bc261565";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
+    inputs.import-tree.url = "github:vic/import-tree";
+
     #nixos-healthchecks.url = "github:mrvandalo/nixos-healthchecks";
     #nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
@@ -25,13 +27,13 @@
     agenix,
     nixos-generators,
     nixpkgs-terraform-1-5-3,
+    import-tree,
     #nixos-healthchecks,
     ...
     }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [
-        #inputs.nixos-healthchecks.flakeModule
-      ];
+
+      imports = [  (import-tree ./flake-modules)  ];
 
       systems = [
         "x86_64-linux"
