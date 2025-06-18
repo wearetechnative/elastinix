@@ -10,8 +10,8 @@
     nixos-generators.url = "github:nix-community/nixos-generators/7c60ba4bc8d6aa2ba3e5b0f6ceb9fc07bc261565";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
-    nixos-healthchecks.url = "github:mrvandalo/nixos-healthchecks";
-    nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    #nixos-healthchecks.url = "github:mrvandalo/nixos-healthchecks";
+    #nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     agenix.url = "github:ryantm/agenix";
 
@@ -25,12 +25,12 @@
     agenix,
     nixos-generators,
     nixpkgs-terraform-1-5-3,
-    nixos-healthchecks,
+    #nixos-healthchecks,
     ...
     }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
-        inputs.nixos-healthchecks.flakeModule
+        #inputs.nixos-healthchecks.flakeModule
       ];
 
       systems = [
@@ -38,12 +38,6 @@
       ];
 
       perSystem = { config, self', inputs', pkgs, system, agenix, nixos-generators, nixpkgs-terraform-1-5-3, nixos-healthchecks, ... }: {
-        # Recommended: move all package definitions here.
-        # e.g. (assuming you have a nixpkgs input)
-        # packages.foo = pkgs.callPackage ./foo/package.nix { };
-        # packages.bar = pkgs.callPackage ./bar/package.nix {
-        #   foo = config.packages.foo;
-        # };
       };
 
       flake = let
@@ -53,11 +47,11 @@
           in {
             imports = [
               agenix.nixosModules.default
-              nixos-healthchecks.nixosModules.default
+              #nixos-healthchecks.nixosModules.default
               {
                 environment.systemPackages = [
                   agenix.packages.${system}.agenix
-                  nixos-healthchecks.packages.${system}.healthchecks
+                  #nixos-healthchecks.packages.${system}.healthchecks
                 ];
               }
             ] ++ map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
@@ -68,16 +62,16 @@
         nixosModules.default = elastinixModule;
         lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
 
-        nixosConfigurations.twenty = inputs.nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [
-            ./modules/programs/e2e-testing.nix
-            nixos-healthchecks.nixosModules.default
-            {
-              environment.systemPackages = [];
-            }
-          ];
-        };
+        #nixosConfigurations.twenty = inputs.nixpkgs.lib.nixosSystem {
+        #  system = "x86_64-linux";
+        #  modules = [
+        #    ./modules/programs/e2e-testing.nix
+        #    nixos-healthchecks.nixosModules.default
+        #    {
+        #      environment.systemPackages = [];
+        #    }
+        #  ];
+        #};
       };
     };
 }
