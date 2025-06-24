@@ -100,6 +100,21 @@
         "type": "github"
       }
     },
+    "import-tree": {
+      "locked": {
+        "lastModified": 1750744366,
+        "narHash": "sha256-7q+6/iVm+iXLzDOGylUmE1ydp6j4yvp8A9qu/7nlGCs=",
+        "owner": "vic",
+        "repo": "import-tree",
+        "rev": "5e5d465eed6546269e811195d8291eb44f0b7d7f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "vic",
+        "repo": "import-tree",
+        "type": "github"
+      }
+    },
     "nixlib": {
       "locked": {
         "lastModified": 1729386149,
@@ -237,6 +252,7 @@
         "agenix": "agenix",
         "devshell": "devshell",
         "flake-parts": "flake-parts",
+        "import-tree": "import-tree",
         "nixos-generators": "nixos-generators",
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-terraform-1-5-3": "nixpkgs-terraform-1-5-3",
