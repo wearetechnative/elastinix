@@ -47,7 +47,7 @@
                 #inputs.nixos-healthchecks.packages.${system}.healthchecks
               ];
             }
-          ] ++ inputs.import-tree ./modules/programs;
+          ] ++ (inputs.import-tree ./modules/programs);
 
           #options = {};
           #config = {};
