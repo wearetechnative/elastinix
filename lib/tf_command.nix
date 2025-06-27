@@ -1,8 +1,11 @@
 { inputs, nixpkgs, ... } :
-  { runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", cmd ? "apply", varsfile, rootAuthorizedKeys ? [] } :
+  { runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", cmd ? "apply", varsfile ? "" , rootAuthorizedKeys ? [] } :
 
 let
-  varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
+
+
+
+  tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
 
   pkgsRun = import nixpkgs { system = runSystem; config.allowUnfree = true; };
 
@@ -71,5 +74,5 @@ let
 in
 pkgsRun.writeShellScriptBin "terraform" ''
   ${tf_prelude}
-  ${useTfBin} ${cmd} ${varfile_arg} $@
+  ${useTfBin} ${cmd} ${tf_varfile_arg} $@
 ''

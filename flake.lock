@@ -236,7 +236,23 @@
         "type": "github"
       }
     },
-    "nixpkgs-terraform-1-5-3": {
+    "nixpkgs-opentofu-v1-8-7": {
+      "locked": {
+        "lastModified": 1750646418,
+        "narHash": "sha256-4UAN+W0Lp4xnUiHYXUXAPX18t+bn6c4Btry2RqM9JHY=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "1f426f65ac4e6bf808923eb6f8b8c2bfba3d18c5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-24.11",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs-terraform-v1-5-3": {
       "locked": {
         "lastModified": 1704290814,
         "narHash": "sha256-LWvKHp7kGxk/GEtlrGYV68qIvPHkU9iToomNFGagixU=",
@@ -249,6 +265,22 @@
         "owner": "NixOS",
         "ref": "nixos-23.05",
         "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs-terraform-v1-5-7": {
+      "locked": {
+        "lastModified": 1694985239,
+        "narHash": "sha256-fvvFfmFPutCi13gcUvB3lm8AezTmQj8HFAMqa3x9fr8=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "3f293ea9ecd5c50e5bd393fd1c560275ea0e6975",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "3f293ea9ecd5c50e5bd393fd1c560275ea0e6975",
         "type": "github"
       }
     },
@@ -309,7 +341,9 @@
         "nixos-generators": "nixos-generators",
         "nixos-healthchecks": "nixos-healthchecks",
         "nixpkgs": "nixpkgs_4",
-        "nixpkgs-terraform-1-5-3": "nixpkgs-terraform-1-5-3"
+        "nixpkgs-opentofu-v1-8-7": "nixpkgs-opentofu-v1-8-7",
+        "nixpkgs-terraform-v1-5-3": "nixpkgs-terraform-v1-5-3",
+        "nixpkgs-terraform-v1-5-7": "nixpkgs-terraform-v1-5-7"
       }
     },
     "systems": {

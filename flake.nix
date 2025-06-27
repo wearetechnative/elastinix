@@ -3,7 +3,9 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
 
-    nixpkgs-terraform-1-5-3.url = "github:NixOS/nixpkgs/nixos-23.05";
+    nixpkgs-terraform-v1-5-3.url = "github:NixOS/nixpkgs/nixos-23.05";
+    nixpkgs-terraform-v1-5-7.url = "github:nixos/nixpkgs/3f293ea9ecd5c50e5bd393fd1c560275ea0e6975";
+    nixpkgs-opentofu-v1-8-7.url = "github:nixos/nixpkgs/nixos-24.11";
 
     nixos-generators.url = "github:nix-community/nixos-generators/7c60ba4bc8d6aa2ba3e5b0f6ceb9fc07bc261565";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
@@ -33,6 +35,7 @@
       };
 
       flake = {
+        lib.tf_bin = import ./lib/tf_bin.nix { inherit inputs nixpkgs; };
         lib.tf_command = import ./lib/tf_command.nix { inherit inputs nixpkgs; };
       };
     };
