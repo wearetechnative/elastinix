@@ -6,7 +6,7 @@ let
   pkgsRun = import nixpkgs { system = runSystem; config.allowUnfree = true; };
 
   useTfBin = if tfBin == ""
-    then (import ./tf_bin.nix {inherit inputs;}) (terraformBinConf // { inherit runSystem; })
+    then (import ./tf_bin.nix {inherit inputs;}) (terraformBinConf // { inherit nixpkgs runSystem; })
     else tfBin;
 
   tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
