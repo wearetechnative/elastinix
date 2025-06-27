@@ -1,12 +1,12 @@
 {inputs, nixpkgs}:
-targetSystem: machineConfig: bootimgModules: tfvarsfile:
+  targetSystem: bootimgModules: machineConfig: tfvarsfile:
 let
 
   liveConfig = (nixpkgs.lib.nixosSystem {
     system = targetSystem;
     specialArgs = { inherit tfvarsfile; ec2orAmi = "ec2"; };
     modules =
-      #bootimgModules ++
+      bootimgModules ++
       [
         {
           imports = [
