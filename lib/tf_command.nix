@@ -1,17 +1,15 @@
 { inputs, nixpkgs, ... } :
-  { runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", cmd ? "apply", varsfile ? "" , rootAuthorizedKeys ? [] } :
+  { runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", terraformBinConf ? { distribution = "terraform"; version = "1-5-3"; }, cmd ? "apply", varsfile ? "" , rootAuthorizedKeys ? [] } :
 
 let
 
-
-
-  tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
-
   pkgsRun = import nixpkgs { system = runSystem; config.allowUnfree = true; };
 
-  pkgsTf153 = import inputs.nixpkgs-terraform-1-5-3 { system = runSystem; config.allowUnfree = true; };
+  #pkgsTf153 = import inputs.nixpkgs-terraform-1-5-3 { system = runSystem; config.allowUnfree = true; };
+  #useTfBin = if tfBin == "" then "${pkgsTf153.terraform}/bin/terraform" else tfBin;
+  useTfBin = (import ./tf_bin.nix terraformBinConf // { inherit runSystem; });
 
-  useTfBin = if tfBin == "" then "${pkgsTf153.terraform}/bin/terraform" else tfBin;
+  tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
 
   ec2conf = createEC2Host machineFile varsfile;
 
