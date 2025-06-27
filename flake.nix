@@ -22,6 +22,7 @@
   };
   outputs = inputs@{
     flake-parts,
+    import-tree,
     nixpkgs,
     #    nixpkgs-unstable,
     # agenix,
@@ -30,28 +31,23 @@
     #nixos-healthchecks,
     ...
     }:
-
     let
-      ## Standard Dependencies
       elastinixModule = { config, pkgs, ... }:
         let
           system = pkgs.stdenv.hostPlatform.system;
         in {
-
           imports = [
             inputs.agenix.nixosModules.default
             inputs.nixos-healthchecks.nixosModules.default
             {
               environment.systemPackages = [
                 inputs.agenix.packages.${system}.agenix
-                #inputs.nixos-healthchecks.packages.${system}.healthchecks
+                inputs.nixos-healthchecks.packages.${system}.healthchecks
               ];
             }
-          ] ++ (inputs.import-tree ./modules/programs);
-
-          #options = {};
-          #config = {};
-
+          ] ++ map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
+          options = {};
+          config = {};
         };
     in
 
