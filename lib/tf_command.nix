@@ -22,42 +22,7 @@ let
     ];
   };
 
-  #ec2conf2 = createEC2Host machineConfig varsfile;
-
   ec2conf = (import ./os_config_live.nix { inherit inputs nixpkgs; }) targetSystem machineConfig bootimgModules varsfile;
-
-  #  createEC2Host = machineConfig: tfvarsfile:
-  #    let
-  #
-  #      liveConfig = (nixpkgs.lib.nixosSystem {
-  #        system = targetSystem;
-  #        specialArgs = { inherit tfvarsfile; ec2orAmi = "ec2"; };
-  #        modules =
-  #          bootimgModules ++
-  #          [
-  #            {
-  #              imports = [
-  #
-  #                inputs.agenix.nixosModules.default
-  #                inputs.nixos-healthchecks.nixosModules.default
-  #
-  #                (inputs.import-tree ../modules/nixos/programs)
-  #                (inputs.import-tree ../modules/nixos/services)
-  #                (inputs.import-tree ../modules/nixos/tests)
-  #              ];
-  #
-  #              environment.systemPackages = [
-  #                inputs.agenix.packages.${targetSystem}.agenix
-  #              ];
-  #            }
-  #
-  #            machineConfig
-  #
-  #          ];
-  #
-  #      });
-  #
-  #    in liveConfig.config.system.build.toplevel;
 
   tf_prelude = ''
     export TF_VAR_ec2_bootstrap_img_path="${bootstrapImage}/nixos_image.vhd";

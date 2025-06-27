@@ -6,7 +6,7 @@ let
     system = targetSystem;
     specialArgs = { inherit tfvarsfile; ec2orAmi = "ec2"; };
     modules =
-      bootimgModules ++
+      #bootimgModules ++
       [
         {
           imports = [
