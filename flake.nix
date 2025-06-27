@@ -3,7 +3,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
 
-    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+    #nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     nixpkgs-terraform-1-5-3.url = "github:NixOS/nixpkgs/nixos-23.05";
 
@@ -13,7 +13,7 @@
     import-tree.url = "github:vic/import-tree";
 
     nixos-healthchecks.url = "github:mrvandalo/nixos-healthchecks";
-    nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    #nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     agenix.url = "github:ryantm/agenix";
 
@@ -23,31 +23,35 @@
   outputs = inputs@{
     flake-parts,
     nixpkgs,
-    nixpkgs-unstable,
-    agenix,
-    nixos-generators,
-    nixpkgs-terraform-1-5-3,
-    import-tree,
-    nixos-healthchecks,
+    #    nixpkgs-unstable,
+    # agenix,
+    #nixos-generators,
+    #nixpkgs-terraform-1-5-3,
+    #nixos-healthchecks,
     ...
     }:
+
     let
+      ## Standard Dependencies
       elastinixModule = { config, pkgs, ... }:
         let
           system = pkgs.stdenv.hostPlatform.system;
         in {
+
           imports = [
-            agenix.nixosModules.default
-            nixos-healthchecks.nixosModules.default
+            inputs.agenix.nixosModules.default
+            inputs.nixos-healthchecks.nixosModules.default
             {
               environment.systemPackages = [
-                agenix.packages.${system}.agenix
-                nixos-healthchecks.packages.${system}.healthchecks
+                inputs.agenix.packages.${system}.agenix
+                #inputs.nixos-healthchecks.packages.${system}.healthchecks
               ];
             }
-          ] ++ map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
-          options = {};
-          config = {};
+          ] ++ inputs.import-tree ./modules/programs;
+
+          #options = {};
+          #config = {};
+
         };
     in
 
@@ -66,7 +70,7 @@
         flake = {
           nixosModules.default = elastinixModule;
 
-          lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
+          lib = import ./lib { inherit inputs nixpkgs elastinixModule; };
 
           nixosModules.stdPrograms = { pkgs, ... }: {
             imports = [ ./flake-modules/nixos/std-programs.nix ];

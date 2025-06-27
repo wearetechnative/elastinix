@@ -1,4 +1,4 @@
-{ nixpkgs, elastinixModule, nixos-generators, nixpkgs-terraform-1-5-3 } :
+{ inputs, nixpkgs, elastinixModule, ... } :
   { runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", cmd ? "apply", varsfile, rootAuthorizedKeys ? [] } :
 
 let
@@ -6,7 +6,7 @@ let
 
   pkgs = import nixpkgs { system = runSystem; config.allowUnfree = true; };
 
-  pkgsTf153 = import nixpkgs-terraform-1-5-3 { system = runSystem; config.allowUnfree = true; };
+  pkgsTf153 = import inputs.nixpkgs-terraform-1-5-3 { system = runSystem; config.allowUnfree = true; };
 
   useTfBin = if tfBin == "" then "${pkgsTf153.terraform}/bin/terraform" else tfBin;
 
@@ -19,7 +19,7 @@ let
     "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
   ];
 
-  bootstrap_img_minimal = nixos-generators.nixosGenerate {
+  bootstrap_img_minimal = inputs.nixos-generators.nixosGenerate {
     system = targetSystem;
     pkgs = import nixpkgs { system = targetSystem; config.allowUnfree = true; };
     format = "amazon";
