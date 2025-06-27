@@ -1,10 +1,10 @@
-{ inputs, nixpkgs, elastinixModule, ... } :
+{ inputs, nixpkgs, ... } :
   { runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", cmd ? "apply", varsfile, rootAuthorizedKeys ? [] } :
 
 let
   varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
 
-  pkgs = import nixpkgs { system = runSystem; config.allowUnfree = true; };
+  pkgsRun = import nixpkgs { system = runSystem; config.allowUnfree = true; };
 
   pkgsTf153 = import inputs.nixpkgs-terraform-1-5-3 { system = runSystem; config.allowUnfree = true; };
 
@@ -12,7 +12,7 @@ let
 
   ec2conf = createEC2Host machineFile varsfile;
 
-  bootstrap-config-module = import ../modules/bootstrap/base-conf.nix { inherit rootAuthorizedKeys; } ;
+  bootstrap-config-module = import ../modules/nixos/bootstrap/base-conf.nix { inherit rootAuthorizedKeys; } ;
 
   minimal-modules = [
     bootstrap-config-module
@@ -41,20 +41,35 @@ let
           [
             defaults
             (import machineFile)
-            elastinixModule
+
+            {
+              imports = [
+
+                inputs.agenix.nixosModules.default
+                inputs.nixos-healthchecks.nixosModules.default
+
+                (inputs.import-tree ../modules/nixos/programs)
+                (inputs.import-tree ../modules/nixos/services)
+                (inputs.import-tree ../modules/nixos/tests)
+              ];
+
+              environment.systemPackages = [
+                inputs.agenix.packages.${targetSystem}.agenix
+              ];
+            }
           ];
 
       });
 
     in liveConfig.config.system.build.toplevel;
 
-  prelude = ''
+  tf_prelude = ''
     export TF_VAR_ec2_bootstrap_img_path="${bootstrap_img_minimal}/nixos_image.vhd";
     export TF_VAR_ec2_host_live_path="${ec2conf}"
   '';
 
 in
-pkgs.writeShellScriptBin "terraform" ''
-  ${prelude}
+pkgsRun.writeShellScriptBin "terraform" ''
+  ${tf_prelude}
   ${useTfBin} ${cmd} ${varfile_arg} $@
 ''

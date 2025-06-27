@@ -21,6 +21,7 @@ in {
         };
     };
 
+
     config = lib.mkIf cfg.enable {
         healthchecks.http.twenty = {
             url = cfg.twenty_url;
