@@ -55,12 +55,9 @@
 
         imports = [
           inputs.devshell.flakeModule
-          #(import-tree ./flake-modules)
         ];
 
-        systems = [
-          "x86_64-linux"
-        ];
+        systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
 
         perSystem = _: {
           devshells.default = {};
@@ -69,6 +66,7 @@
         flake = {
           nixosModules.default = elastinixModule;
           lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
+
           nixosModules.stdPrograms = { pkgs, ... }: {
             imports = [ ./flake-modules/nixos/std-programs.nix ];
           };
