@@ -33,7 +33,7 @@
       };
 
       flake = {
-        lib.tf_command = import ./tf_command.nix { inherit inputs nixpkgs; };
+        lib.tf_command = import ./lib/tf_command.nix { inherit inputs nixpkgs; };
       };
     };
 }
