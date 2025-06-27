@@ -3,8 +3,11 @@
 let
   cfg = config.elastinix.programs.freshrss;
 in {
+
   options.elastinix.programs.freshrss = {
+
     enable = lib.mkEnableOption "FreshRSS RSS reader";
+
     database_passfile = lib.mkOption {
       type = lib.types.str;
       description = "Password for database user";

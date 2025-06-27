@@ -12,8 +12,8 @@
 
     import-tree.url = "github:vic/import-tree";
 
-    #nixos-healthchecks.url = "github:mrvandalo/nixos-healthchecks";
-    #nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    nixos-healthchecks.url = "github:mrvandalo/nixos-healthchecks";
+    nixos-healthchecks.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     agenix.url = "github:ryantm/agenix";
 
@@ -28,7 +28,7 @@
     nixos-generators,
     nixpkgs-terraform-1-5-3,
     import-tree,
-    #nixos-healthchecks,
+    nixos-healthchecks,
     ...
     }:
     let
@@ -38,11 +38,11 @@
         in {
           imports = [
             agenix.nixosModules.default
-            #nixos-healthchecks.nixosModules.default
+            nixos-healthchecks.nixosModules.default
             {
               environment.systemPackages = [
                 agenix.packages.${system}.agenix
-                #nixos-healthchecks.packages.${system}.healthchecks
+                nixos-healthchecks.packages.${system}.healthchecks
               ];
             }
           ] ++ map (n: "${./modules/programs}/${n}") (builtins.attrNames (builtins.readDir ./modules/programs));
@@ -65,6 +65,7 @@
 
         flake = {
           nixosModules.default = elastinixModule;
+
           lib = import ./lib { inherit nixpkgs elastinixModule nixos-generators nixpkgs-terraform-1-5-3; };
 
           nixosModules.stdPrograms = { pkgs, ... }: {
