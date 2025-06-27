@@ -7,7 +7,7 @@ let
 
   #pkgsTf153 = import inputs.nixpkgs-terraform-1-5-3 { system = runSystem; config.allowUnfree = true; };
   #useTfBin = if tfBin == "" then "${pkgsTf153.terraform}/bin/terraform" else tfBin;
-  useTfBin = (import ./tf_bin.nix terraformBinConf // { inherit runSystem; });
+  useTfBin = (import ./tf_bin.nix {inherit inputs}) terraformBinConf // { inherit runSystem; });
 
   tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
 
