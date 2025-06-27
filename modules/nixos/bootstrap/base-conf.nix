@@ -1,4 +1,5 @@
-{ rootAuthorizedKeys ? [] } : { pkgs, config, ... } :
+{ rootAuthorizedKeys ? [] } :
+  { pkgs, config, ... } :
 
 {
   system.stateVersion = "24.05";
