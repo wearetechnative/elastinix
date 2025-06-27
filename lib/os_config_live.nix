@@ -2,9 +2,15 @@
   targetSystem: bootimgModules: machineConfig: tfvarsfile:
 let
 
+  tfvars = if tfvarsfile == ""
+    then
+      {}
+    else
+      builtins.fromJSON (builtins.readFile tfvarsfile);
+
   liveConfig = (nixpkgs.lib.nixosSystem {
     system = targetSystem;
-    specialArgs = { inherit tfvarsfile; ec2orAmi = "ec2"; };
+    specialArgs = { inherit tfvars; ec2orAmi = "ec2"; };
     modules =
       bootimgModules ++
       [

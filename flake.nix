@@ -1,5 +1,5 @@
 {
-  description = "Elastix, getting Nix to the Cloud";
+  description = "Elastinix, getting Nix to the Cloud";
   inputs = {
 
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05"; # This nixpkgs archive is used by nixos-generators
