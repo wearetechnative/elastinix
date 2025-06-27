@@ -1,5 +1,5 @@
-{ inputs, nixpkgs, ... } :
-  { runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", terraformBinConf ? { distribution = "terraform"; version = "1-5-3"; }, cmd ? "apply", varsfile ? "" , rootAuthorizedKeys ? [] } :
+{ inputs, ... } :
+  { nixpkgs, runSystem, machineFile, targetSystem ? "x86_64-linux", tfBin ? "", terraformBinConf ? { distribution = "terraform"; version = "1-5-3"; }, cmd ? "apply", varsfile ? "" , rootAuthorizedKeys ? [] } :
 
 let
 
