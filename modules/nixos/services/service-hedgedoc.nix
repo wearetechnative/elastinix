@@ -2,29 +2,24 @@
 let
 
   environment_domain = tfvars.environment_domain;
-  infra_environment = tfvars.infra_environment;
-  hedgedoc-secret = "hedgedoc-${infra_environment}";
   cfg = config.elastinix.services.hedgedoc;
 
 in
 {
   options.elastinix.services.hedgedoc = {
     enable = lib.mkEnableOption "enable hedgedoc service";
-      #   secretsFile = lib.mkOption {
-      #       type = lib.types.path;
-      #       description = "Where to find the secrets file.";
-      #   };
+    environmentPath = lib.mkOption {
+      type = lib.types.path;
+      description = "Where to find the secrets file.";
+    };
 
   };
 
   config = lib.mkIf cfg.enable {
 
-    age.identityPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
-    #age.secrets.${hedgedoc-secret}.file = cfg.secretsFile;
-
     services.hedgedoc = {
       enable = true;
-      environmentFile = config.age.secrets.${hedgedoc-secret}.path;
+      environmentFile = cfg.environmentPath;
       settings = {
         domain = "hedgedoc.${environment_domain}";
         defaultNotePath = "/var/lib/hedgedoc/uploads/default.md";
