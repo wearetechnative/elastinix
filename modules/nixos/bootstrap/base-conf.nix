@@ -1,7 +1,11 @@
-{ rootAuthorizedKeys ? [] } :
-  { pkgs, config, ... } :
+{ config, lib, ... } :
 
 {
+  options.elastinix.rootAuthorizedKey = lib.mkOption {
+    description = "The list of authorized keys for root.";
+    type = lib.types.listOf lib.types.str;
+  };
+
   system.stateVersion = "24.05";
 
   boot.kernel.sysctl = {
@@ -12,7 +16,7 @@
     config.boot.kernelPackages.ena
   ];
 
-  users.users.root.openssh.authorizedKeys.keys = rootAuthorizedKeys;
+  users.users.root.openssh.authorizedKeys.keys = config.elastinix.rootAuthorizedKeys;
 
   services.openssh.enable = true;
   services.amazon-ssm-agent.enable = true;

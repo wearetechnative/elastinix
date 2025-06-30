@@ -1,5 +1,5 @@
-{ inputs, self, nixpkgs }:
-  targetSystem: bootimgModules: machineConfig: tfvarsfile:
+{ inputs }:
+  { nixpkgs, targetSystem, machineConfig, tfvarsfile, rootAuthorizedKeys ? [] } :
 let
 
   tfvars = if tfvarsfile == ""
@@ -12,8 +12,12 @@ let
     system = targetSystem;
     specialArgs = { inherit tfvars; ec2orAmi = "ec2"; };
     modules =
-      bootimgModules ++
       [
+
+        {elastinix.rootAuthorizedKeys = rootAuthorizedKeys;}
+        "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
+        (import ../modules/nixos/bootstrap/base-conf.nix)
+
         {
           imports = [
 
@@ -27,7 +31,6 @@ let
 
           environment.systemPackages = [
              inputs.agenix.packages.${targetSystem}.agenix
-             self.packages.${targetSystem}.healthchecks
           ];
         }
 
@@ -36,6 +39,5 @@ let
       ];
 
   });
-
 in
-  liveConfig.config.system.build.toplevel
+  liveConfig
