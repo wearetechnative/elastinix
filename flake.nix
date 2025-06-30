@@ -20,7 +20,7 @@
     devshell.url = "github:numtide/devshell";
   };
 
-  outputs = inputs@{ flake-parts, self, ... }:
+  outputs = inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
 
       imports = [
@@ -36,8 +36,8 @@
 
       flake = {
         lib.tf_bin = import ./lib/tf_bin.nix { inherit inputs; };
-        lib.tf_command = import ./lib/tf_command.nix { inherit inputs self; };
-        lib.os_config_live = import ./lib/os_config_live.nix { inherit inputs self; };
+        lib.tf_command = import ./lib/tf_command.nix { inherit inputs; };
+        lib.os_config_live = import ./lib/os_config_live.nix { inherit inputs; };
       };
     };
 }
