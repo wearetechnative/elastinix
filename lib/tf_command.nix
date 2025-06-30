@@ -1,5 +1,13 @@
-{ inputs, ... } :
-  { nixpkgs, runSystem, machineConfig ? {}, targetSystem ? "x86_64-linux", tfBinOverride ? "", terraformBinConf ? { distribution = "terraform"; version = "1-5-3"; }, cmd ? "apply", varsfile ? "" , rootAuthorizedKeys ? [] } :
+{ inputs, self, ... } :
+  { nixpkgs,
+    runSystem,
+    machineConfig ? {},
+    targetSystem ? "x86_64-linux",
+    tfBinOverride ? "",
+    terraformBinConf ? { distribution = "terraform"; version = "1-5-3"; },
+    cmd ? "apply",
+    varsfile ? "" ,
+    rootAuthorizedKeys ? [] } :
 let
 
   pkgs = import nixpkgs { system = runSystem; config.allowUnfree = true; };
@@ -12,7 +20,7 @@ let
   ];
 
   bootstrapImage = (import ./os_config_bootstrap.nix { inherit inputs nixpkgs; }) targetSystem bootimgModules;
-  liveConfig = (import ./os_config_live.nix { inherit inputs nixpkgs; }) targetSystem bootimgModules machineConfig varsfile;
+  liveConfig = (import ./os_config_live.nix { inherit inputs self nixpkgs; }) targetSystem bootimgModules machineConfig varsfile;
 
   tf_prelude = ''
     export TF_VAR_ec2_bootstrap_img_path="${bootstrapImage}/nixos_image.vhd";

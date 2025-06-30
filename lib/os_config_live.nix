@@ -1,4 +1,4 @@
-{inputs, nixpkgs}:
+{ inputs, self, nixpkgs }:
   targetSystem: bootimgModules: machineConfig: tfvarsfile:
 let
 
@@ -26,7 +26,8 @@ let
           ];
 
           environment.systemPackages = [
-            inputs.agenix.packages.${targetSystem}.agenix
+             inputs.agenix.packages.${targetSystem}.agenix
+             self.packages.${targetSystem}.healthchecks
           ];
         }
 
