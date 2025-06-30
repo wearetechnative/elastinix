@@ -1,5 +1,5 @@
 { inputs }:
-  { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [] } :
+  { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [],... } :
 let
 
   tfvars = if varsfile == ""
@@ -13,8 +13,6 @@ let
     specialArgs = { inherit tfvars; ec2orAmi = "ec2"; };
     modules =
       [
-
-        #{elastinix.rootAuthorizedKeys = rootAuthorizedKeys;}
         "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
         (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
 
