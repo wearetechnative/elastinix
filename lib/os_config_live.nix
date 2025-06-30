@@ -14,9 +14,9 @@ let
     modules =
       [
 
-        {elastinix.rootAuthorizedKeys = rootAuthorizedKeys;}
+        #{elastinix.rootAuthorizedKeys = rootAuthorizedKeys;}
         "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
-        (import ../modules/nixos/bootstrap/base-conf.nix)
+        (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
 
         {
           imports = [
