@@ -1,12 +1,12 @@
 { inputs }:
-  { nixpkgs, targetSystem, machineConfig, tfvarsfile, rootAuthorizedKeys ? [] } :
+  { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [] } :
 let
 
-  tfvars = if tfvarsfile == ""
+  tfvars = if varsfile == ""
     then
       {}
     else
-      builtins.fromJSON (builtins.readFile tfvarsfile);
+      builtins.fromJSON (builtins.readFile varsfile);
 
   liveConfig = (nixpkgs.lib.nixosSystem {
     system = targetSystem;
