@@ -1,7 +1,10 @@
 # CHANGELOG
 
-## next version
+## Next version
 
-- [ ] initial module setup
-- [ ] initial start of exporting funtions
+## Elastinix 0.1.0
 
+- mini intro
+- initial module setup
+- initial start of exporting funtions
+- implement flake-parts
