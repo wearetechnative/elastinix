@@ -1,7 +1,8 @@
-{config, pkgs, lib, ...}:
+{config, pkgs, lib, tfvars, ...}:
 
 let
   cfg = config.elastinix.services.freshrss;
+  environment_domain = tfvars.environment_domain;
 
 in {
 
@@ -16,10 +17,6 @@ in {
     database_host = lib.mkOption {
       type = lib.types.str;
       description = "Hostname of the database";
-    };
-    baseurl = lib.mkOption {
-      type = lib.types.str;
-      description = "Domain name";
     };
     passwordfile = lib.mkOption {
       type = lib.types.str;
@@ -46,7 +43,7 @@ in {
       clientMaxBodySize = "25m";
     };
 
-    services.nginx.virtualHosts."${cfg.baseurl}" = {
+    services.nginx.virtualHosts."freshrss.${environment_domain}" = {
       enableACME = true;
       forceSSL = true;
     };
@@ -55,7 +52,7 @@ in {
       enable = true;
       package = pkgs.freshrss;
       user = "freshrss";
-      baseUrl = "https://${cfg.baseurl}";
+      baseUrl = "https://freshrss.${environment_domain}";
       virtualHost = cfg.baseurl;
       passwordFile = cfg.passwordfile;
       dataDir = "/var/lib/freshrss";
