@@ -1,6 +1,7 @@
 serviceToManage: { lib, config, pkgs, tfvarsfile, ... }:
 
 let
+  cfg = config.elastinix.services.monitoring;
   tfvarsContent = builtins.readFile tfvarsfile;
   tfvars = builtins.fromJSON tfvarsContent;
   infra_environment = tfvars.infra_environment;
@@ -11,6 +12,13 @@ let
 
 
 in {
+    options.elastinix.services.monitoring = {
+
+    enable = lib.mkEnableOption "Monitoring systemd services";
+  };
+
+  config = lib.mkIf cfg.enable {
+
     services.logrotate.settings = {
       header = {
         dateext = true;
@@ -54,4 +62,5 @@ in {
         fi
       '';
     };
+  };
 }
