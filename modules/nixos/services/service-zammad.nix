@@ -1,4 +1,4 @@
-{ config, pkgs, tfvars, pkgs-zammad, lib, ... }:
+{ config, pkgs, tfvars, lib, ... }:
 let
   cfg = config.elastinix.services.zammad;
   infra_environment = tfvars.infra_environment;
@@ -42,33 +42,31 @@ in
 
   # Only enable Zammad when in production environment
   config = lib.mkIf cfg.enable {
-    config = lib.mkIf (infra_environment == "prod") {
-      nixpkgs.config.allowUnfree = true;
 
-      services.zammad = {
-        package = pkgs-zammad.zammad;
-        enable = true;
-        host = "0.0.0.0";
-        openPorts = true;
-        secretKeyBaseFile = "${cfg.secret_key_base_file}";
+    services.zammad = {
+      package = pkgs.zammad;
+      enable = true;
+      host = "0.0.0.0";
+      openPorts = true;
+      secretKeyBaseFile = "${cfg.secret_key_base_file}";
 
-        redis.createLocally = true;
+      redis.createLocally = true;
 
-        database.createLocally = false;
-        database.host = "${cfg.database_host}";
-        database.user = "${cfg.database_username}";
-        database.name = "${cfg.database_name}";
-        database.port = cfg.database_port;
-        database.passwordFile = "${cfg.password_file}";
+      database.createLocally = false;
+      database.host = "${cfg.database_host}";
+      database.user = "${cfg.database_username}";
+      database.name = "${cfg.database_name}";
+      database.port = cfg.database_port;
+      database.passwordFile = "${cfg.password_file}";
 
-      };
+    };
 
-      services.elasticsearch = {
-        enable = true;
-        dataDir = "/var/lib/elasticsearch";
-        plugins = [ pkgs.elasticsearchPlugins.ingest-attachment ];
-        extraConf = "http.max_content_length: 400mb";
-        logging = ''
+    services.elasticsearch = {
+      enable = true;
+      dataDir = "/var/lib/elasticsearch";
+      plugins = [ pkgs.elasticsearchPlugins.ingest-attachment ];
+      extraConf = "http.max_content_length: 400mb";
+      logging = ''
             logger.action.name = org.elasticsearch.action
             logger.action.level = info
 
@@ -78,16 +76,15 @@ in
             appender.console.layout.pattern = [%d{ISO8601}][%-5p][%-25c{1.}] %marker%m%n
             rootLogger.level = info
             rootLogger.appenderRef.console.ref = console
-        '';
-      };
+      '';
+    };
 
-      services.nginx.virtualHosts."zammad.${environment_domain}" = {
-        enableACME = true;
-        forceSSL = true;
-        locations = {
-          "/" = {
-            proxyPass = "http://127.0.0.1:3000";
-          };
+    services.nginx.virtualHosts."zammad.${environment_domain}" = {
+      enableACME = true;
+      forceSSL = true;
+      locations = {
+        "/" = {
+          proxyPass = "http://127.0.0.1:3000";
         };
       };
     };
