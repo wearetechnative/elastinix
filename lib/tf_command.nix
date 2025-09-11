@@ -10,10 +10,9 @@
     rootAuthorizedKeys ? [] } :
 let
 
-  pkgs = import nixpkgs { system = runSystem; config.allowUnfree = true; };
+  pkgsRunSys = import nixpkgs { system = runSystem; };
 
   useTfBin = (import ./tf_bin.nix {inherit inputs; }) (terraformBinConf // { inherit nixpkgs runSystem tfBinOverride; });
-
 
   bootstrapImage = (import ./os_config_bootstrap.nix { inherit inputs nixpkgs; }) targetSystem rootAuthorizedKeys;
   liveConfig = (import ./os_config_live.nix { inherit inputs; }) { inherit nixpkgs targetSystem rootAuthorizedKeys machineConfig varsfile;};
@@ -26,4 +25,4 @@ let
   tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
 in
 
-pkgs.writeShellScriptBin "terraform" '' ${tf_prelude} ${useTfBin} ${cmd} ${tf_varfile_arg} $@''
+pkgsRunSys.writeShellScriptBin "terraform" '' ${tf_prelude} ${useTfBin} ${cmd} ${tf_varfile_arg} $@''

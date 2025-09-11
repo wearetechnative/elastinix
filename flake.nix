@@ -2,10 +2,17 @@
   description = "Elastinix, getting Nix to the Cloud";
   inputs = {
 
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05"; # This nixpkgs archive is used by nixos-generators
-    nixos-generators.url = "github:nix-community/nixos-generators/7c60ba4bc8d6aa2ba3e5b0f6ceb9fc07bc261565";
-    nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
+    #nixos 24.05
+        nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05"; # This nixpkgs archive is used by nixos-generators
+        nixos-generators.url = "github:nix-community/nixos-generators/7c60ba4bc8d6aa2ba3e5b0f6ceb9fc07bc261565";
+        nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
+    #nixos 25.05
+    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05"; # This nixpkgs archive is used by nixos-generators
+    #nixos-generators.url = "github:nix-community/nixos-generators";
+    #nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
+
+    #first setup to support multiple terraforms make this a remote module, or just remove
     nixpkgs-terraform-v1-5-3.url = "github:NixOS/nixpkgs/nixos-23.05";
     nixpkgs-terraform-v1-5-7.url = "github:nixos/nixpkgs/3f293ea9ecd5c50e5bd393fd1c560275ea0e6975";
     nixpkgs-opentofu-v1-8-7.url = "github:nixos/nixpkgs/nixos-24.11";
@@ -35,9 +42,9 @@
       };
 
       flake = {
-        lib.tf_bin = import ./lib/tf_bin.nix { inherit inputs; };
+        #lib.tf_bin = import ./lib/tf_bin.nix { inherit inputs; };
         lib.tf_command = import ./lib/tf_command.nix { inherit inputs; };
-        lib.os_config_live = import ./lib/os_config_live.nix { inherit inputs; };
+        #lib.os_config_live = import ./lib/os_config_live.nix { inherit inputs; };
       };
     };
 }
