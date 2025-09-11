@@ -20,9 +20,11 @@
 
     flake-parts.url = "github:hercules-ci/flake-parts";
     devshell.url = "github:numtide/devshell";
+
+    pontifex.url = "path:/home/casper/git/technative_b.v./pontifex";
   };
 
-  outputs = inputs@{ flake-parts, ... }:
+  outputs = inputs@{ flake-parts, pontifex, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
 
       imports = [
