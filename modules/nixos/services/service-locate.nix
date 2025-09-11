@@ -7,7 +7,7 @@
     services = {
       locate.enable = true;
       locate.package = pkgs.mlocate;
-      locate.localuser = null;
+      #locate.localuser = null;
     };
   };
 
