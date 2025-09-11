@@ -10,7 +10,12 @@ let
 
   liveConfig = (nixpkgs.lib.nixosSystem {
     system = targetSystem;
-    specialArgs = { inherit tfvars; ec2orAmi = "ec2"; };
+    specialArgs = {
+      inherit tfvars;
+      ec2orAmi = "ec2";
+      inherit nixpkgs;
+      inherit targetSystem;
+    };
     modules =
       [
         "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
