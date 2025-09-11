@@ -19,16 +19,17 @@ let
         "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
         (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
 
+        inputs.agenix.nixosModules.default
+        inputs.nixos-healthchecks.nixosModules.default
+
+        (inputs.import-tree ../modules/nixos/programs)
+        (inputs.import-tree ../modules/nixos/services)
+        (inputs.import-tree ../modules/nixos/tests)
+
         {
           imports = [
 
-            inputs.agenix.nixosModules.default
-            inputs.nixos-healthchecks.nixosModules.default
-
-            (inputs.import-tree ../modules/nixos/programs)
-            (inputs.import-tree ../modules/nixos/services)
-            (inputs.import-tree ../modules/nixos/tests)
-          ];
+               ];
 
           environment.systemPackages = [
              inputs.agenix.packages.${targetSystem}.agenix
