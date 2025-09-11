@@ -10,7 +10,7 @@
     rootAuthorizedKeys ? [] } :
 let
 
-  pkgs = import nixpkgs { system = runSystem; config.allowUnfree = true; };
+  pkgsRunSys = import nixpkgs { system = runSystem; };
 
   useTfBin = (import ./tf_bin.nix {inherit inputs; }) (terraformBinConf // { inherit nixpkgs runSystem tfBinOverride; });
 
@@ -25,4 +25,4 @@ let
   tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
 in
 
-pkgs.writeShellScriptBin "terraform" '' ${tf_prelude} ${useTfBin} ${cmd} ${tf_varfile_arg} $@''
+pkgsRunSys.writeShellScriptBin "terraform" '' ${tf_prelude} ${useTfBin} ${cmd} ${tf_varfile_arg} $@''
