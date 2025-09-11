@@ -18,9 +18,9 @@ in
       pontifex.nixosModules."x86_64-linux".croctalk
     ];
 
-    services.pontifex = {
-      enable = true;
-      EnvironmentFile = cfg.environment_file;
-    };
+    #    services.pontifex = {
+    #      enable = true;
+    #      EnvironmentFile = cfg.environment_file;
+    #    };
   };
 }
