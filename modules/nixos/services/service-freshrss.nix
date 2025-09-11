@@ -18,6 +18,10 @@ in {
       type = lib.types.str;
       description = "Hostname of the database";
     };
+    baseurl = lib.mkOption {
+      type = lib.types.str;
+      description = "Domain name";
+    };
     passwordfile = lib.mkOption {
       type = lib.types.str;
       description = "Password for login user freshrss";
@@ -52,7 +56,7 @@ in {
       enable = true;
       package = pkgs.freshrss;
       user = "freshrss";
-      baseUrl = "https://freshrss.${environment_domain}";
+      baseUrl = "https://${cfg.baseurl}";
       virtualHost = cfg.baseurl;
       passwordFile = cfg.passwordfile;
       dataDir = "/var/lib/freshrss";
