@@ -13,8 +13,6 @@ let
     specialArgs = {
       inherit tfvars;
       ec2orAmi = "ec2";
-      inherit nixpkgs;
-      inherit targetSystem;
     };
     modules =
       [
