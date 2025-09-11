@@ -12,12 +12,16 @@ let
     system = targetSystem;
     specialArgs = {
       inherit tfvars;
-      inherit targetSystem;
-      inherit nixpkgs;
       ec2orAmi = "ec2";
     };
     modules =
       [
+
+        {
+          _module.args.nixpkgs = nixpkgs;
+          _module.args.targetSystem = targetSystem;
+        }
+
         "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
         (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
 
