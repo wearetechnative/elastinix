@@ -55,10 +55,10 @@ in
         redis.createLocally = true;
 
         database.createLocally = false;
-        database.host = "${cfg.zammad_database_host}";
-        database.user = "${cfg.zammad_database_username}";
-        database.name = "${cfg.zammad_database_name}";
-        database.port = cfg.zammad_database_port;
+        database.host = "${cfg.database_host}";
+        database.user = "${cfg.database_username}";
+        database.name = "${cfg.database_name}";
+        database.port = cfg.database_port;
         database.passwordFile = "${cfg.password_file}";
 
       };
