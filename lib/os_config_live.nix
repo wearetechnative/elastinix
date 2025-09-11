@@ -27,10 +27,6 @@ let
         (inputs.import-tree ../modules/nixos/tests)
 
         {
-          imports = [
-
-               ];
-
           environment.systemPackages = [
              inputs.agenix.packages.${targetSystem}.agenix
           ];
