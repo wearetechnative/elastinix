@@ -9,8 +9,10 @@ inputs.nixos-generators.nixosGenerate {
 
     "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
 
-    { amazonImage.name = "nixos_image"; amazonImage.sizeMB = 16 * 1024; }
-    #{ elastinix.rootAuthorizedKeys = rootAuthorizedKeys; }
+    {
+      amazonImage.name = "nixos_image";
+      amazonImage.sizeMB = 16 * 1024;
+    }
 
     (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
 
