@@ -2,6 +2,14 @@
 
 ## Next version
 
+## Elastinix 25.05.2 - 30 September 2025
+
+- new versioning system bound to official nixos releases
+- minimal remote functions
+- many small bugfixes
+- initial usage documentation in README.md
+- new logo
+
 ## Elastinix 0.1.0
 
 - mini intro

@@ -2,11 +2,6 @@
   description = "Elastinix, getting Nix to the Cloud";
   inputs = {
 
-    #nixos 24.05
-    #   nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05"; # This nixpkgs archive is used by nixos-generators
-    #   nixos-generators.url = "github:nix-community/nixos-generators/7c60ba4bc8d6aa2ba3e5b0f6ceb9fc07bc261565";
-    #   nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
-
     #nixos 25.05
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05"; # This nixpkgs archive is used by nixos-generators
     nixos-generators.url = "github:nix-community/nixos-generators";
