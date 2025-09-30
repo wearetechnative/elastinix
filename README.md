@@ -93,6 +93,18 @@ packages = {
 }
 ```
 
+## Developer information
+
+### Release RunBook
+
+Publish a new release
+
+- make sure current active nixos version branch is up to date e.g. `nixos-25.05`
+- rename `Next Release` in changelog to `nixos-25.05.[newversion]`
+- `git tag `nixos-25.05.[newversion]`
+- `git push --tags`
+- in github create new release based on new tag
+
 ## Credits
 
 This project would not have seen the light without the excellent article
