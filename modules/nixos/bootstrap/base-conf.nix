@@ -7,7 +7,7 @@ rootAuthorizedKeys:
   #   type = lib.types.listOf lib.types.str;
   # };
 
-  system.stateVersion = "25.05";
+  system.stateVersion = "24.05";
 
   boot.kernel.sysctl = {
     "vm.max_map_count" = "262144";
