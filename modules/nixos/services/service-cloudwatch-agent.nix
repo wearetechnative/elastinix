@@ -8,12 +8,6 @@ in
 
     enable = lib.mkEnableOption "Cloudwatch agent";
 
-    version = lib.mkOption {
-      type = lib.types.str;
-      default = "latest";
-      description = "Twenty redis version";
-    };
-
     config = lib.mkOption {
       type = lib.types.str;
       default = "cloudwatch_config_${infra_environment}";
@@ -22,7 +16,7 @@ in
 
     configPath = lib.mkOption {
       type = lib.types.str;
-      default = "../secrets/cloudwatch_config_${infra_environment}.age";
+      default = "${toString ./.}/../secrets/cloudwatch_config_${infra_environment}.age";
       description = "Cloudwatch config location";
     };
   };
