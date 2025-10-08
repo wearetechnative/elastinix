@@ -11,11 +11,13 @@ in
 
     postgres_host = lib.mkOption {
       type = lib.types.str;
+      default = "";
       description = "";
     };
 
     postgres_password_file = lib.mkOption {
       type = lib.types.str;
+      default = "";
       description = "";
     };
   };
