@@ -1,4 +1,4 @@
-{ config, lib, unstable, tfvars, ... }:
+{ config, lib, tfvars, ... }:
 
 let
   cfg = config.elastinix.services.twenty;
@@ -29,7 +29,6 @@ in
       postgresUser = "onlyoffice";
       port = 7777;
       postgresPasswordFile = cfg.postgres_password_file;
-      package = unstable.onlyoffice-documentserver;
     };
   };
 }
