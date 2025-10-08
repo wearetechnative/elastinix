@@ -1,9 +1,7 @@
-{ lib, config, pkgs, pkgs2411, tfvarsfile, ... }:
+{ lib, config, pkgs, pkgs2411, tfvars, ... }:
 
 let
   cfg = config.elastinix.services.psqldump;
-  tfvarsContent = builtins.readFile tfvarsfile;
-  tfvars = builtins.fromJSON tfvarsContent;
   infra_environment = tfvars.infra_environment;
   app = "twentycrm";
   dataDir = "/data/psqldump";
