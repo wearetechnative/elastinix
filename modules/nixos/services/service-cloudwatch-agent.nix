@@ -1,4 +1,4 @@
-{ config, unstable, lib, tfvars, ... }:
+{ config, lib, tfvars, ... }:
 let
   cfg = config.elastinix.services.cloudwatch-agent;
   infra_environment = tfvars.infra_environment;
@@ -25,7 +25,6 @@ in
 
     services.amazon-cloudwatch-agent = {
       enable = true;
-      package = unstable.amazon-cloudwatch-agent;
       mode = "ec2";
 
       configuration = {
