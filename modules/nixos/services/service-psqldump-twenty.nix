@@ -1,4 +1,4 @@
-{ config, lib, pkgs, pkgs2411, tfvars, ... }:
+{ config, lib, pkgs, tfvars, ... }:
 
 let
   cfg = config.elastinix.services.psqldump-twenty;
@@ -9,10 +9,10 @@ let
 
   bin.aws = "${pkgs.awscli2}/bin/aws";
   bin.lego = "${pkgs.lego}/bin/lego";
-  bin.pgdump = "${pkgs2411.postgresql}/bin/pg_dump";
+  bin.pgdump = "${pkgs.postgresql}/bin/pg_dump";
   bin.tar = "${pkgs.gnutar}/bin/tar";
-  bin.psql = "${pkgs2411.postgresql}/bin/psql";
-  bin.pg_dump = "${pkgs2411.postgresql}/bin/pg_dump";
+  bin.psql = "${pkgs.postgresql}/bin/psql";
+  bin.pg_dump = "${pkgs.postgresql}/bin/pg_dump";
   bin.logger = "${pkgs.logger}/bin/logger";
   bin.gzip = "${pkgs.gzip}/bin/gzip";
 
