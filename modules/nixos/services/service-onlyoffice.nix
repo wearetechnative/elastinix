@@ -1,7 +1,7 @@
 { config, lib, tfvars, ... }:
 
 let
-  cfg = config.elastinix.services.twenty;
+  cfg = config.elastinix.services.onlyoffice;
   environment_domain = tfvars.environment_domain;
 in
   {
@@ -11,13 +11,11 @@ in
 
     postgres_host = lib.mkOption {
       type = lib.types.str;
-      default = "";
       description = "";
     };
 
     postgres_password_file = lib.mkOption {
       type = lib.types.str;
-      default = "";
       description = "";
     };
   };
