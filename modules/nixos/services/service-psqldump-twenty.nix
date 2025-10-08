@@ -1,12 +1,12 @@
-{ lib, config, pkgs, pkgs2411, tfvarsfile, ... }:
+{ config, lib, pkgs, pkgs2411, tfvarsfile, ... }:
 
 let
-  cfg = config.elastinix.services.psqldump;
+  cfg = config.elastinix.services.psqldump-twenty;
   tfvarsContent = builtins.readFile tfvarsfile;
   tfvars = builtins.fromJSON tfvarsContent;
   infra_environment = tfvars.infra_environment;
   app = "twentycrm";
-  dataDir = "/data/psqldump";
+  dataDir = "/data/psqldump-twenty";
   persistant_storage_s3 = tfvars.docker_twenty_storageS3Name;
 
   bin.aws = "${pkgs.awscli2}/bin/aws";
@@ -19,14 +19,14 @@ let
   bin.gzip = "${pkgs.gzip}/bin/gzip";
 
 in {
-  options.elastinix.services.psqldump = {
+  options.elastinix.services.psqldump-twenty = {
 
-    enable = lib.mkEnableOption "PSQL dump";
+    enable = lib.mkEnableOption "PSQL dump for twenty";
 
     configFile = lib.mkOption {
       type = lib.types.str;
-      default = "/run/secrets/psql_backup_database_${infra_environment}.env";
-      description = "The config file location for psqldump";
+      default = "/run/secrets/psql_backup_database_twenty_${infra_environment}.env";
+      description = "The config file location for psqldump-twenty";
     };
   };
 
@@ -39,26 +39,27 @@ in {
     };
 
     # CERTBOT
-    systemd.timers."${infra_environment}-psql-backup" = {
+    systemd.timers."${infra_environment}-psql-backup-twenty" = {
       wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnCalendar="daily";
-        Unit = "${infra_environment}-psql-backup.service";
+        OnCalendar="hourly";
+        Unit = "${infra_environment}-psql-backup-twenty.service";
       };
     };
+
 
     services.logrotate.settings = {
       header = {
         dateext = true;
       };
-      "/var/log/psqlDatabaseBackup.log" = {
+      "/var/log/psqlDatabaseBackupTwenty.log" = {
         frequency = "daily";
         rotate = 7;
       };
     };
 
-    systemd.services."${infra_environment}-psql-backup" =
-      {
+    systemd.services."${infra_environment}-psql-backup-twenty" =
+        {
         serviceConfig.Type = "oneshot";
         wantedBy = [ "multi-user.target" ];
         script = ''
@@ -67,16 +68,16 @@ in {
       trap '((numberOfErrors++))' ERR
       set +e
 
-      exec > >(tee -a /var/log/psqlDatabaseBackup.log | while read line; do ${bin.logger} -t psqlBackup "$line"; done) 2>&1
+      exec > >(tee -a /var/log/psqlDatabaseBackupTwenty.log | while read line; do ${bin.logger} -t psqlBackup "$line"; done) 2>&1
 
 
       psqlDumpPathBase="${dataDir}"
       backupMinimumFiles=5
       backupMinimumAge=7
 
-      config_files=("/run/secrets/psql_backup_database_${infra_environment}.env")
+      config_files=("/run/secrets/psql_backup_database_twenty_${infra_environment}.env")
 
-      echo "---- Start run psqlDatabaseBackup $0) - $(date) ----"
+      echo "---- Start run psqlDatabaseBackupTwenty $0) - $(date) ----"
       mkdir -p $psqlDumpPathBase
       for cfg in "''${config_files[@]}"; 
       do
@@ -128,10 +129,10 @@ in {
       if [[ $numberOfErrors -ne 0 ]]; 
       then
       echo "---- Timestamp: $(date)"
-      echo "---- Finish run psqlDatabaseBackup with errors ----"
+      echo "---- Finish run psqlDatabaseBackupTwenty with errors ----"
       else
       echo "---- Timestamp: $(date)"
-      echo "---- Finish run psqlDatabaseBackup successfully ----"
+      echo "---- Finish run psqlDatabaseBackupTwenty successfully ----"
       fi
       '';
       };
