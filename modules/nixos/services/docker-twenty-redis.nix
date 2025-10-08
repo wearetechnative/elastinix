@@ -2,7 +2,7 @@
 
 let
   cfg = config.elastinix.services.twenty-redis;
-  networkName = "psql-twenty-net";
+  networkName = "twenty-net";
 in
   {
   options.elastinix.services.twenty-redis = {
