@@ -57,7 +57,7 @@ in
         image = "redis:${cfg.version}";
         ports = [ "${cfg.forward_port}:6379" ];
         environment = {
-          REDIS_HOST="${cfg.redis_host}";
+          REDIS_HOST="${cfg.host}";
         };
         dependsOn = [ ];
         volumes = [
