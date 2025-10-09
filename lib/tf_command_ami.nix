@@ -15,11 +15,11 @@ let
   useTfBin = (import ./tf_bin.nix {inherit inputs; }) (terraformBinConf // { inherit nixpkgs runSystem tfBinOverride; });
 
   bootstrapImage = (import ./os_config_bootstrap_ami.nix { inherit inputs nixpkgs; }) targetSystem rootAuthorizedKeys;
-  # liveConfig = (import ./os_config_live.nix { inherit inputs; }) { inherit nixpkgs targetSystem rootAuthorizedKeys machineConfig varsfile;};
+  
 
   tf_prelude = ''
-    export TF_VAR_ec2_bootstrap_img_path="${bootstrapImage}/nixos_image.vhd";
-    # export TF_VAR_ec2_host_live_path="${liveConfig.config.system.build.toplevel}"
+    export TF_VAR_ec2_bootstrap_img_path="${bootstrapImage}/nixos_image.vhd"
+
   '';
 
   tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
