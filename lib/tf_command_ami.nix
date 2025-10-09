@@ -30,8 +30,7 @@ let
         }
       ];
   };
-in
-"${bootstrap_img_full}/nixos_image.vhd";
+
 
   tf_prelude = ''
     export TF_VAR_ec2_bootstrap_img_path="${bootstrap_img_full}/nixos_image.vhd";
@@ -39,6 +38,5 @@ in
 
   tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
 in
-
-pkgsRunSys.writeShellScriptBin "terraform" '' ${tf_prelude} ${useTfBin} ${cmd} ${tf_varfile_arg} $@''
+"${bootstrap_img_full}/nixos_image.vhd";
 
