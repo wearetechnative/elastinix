@@ -14,7 +14,7 @@ let
 
   useTfBin = (import ./tf_bin.nix {inherit inputs; }) (terraformBinConf // { inherit nixpkgs runSystem tfBinOverride; });
 
-  bootstrapImage = (import ./os_config_bootstrap_ami.nix { inherit inputs nixpkgs; }) targetSystem rootAuthorizedKeys;
+  bootstrapImage = (import ./os_config_ami.nix { inherit inputs nixpkgs; }) targetSystem rootAuthorizedKeys;
   
 
   tf_prelude = ''

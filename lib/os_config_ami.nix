@@ -1,21 +1,11 @@
-{ inputs }:
-  { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [],... } :
-let
+{inputs, nixpkgs}:
+  targetSystem: rootAuthorizedKeys:
 
-  tfvars = if varsfile == ""
-    then
-      {}
-    else
-      builtins.fromJSON (builtins.readFile varsfile);
-
-  bootstrap_img_full = (nixpkgs.lib.nixosSystem {
-    system = targetSystem;
-    specialArgs = {
-      inherit tfvars;
-      ec2orAmi = "ami";
-    };
-    modules =
-      [
+inputs.nixos-generators.nixosGenerate {
+  system = targetSystem;
+  pkgs = import nixpkgs { system = targetSystem; config.allowUnfree = true; };
+  format = "amazon";
+  modules = [
 
         {
           _module.args.nixpkgs = nixpkgs;
@@ -40,8 +30,6 @@ let
 
         machineConfig
 
-      ];
+  ];
 
-  });
-in
-  "${bootstrap_img_full}/nixos_image.vhd"
+}
