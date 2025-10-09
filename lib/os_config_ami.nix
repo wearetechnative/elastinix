@@ -12,7 +12,7 @@ inputs.nixos-generators.nixosGenerate {
           _module.args.targetSystem = targetSystem;
         }
 
-        "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
+        # "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
         (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
 
         inputs.agenix.nixosModules.default
