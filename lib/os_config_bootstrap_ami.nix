@@ -44,4 +44,4 @@ let
 
   });
 in
-  "${bootstrap_img_full}/nixos_image.vhd";
+  "${bootstrap_img_full}/nixos_image.vhd"
