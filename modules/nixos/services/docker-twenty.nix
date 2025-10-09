@@ -17,7 +17,7 @@ in
 
     forward_port = lib.mkOption {
       type = lib.types.str;
-      default = "8000";
+      default = "8080";
       description = "The port that should be used";
     };
 
