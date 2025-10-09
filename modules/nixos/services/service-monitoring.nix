@@ -9,6 +9,8 @@ let
     logger = "${pkgs.logger}/bin/logger";
   };
 
+  monitoring_service = "${infra_environment}-${cfg.services}-monitoring";
+
 in {
   options.elastinix.services.monitoring = {
     enable = lib.mkEnableOption "Systemd Monitoring";
@@ -35,7 +37,7 @@ in {
     };
 
     # Define timers + services for each monitored service
-    systemd.timers = lib.genAttrs cfg.services (s: {
+    systemd.timers = lib.genAttrs monitoring_service (s: {
       wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = "*:5/10";
@@ -43,7 +45,7 @@ in {
       };
     });
 
-    systemd.services = lib.genAttrs cfg.services (s: {
+    systemd.services = lib.genAttrs monitoring_service (s: {
       serviceConfig.Type = "oneshot";
       wantedBy = [ "multi-user.target" ];
       script = ''
