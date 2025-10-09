@@ -1,22 +1,47 @@
-{inputs, nixpkgs}:
-  targetSystem: rootAuthorizedKeys:
+{ inputs }:
+  { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [],... } :
+let
 
-inputs.nixos-generators.nixosGenerate {
-  system = targetSystem;
-  pkgs = import nixpkgs { system = targetSystem; config.allowUnfree = true; };
-  format = "amazon";
-  modules = [
+  tfvars = if varsfile == ""
+    then
+      {}
+    else
+      builtins.fromJSON (builtins.readFile varsfile);
 
-    # "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
+  bootstrap_img_full = (nixpkgs.lib.nixosSystem {
+    system = targetSystem;
+    specialArgs = {
+      inherit tfvars;
+      ec2orAmi = "ami";
+    };
+    modules =
+      [
 
-    {
-      amazonImage.name = "nixos_image";
-      #amazonImage.sizeMB = 16 * 1024;
-      virtualisation.diskSize = 16 * 1024;
-    }
-    #{ elastinix.rootAuthorizedKeys = rootAuthorizedKeys; }
+        {
+          _module.args.nixpkgs = nixpkgs;
+          _module.args.targetSystem = targetSystem;
+        }
 
-    (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
+        "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
+        (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
 
-  ];
-}
+        inputs.agenix.nixosModules.default
+        inputs.nixos-healthchecks.nixosModules.default
+
+        (inputs.import-tree ../modules/nixos/programs)
+        (inputs.import-tree ../modules/nixos/services)
+        (inputs.import-tree ../modules/nixos/tests)
+
+        {
+          environment.systemPackages = [
+             inputs.agenix.packages.${targetSystem}.agenix
+          ];
+        }
+
+        machineConfig
+
+      ];
+
+  });
+in
+  "${bootstrap_img_full}/nixos_image.vhd";
