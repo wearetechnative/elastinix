@@ -14,29 +14,16 @@ let
 
   useTfBin = (import ./tf_bin.nix {inherit inputs; }) (terraformBinConf // { inherit nixpkgs runSystem tfBinOverride; });
 
-  # bootstrapImage = (import ./os_config_bootstrap.nix { inherit inputs nixpkgs; }) targetSystem rootAuthorizedKeys;
-  bootstrap_img_full = nixos-generators.nixosGenerate {
-    inherit system;
-    pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
-    format = "amazon";
-    specialArgs = { inherit tfvarsfile; ec2orAmi = "ami"; };
-    modules = minimal-modules ++
-      [
-        defaults
-        (import machineFile)
-        {
-          amazonImage.name = "nixos_image";
-          amazonImage.sizeMB = 16 * 1024;
-        }
-      ];
-  };
-
+  bootstrapImage = (import ./os_config_bootstrap_ami.nix { inherit inputs nixpkgs; }) targetSystem rootAuthorizedKeys;
+  # liveConfig = (import ./os_config_live.nix { inherit inputs; }) { inherit nixpkgs targetSystem rootAuthorizedKeys machineConfig varsfile;};
 
   tf_prelude = ''
-    export TF_VAR_ec2_bootstrap_img_path="${bootstrap_img_full}/nixos_image.vhd";
+    export TF_VAR_ec2_bootstrap_img_path="${bootstrapImage}/nixos_image.vhd";
+    # export TF_VAR_ec2_host_live_path="${liveConfig.config.system.build.toplevel}"
   '';
 
   tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
 in
-"${bootstrap_img_full}/nixos_image.vhd";
+
+pkgsRunSys.writeShellScriptBin "terraform" '' ${tf_prelude} ${useTfBin} ${cmd} ${tf_varfile_arg} $@''
 
