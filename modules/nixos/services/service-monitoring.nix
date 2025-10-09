@@ -9,8 +9,6 @@ let
     logger = "${pkgs.logger}/bin/logger";
   };
 
-  monitoring_service = "${infra_environment}-${cfg.services}-monitoring";
-
 in {
   options.elastinix.services.monitoring = {
     enable = lib.mkEnableOption "Systemd Monitoring";
@@ -37,7 +35,7 @@ in {
     };
 
     # Define timers + services for each monitored service
-    systemd.timers = lib.genAttrs monitoring_service (s: {
+    systemd.timers = lib.genAttrs cfg.services (s: {
       wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = "*:5/10";
@@ -45,10 +43,16 @@ in {
       };
     });
 
-    systemd.services = lib.genAttrs monitoring_service (s: {
-      serviceConfig.Type = "oneshot";
-      wantedBy = [ "multi-user.target" ];
-      script = ''
+    systemd.services =
+      lib.mapAttrs'
+      (s: v: {
+        name = "${infra_environment}-${s}-monitoring";
+        value = v;
+      })
+      (lib.genAttrs cfg.services (s: {
+        serviceConfig.Type = "oneshot";
+        wantedBy = [ "multi-user.target" ];
+        script = ''
         exec > >(tee -a /var/log/${s}-monitoring.log | while read line; do ${bin.logger} -t ${infra_environment}-${s}-monitoring.* "$line"; done) 2>&1
 
         active=$(${bin.systemctl} status ${s}.service | grep -o 'Active: active' || echo "inactive")
@@ -56,11 +60,11 @@ in {
 
         echo "---- Timestamp: $(date)"
         if [ "$active" = "$success" ]; then
-          echo "---- Service '${s}' is running successfully ----"
+        echo "---- Service '${s}' is running successfully ----"
         else
-          echo "---- Service '${s}' encountered issues ----"
+        echo "---- Service '${s}' encountered issues ----"
         fi
-      '';
-    });
+        '';
+      }));
   };
 }
