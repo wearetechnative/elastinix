@@ -11,6 +11,11 @@ inputs.nixos-generators.nixosGenerate {
           _module.args.nixpkgs = nixpkgs;
           _module.args.targetSystem = targetSystem;
         }
+        {
+          amazonImage.name = "nixos_image";
+          #amazonImage.sizeMB = 16 * 1024;
+          virtualisation.diskSize = 16 * 1024;
+        }
 
         # "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
         (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
