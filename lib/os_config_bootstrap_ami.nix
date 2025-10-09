@@ -7,7 +7,7 @@ inputs.nixos-generators.nixosGenerate {
   format = "amazon";
   modules = [
 
-    "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
+    # "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
 
     {
       amazonImage.name = "nixos_image";
