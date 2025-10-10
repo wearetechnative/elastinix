@@ -8,8 +8,8 @@ in
     enable = lib.mkEnableOption "postgresql Database";
 
     port = lib.mkOption {
-      type = lib.types.str;
-      default = "5432";
+      type = lib.types.int;
+      default = 5432;
       description = "The port where postgres will be accessible from";
     };
 
