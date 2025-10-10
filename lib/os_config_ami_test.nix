@@ -30,6 +30,7 @@ inputs.nixos-generators.nixosGenerate {
         {
           environment.systemPackages = [
              inputs.agenix.packages.${targetSystem}.agenix
+             pkgs.firefox
           ];
         }
 
