@@ -10,7 +10,7 @@
     zsh
     sudo
     bat
-
+    firefox
     fortune
 
     git
