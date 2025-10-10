@@ -18,8 +18,7 @@ let
   
 
   tf_prelude = ''
-    export TF_VAR_ec2_bootstrap_img_path="${bootstrapImage}/nixos_image.vhd"
-
+    export TF_VAR_ami_path="${bootstrapImage}/nixos_image.vhd"
   '';
 
   tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";

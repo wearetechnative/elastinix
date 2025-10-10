@@ -14,7 +14,7 @@ inputs.nixos-generators.nixosGenerate {
         {
           amazonImage.name = "nixos_image";
           #amazonImage.sizeMB = 16 * 1024;
-          virtualisation.diskSize = 16 * 1024;
+          virtualisation.diskSize = 8 * 1024;
         }
 
         # "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
