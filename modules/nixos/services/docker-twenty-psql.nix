@@ -46,7 +46,7 @@ in
 
     virtualisation.oci-containers.containers."twenty-psql" =
       {
-        image = "bitnami/postgresql:${cfg.version}";
+        image = "postgres:${cfg.version}";
         ports = [ "${cfg.forward_port}:5432" ];
         environmentFiles = [ cfg.environment_file ];
         dependsOn = [ ];
