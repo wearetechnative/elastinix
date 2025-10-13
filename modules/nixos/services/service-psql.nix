@@ -45,10 +45,5 @@ in
       '';
       initialScript = cfg.initial_script;
     };
-
-    # Define a systemd service override for the container
-    systemd.services."postgresql".serviceConfig.ExecStartPre = [
-      "${pkgs.bash}/bin/bash -c 'chown -R 71:postgres ${cfg.data_dir}'"
-    ];
   };
 }
