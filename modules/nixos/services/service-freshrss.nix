@@ -1,7 +1,8 @@
-{config, pkgs, lib, ...}:
+{config, pkgs, lib, tfvars, ...}:
 
 let
   cfg = config.elastinix.services.freshrss;
+  environment_domain = tfvars.environment_domain;
 
 in {
 
@@ -46,7 +47,7 @@ in {
       clientMaxBodySize = "25m";
     };
 
-    services.nginx.virtualHosts."${cfg.baseurl}" = {
+    services.nginx.virtualHosts."freshrss.${environment_domain}" = {
       enableACME = true;
       forceSSL = true;
     };

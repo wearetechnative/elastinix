@@ -1,4 +1,4 @@
-{config, lib, pkgs, tfvars, ...}:
+{config, lib, tfvars, ...}:
 let
 
   environment_domain = tfvars.environment_domain;

@@ -1,4 +1,4 @@
-{ pkgs, config, lib, ... }:
+{ config, lib, ... }:
 
 {
   options.elastinix.services.nginx.enable = lib.mkEnableOption "enable std nginx";

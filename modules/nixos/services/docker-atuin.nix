@@ -2,16 +2,30 @@
 
 let
   cfg = config.elastinix.services.atuin;
-  forwardPort = "8888";
+  environment_domain = tfvars.environment_domain;
   networkName = "atuin";
-  pg_database_host = tfvars.docker_twenty_pgDatabaseName;
-  domainName = tfvars.docker_atuin_domainName;
-  atuin_image = tfvars.docker_atuin_dockerImage;
 in
   {
 
   options.elastinix.services.atuin = {
     enable = lib.mkEnableOption "enable Atuin";
+
+    forward_port = lib.mkOption {
+      type = lib.types.str;
+      default = "8888";
+      description = "The port that should be used";
+    };
+
+    database_host = lib.mkOption {
+      type = lib.types.str;
+      description = "";
+    };
+
+    version = lib.mkOption {
+      type = lib.types.str;
+      default = "18.3.0";
+      description = "";
+    };
   };
 
   config = lib.mkIf cfg.enable{
@@ -30,18 +44,18 @@ in
     virtualisation.oci-containers.containers."atuin" =
       let
 
-        PG_DATABASE_HOST = "${pg_database_host}";
+        PG_DATABASE_HOST = "${cfg.database_host}";
 
       in
         {
-        image = "${atuin_image}";
-        ports = [ "${forwardPort}:8888" ];
+        image = "ghcr.io/atuinsh/atuin:v${cfg.version}";
+        ports = [ "${cfg.forward_port}:8888" ];
         environment = {
 
           PORT = "8888";
           ATUIN_HOST = "0.0.0.0";
           ATUIN_OPEN_REGISTRATION = "true";
-          ATUIN_DB_URI = "postgres://atuin:atuin@${PG_DATABASE_HOST}/atuin";
+          ATUIN_DB_URI = "postgres://atuin:atuin@${cfg.database_host}/atuin";
 
         };
         dependsOn = [ ];
@@ -51,12 +65,12 @@ in
         cmd = ["server" "start"];
       };
 
-    services.nginx.virtualHosts."${domainName}" = {
+    services.nginx.virtualHosts."atuin.${environment_domain}" = {
       enableACME = true;
       forceSSL = true;
       locations = {
         "/" = {
-          proxyPass = "http://127.0.0.1:${forwardPort}";
+          proxyPass = "http://127.0.0.1:${cfg.forward_port}";
         };
       };
     };
