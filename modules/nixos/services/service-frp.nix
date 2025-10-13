@@ -1,7 +1,7 @@
 { pkgs, config, tfvars, lib,  ... }:
 
 let
-  cfg = config.elastinix.services.twenty-psql;
+  cfg = config.elastinix.services.frp;
   infra_environment = tfvars.infra_environment;
 in
   {
