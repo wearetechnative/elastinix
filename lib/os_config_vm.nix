@@ -3,11 +3,19 @@
 
 inputs.nixos-generators.nixosGenerate {
   system = targetSystem;
+
+  tfvars = if varsfile == ""
+    then
+      {}
+    else
+      builtins.fromJSON (builtins.readFile varsfile);
+
   pkgs = import nixpkgs { system = targetSystem; config.allowUnfree = true; };
   format = "qcow";
   modules = [
         {
           _module.args.nixpkgs = nixpkgs;
+          _module.args.tfvars = tfvars;
           _module.args.targetSystem = targetSystem;
         }
         {
