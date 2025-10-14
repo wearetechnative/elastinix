@@ -5,14 +5,13 @@
 
   config = lib.mkIf config.elastinix.services.prowlerDashboard.enable {
     environment.systemPackages = [
-        pkgs.prowler
         pkgs.awscli2
     ];
     networking.firewall.allowedTCPPorts = [11666];
     systemd.services.prowlerDashboard = {
-        serviceConfig.Type = "oneshot";
+        serviceConfig.Type = "simple";
         wantedBy = [ "multi-user.target" ];
-        script = '' HOST=0.0.0.0 prowler dashoard '';
+        script = '' HOST=0.0.0.0 ${pkgs.prowler}/bin/prowler dashoard '';
     };
   };
 
