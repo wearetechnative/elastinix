@@ -4,7 +4,7 @@ let
   cfg = config.elastinix.services.slack2zammad;
 in
 
-  {
+{
   options.elastinix.services.slack2zammad = {
 
     enable = lib.mkEnableOption "slack to zammad";
