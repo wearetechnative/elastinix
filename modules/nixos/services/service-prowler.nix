@@ -12,7 +12,7 @@
     systemd.services.prowlerDashboard = {
         serviceConfig.Type = "oneshot";
         wantedBy = [ "multi-user.target" ];
-        script = '' HOST=0.0.0.0 prowler dashoard ''
+        script = '' HOST=0.0.0.0 prowler dashoard '';
     };
   };
 
