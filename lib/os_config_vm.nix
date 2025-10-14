@@ -1,14 +1,16 @@
 {inputs}:
   { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [],... }:
 
-inputs.nixos-generators.nixosGenerate {
-  system = targetSystem;
-
+let
   tfvars = if varsfile == ""
     then
       {}
     else
       builtins.fromJSON (builtins.readFile varsfile);
+in
+
+inputs.nixos-generators.nixosGenerate {
+  system = targetSystem;
 
   pkgs = import nixpkgs { system = targetSystem; config.allowUnfree = true; };
   format = "qcow";
