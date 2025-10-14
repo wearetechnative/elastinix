@@ -2,10 +2,12 @@
 
 {
   options.elastinix.services.prowlerDashboard.enable = lib.mkEnableOption "enable prowler dashboard service";
+                           elastinix.services.prowlerDashboard.enable = true;
 
   config = lib.mkIf config.elastinix.services.prowlerDashboard.enable {
     environment.systemPackages = [
         pkgs.awscli2
+        pkgs.prowler
     ];
     networking.firewall.allowedTCPPorts = [11666];
     systemd.services.prowlerDashboard = {
