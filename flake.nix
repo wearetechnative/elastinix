@@ -40,7 +40,16 @@
 
       flake = {
         #lib.tf_bin = import ./lib/tf_bin.nix { inherit inputs; };
-        lib.tf_command = import ./lib/tf_command.nix { inherit inputs; };
+        lib.tf_command = import ./lib/cmd_terraform.nix { inherit inputs; };
+        lib.run_as_vm = import ./lib/cmd_vm.nix { inherit inputs; };
+
+        # HOWTO
+        # cp ./result/nixos.qcow2 /tmp/
+        # chmod 644 /tmp/nixos.qcow2
+        # qemu-kvm -name nixos -m 4G -smp 2 -drive cache=writeback,file=/tmp/nixos.qcow2,id=drive1,if=none,index=1,werror=report \
+        #   -device virtio-blk-pci,bootindex=1,drive=drive1 \
+        #   -nographic
+
         #lib.os_config_live = import ./lib/os_config_live.nix { inherit inputs; };
       };
     };
