@@ -4,7 +4,7 @@
 inputs.nixos-generators.nixosGenerate {
   system = targetSystem;
   pkgs = import nixpkgs { system = targetSystem; config.allowUnfree = true; };
-  format = "vm";
+  format = "qcow";
   modules = [
 
         {
@@ -12,7 +12,7 @@ inputs.nixos-generators.nixosGenerate {
           _module.args.targetSystem = targetSystem;
         }
         {
-      #amazonImage.name = "nixos_image";
+          #amazonImage.name = "nixos_image";
           #amazonImage.sizeMB = 16 * 1024;
           virtualisation.diskSize = 8 * 1024;
         }
