@@ -15,8 +15,22 @@ inputs.nixos-generators.nixosGenerate {
           #amazonImage.name = "nixos_image";
           #amazonImage.sizeMB = 16 * 1024;
           virtualisation.diskSize = 8 * 1024;
+
+          fileSystems."/" = {
+            device = "/dev/disk/by-label/nixos";
+            fsType = "ext4";
+            autoResize = true;
+          };
+
+          boot.growPartition = true;
+          boot.kernelParams = [ "console=ttyS0" ];
+          boot.loader.grub.device = "/dev/vda";
+          boot.loader.timeout = 0;
+
+          users.extraUsers.root.password = "";
         }
 
+        "${nixpkgs}/nixos/modules/profiles/qemu-guest.nix"
         # "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
         (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
 
