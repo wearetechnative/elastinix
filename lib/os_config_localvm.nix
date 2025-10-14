@@ -33,6 +33,7 @@ inputs.nixos-generators.nixosGenerate {
           ];
         }
 
+        machineConfig
   ];
 
 }
