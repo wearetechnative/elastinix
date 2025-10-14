@@ -2,7 +2,6 @@
 
 {
   options.elastinix.services.prowlerDashboard.enable = lib.mkEnableOption "enable prowler dashboard service";
-                           elastinix.services.prowlerDashboard.enable = true;
 
   config = lib.mkIf config.elastinix.services.prowlerDashboard.enable {
     environment.systemPackages = [
@@ -11,7 +10,7 @@
     ];
     networking.firewall.allowedTCPPorts = [11666];
     systemd.services.prowlerDashboard = {
-        serviceConfig.Type = "simple";
+        serviceConfig.Type = builtins.trace "simple" "simple";
         wantedBy = [ "multi-user.target" ];
         script = '' HOST=0.0.0.0 ${pkgs.prowler}/bin/prowler dashoard '';
     };
