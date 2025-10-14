@@ -1,5 +1,5 @@
 {inputs, nixpkgs}:
-  targetSystem: rootAuthorizedKeys:
+  { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [],... }:
 
 inputs.nixos-generators.nixosGenerate {
   system = targetSystem;
@@ -32,6 +32,8 @@ inputs.nixos-generators.nixosGenerate {
              inputs.agenix.packages.${targetSystem}.agenix
           ];
         }
+
+        machineConfig
 
   ];
 

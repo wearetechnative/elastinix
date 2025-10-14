@@ -9,14 +9,7 @@
     varsfile ? "" ,
     rootAuthorizedKeys ? [] } :
 let
-
-  #pkgsRunSys = import nixpkgs { system = runSystem; };
-
-  #useTfBin = (import ./tf_bin.nix {inherit inputs; }) (terraformBinConf // { inherit nixpkgs runSystem tfBinOverride; });
-
-  #bootstrapImage = (import ./os_config_localvm.nix { inherit inputs nixpkgs; }) targetSystem rootAuthorizedKeys;
   bootstrapImage = (import ./os_config_localvm.nix { inherit inputs; }) { inherit nixpkgs targetSystem rootAuthorizedKeys machineConfig varsfile;};
-
 in
 
 bootstrapImage
