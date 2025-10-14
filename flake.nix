@@ -18,6 +18,8 @@
 
     agenix.url = "github:ryantm/agenix";
 
+    slack2zammad.url = "github:wearetechnative/slack2zammad";
+
     flake-parts.url = "github:hercules-ci/flake-parts";
     devshell.url = "github:numtide/devshell";
   };
