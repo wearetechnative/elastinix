@@ -1,4 +1,4 @@
-{inputs, nixpkgs}:
+{inputs}:
   { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [],... }:
 
 inputs.nixos-generators.nixosGenerate {
