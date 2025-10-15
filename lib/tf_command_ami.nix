@@ -14,7 +14,7 @@ let
 
   useTfBin = (import ./tf_bin.nix {inherit inputs; }) (terraformBinConf // { inherit nixpkgs runSystem tfBinOverride; });
 
-  bootstrapImage = (import ./os_config_ami_test.nix { inherit inputs nixpkgs; }) targetSystem rootAuthorizedKeys;
+  bootstrapImage = (import ./os_config_localvm.nix { inherit inputs; }) { inherit nixpkgs targetSystem rootAuthorizedKeys machineConfig varsfile;};
   
 
   tf_prelude = ''
@@ -23,6 +23,6 @@ let
 
   tf_varfile_arg = if (cmd == "apply" || cmd == "plan" ) then "-var-file=${varsfile}" else "";
 in
-
+bootstrapImage
 pkgsRunSys.writeShellScriptBin "terraform" '' ${tf_prelude} ${useTfBin} ${cmd} ${tf_varfile_arg} $@''
 
