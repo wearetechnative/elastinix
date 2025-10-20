@@ -1,40 +1,49 @@
 {inputs}:
   { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [],... }:
+let
 
-inputs.nixos-generators.nixosGenerate {
-  system = targetSystem;
-  pkgs = import nixpkgs { system = targetSystem; config.allowUnfree = true; };
-  format = "amazon";
-  modules = [
+  tfvars = if varsfile == ""
+    then
+      {}
+    else
+      builtins.fromJSON (builtins.readFile varsfile);
 
-        {
-          _module.args.nixpkgs = nixpkgs;
-          _module.args.targetSystem = targetSystem;
-        }
-        {
-          amazonImage.name = "nixos_image";
-          #amazonImage.sizeMB = 16 * 1024;
-          virtualisation.diskSize = 8 * 1024;
-        }
+  AmiConfig = (inputs.nixos-generators.nixosGenerate {
+    system = targetSystem;
+    pkgs = import nixpkgs { system = targetSystem; config.allowUnfree = true; };
+    format = "amazon";
+    modules = [
 
-        # "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
-        (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
+          {
+            _module.args.nixpkgs = nixpkgs;
+            _module.args.targetSystem = targetSystem;
+          }
+          {
+            amazonImage.name = "nixos_image";
+            #amazonImage.sizeMB = 16 * 1024;
+            virtualisation.diskSize = 8 * 1024;
+          }
 
-        inputs.agenix.nixosModules.default
-        inputs.nixos-healthchecks.nixosModules.default
+          # "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
+          (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
 
-        (inputs.import-tree ../modules/nixos/programs)
-        (inputs.import-tree ../modules/nixos/services)
-        (inputs.import-tree ../modules/nixos/tests)
+          inputs.agenix.nixosModules.default
+          inputs.nixos-healthchecks.nixosModules.default
 
-        {
-          environment.systemPackages = [
-             inputs.agenix.packages.${targetSystem}.agenix
-          ];
-        }
+          (inputs.import-tree ../modules/nixos/programs)
+          (inputs.import-tree ../modules/nixos/services)
+          (inputs.import-tree ../modules/nixos/tests)
 
-        machineConfig
+          {
+            environment.systemPackages = [
+              inputs.agenix.packages.${targetSystem}.agenix
+            ];
+          }
 
-  ];
+          machineConfig
 
-}
+    ];
+
+  });
+in
+  AmiConfig
