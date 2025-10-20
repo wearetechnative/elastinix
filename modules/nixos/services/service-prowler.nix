@@ -1,6 +1,9 @@
-{ pkgs, config, lib, ... }:
-
+{ pkgs, config, lib, tfvars, ... }:
+let
+bucket_name = tfvars.prowler_report_bucket_name;
+in
 {
+  
   options.elastinix.services.prowlerDashboard.enable = lib.mkEnableOption "enable prowler dashboard service";
 
   config = lib.mkIf config.elastinix.services.prowlerDashboard.enable {
@@ -12,7 +15,11 @@
     systemd.services.prowlerDashboard = {
         serviceConfig.Type = builtins.trace "simple" "simple";
         wantedBy = [ "multi-user.target" ];
-        script = '' HOST=0.0.0.0 ${pkgs.prowler}/bin/prowler dashboard '';
+        script = '' 
+          aws s3 cp s3://${bucket_name}/output/csv /output --recursive
+          aws s3 cp s3://${bucket_name}/output/compliance /output/compliance --recursive
+          HOST=0.0.0.0 ${pkgs.prowler}/bin/prowler dashboard 
+        '';
     };
   };
 
