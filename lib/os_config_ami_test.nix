@@ -10,6 +10,7 @@ inputs.nixos-generators.nixosGenerate {
         {
           _module.args.nixpkgs = nixpkgs;
           _module.args.targetSystem = targetSystem;
+          _module.args.varsfile = varsfile;
         }
         {
           amazonImage.name = "nixos_image";
