@@ -12,7 +12,7 @@
     systemd.services.prowlerDashboard = {
         serviceConfig.Type = builtins.trace "simple" "simple";
         wantedBy = [ "multi-user.target" ];
-        script = '' HOST=0.0.0.0 ${pkgs.prowler}/bin/prowler dashoard '';
+        script = '' HOST=0.0.0.0 ${pkgs.prowler}/bin/prowler dashboard '';
     };
   };
 
