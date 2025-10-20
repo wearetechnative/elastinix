@@ -21,11 +21,11 @@ in
       (final: prev: {
         matterbridge = prev.buildGoModule rec {
           pname = "matterbridge";
-          version = "bb64979fca9eb41880ef8e056a08bb0e458383bb";
+          version = "c4157a4d5b49fce79c80a30730dc7c404bacd663";
           src = prev.fetchgit {
-            url = "https://github.com/TechNative-B-V/matterbridge.git";
+            url = "https://github.com//wearetechnative/matterbridge.git";
             rev = "${version}";
-            hash = "sha256-3KA3agTOianmzTv24d7o9Xb45i9YSuqNU0VM45MmX6Q=";
+            hash = "sha256-ZnNVDlrkZd/I0NWmQMZzJ3RIruH0ARoVKJ4EyYVdMiw=";
           };
           vendorHash = null;
         };
