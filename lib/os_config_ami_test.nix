@@ -1,49 +1,40 @@
 {inputs}:
   { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [],... }:
-let
 
-  tfvars = if varsfile == ""
-    then
-      {}
-    else
-      builtins.fromJSON (builtins.readFile varsfile);
+inputs.nixos-generators.nixosGenerate {
+  system = targetSystem;
+  pkgs = import nixpkgs { system = targetSystem; config.allowUnfree = true; };
+  format = "amazon";
+  modules = [
 
-  AmiConfig = (inputs.nixos-generators.nixosGenerate {
-    system = targetSystem;
-    pkgs = import nixpkgs { system = targetSystem; config.allowUnfree = true; };
-    format = "amazon";
-    modules = [
+        {
+          _module.args.nixpkgs = nixpkgs;
+          _module.args.targetSystem = targetSystem;
+        }
+        {
+          amazonImage.name = "nixos_image";
+          #amazonImage.sizeMB = 16 * 1024;
+          virtualisation.diskSize = 8 * 1024;
+        }
 
-          {
-            _module.args.nixpkgs = nixpkgs;
-            _module.args.targetSystem = targetSystem;
-          }
-          {
-            amazonImage.name = "nixos_image";
-            #amazonImage.sizeMB = 16 * 1024;
-            virtualisation.diskSize = 8 * 1024;
-          }
+        # "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
+        (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
 
-          # "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"
-          (import ../modules/nixos/bootstrap/base-conf.nix rootAuthorizedKeys)
+        inputs.agenix.nixosModules.default
+        inputs.nixos-healthchecks.nixosModules.default
 
-          inputs.agenix.nixosModules.default
-          inputs.nixos-healthchecks.nixosModules.default
+        (inputs.import-tree ../modules/nixos/programs)
+        (inputs.import-tree ../modules/nixos/services)
+        (inputs.import-tree ../modules/nixos/tests)
 
-          (inputs.import-tree ../modules/nixos/programs)
-          (inputs.import-tree ../modules/nixos/services)
-          (inputs.import-tree ../modules/nixos/tests)
+        {
+          environment.systemPackages = [
+             inputs.agenix.packages.${targetSystem}.agenix
+          ];
+        }
 
-          {
-            environment.systemPackages = [
-              inputs.agenix.packages.${targetSystem}.agenix
-            ];
-          }
+        machineConfig
 
-          machineConfig
+  ];
 
-    ];
-
-  });
-in
-  AmiConfig
+}

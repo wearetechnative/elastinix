@@ -1,5 +1,6 @@
-{ pkgs, config, lib, tfvars, ... }:
+{ pkgs, config, lib, varsfile, ... }:
 let
+tfvars = builtins.fromJSON (builtins.readFile varsfile);
 bucket_name = tfvars.prowler_report_bucket_name;
 in
 {
