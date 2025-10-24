@@ -14,7 +14,7 @@ in
     ];
     networking.firewall.allowedTCPPorts = [11666];
     systemd.services.prowlerDashboard = {
-        serviceConfig.Type = builtins.trace "simple" "simple";
+        serviceConfig.Type = "simple";
         wantedBy = [ "multi-user.target" ];
         script = '' 
           ${pkgs.awscli2}/bin/aws s3 cp s3://${bucket_name}/output/csv /output --recursive
