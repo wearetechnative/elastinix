@@ -17,8 +17,8 @@ in
         serviceConfig.Type = builtins.trace "simple" "simple";
         wantedBy = [ "multi-user.target" ];
         script = '' 
-          aws s3 cp s3://${bucket_name}/output/csv /output --recursive
-          aws s3 cp s3://${bucket_name}/output/compliance /output/compliance --recursive
+          ${pkgs.awscli2}/bin/aws s3 cp s3://${bucket_name}/output/csv /output --recursive
+          ${pkgs.awscli2}/bin/aws s3 cp s3://${bucket_name}/output/compliance /output/compliance --recursive
           HOST=0.0.0.0 ${pkgs.prowler}/bin/prowler dashboard 
         '';
     };
