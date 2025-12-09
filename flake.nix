@@ -3,7 +3,7 @@
   inputs = {
 
     #nixos 25.11
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11"; # This nixpkgs archive is used by nixos-generators
+    nixpkgs.url = "github:NixOS/nixpkgs/master"; # This nixpkgs archive is used by nixos-generators
     nixos-generators.url = "github:nix-community/nixos-generators";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -24,7 +24,8 @@
     devshell.url = "github:numtide/devshell";
   };
 
-  outputs = inputs@{ flake-parts, ... }:
+  outputs =
+    inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
 
       imports = [
@@ -32,10 +33,15 @@
         inputs.nixos-healthchecks.flakeModule
       ];
 
-      systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+        "x86_64-darwin"
+      ];
 
       perSystem = _: {
-        devshells.default = {};
+        devshells.default = { };
       };
 
       flake = {
