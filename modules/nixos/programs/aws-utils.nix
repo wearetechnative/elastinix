@@ -19,7 +19,6 @@ in {
       aws-mfa
       ssmsh
       granted
-      jsonify-aws-dotfiles
     ];
   };
 
