@@ -19,6 +19,7 @@ let
 
         {
           _module.args.nixpkgs = nixpkgs;
+          _module.args.inputs = inputs;
           _module.args.targetSystem = targetSystem;
         }
 
