@@ -27,7 +27,6 @@ let
 
         inputs.agenix.nixosModules.default
         inputs.slack2zammad.nixosModules.slack2zammad
-        inputs.jsonify-aws-dotfiles.nixosModules.default
         inputs.nixos-healthchecks.nixosModules.default
 
         (inputs.import-tree ../modules/nixos/programs)
@@ -37,7 +36,6 @@ let
         {
           environment.systemPackages = [
              inputs.agenix.packages.${targetSystem}.agenix
-             inputs.jsonify-aws-dotfiles.packages.${targetSystem}.jsonify-aws-dotfiles
              inputs.slack2zammad.packages.${targetSystem}.slack2zammad
           ];
         }
