@@ -30,6 +30,8 @@
       imports = [
         inputs.devshell.flakeModule
         inputs.nixos-healthchecks.flakeModule
+        inputs.slack2zammad.packages."${system}".slack2zammad # slack2zammad Package
+        inputs.slack2zammad.nixosModules.${system}.slack2zammad # Slack2zammad Module
       ];
 
       systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];

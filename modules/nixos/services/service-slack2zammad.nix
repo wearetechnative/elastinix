@@ -1,4 +1,4 @@
-{ lib, config, ... }:
+{ inputs, lib, config, ... }:
 
 let
   cfg = config.elastinix.services.slack2zammad;
