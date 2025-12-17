@@ -1,4 +1,4 @@
-{ inputs', config, lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
 
@@ -14,7 +14,7 @@ in {
 
     environment.systemPackages = with pkgs; [
       tfswitch
-      inputs'.packages.jsonify-aws-dotfiles
+      inputs.jsonify-aws-dotfiles.packages.${pkgs.stdenv.hostPlatform.system}.jsonify-aws-dotfiles
       awscli2
       s3fs
       aws-mfa
