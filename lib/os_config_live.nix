@@ -37,7 +37,6 @@ let
         {
           environment.systemPackages = [
              inputs.agenix.packages.${targetSystem}.agenix
-             inputs.slack2zammad.packages.${targetSystem}.slack2zammad
           ];
         }
 
