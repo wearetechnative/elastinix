@@ -19,6 +19,7 @@ inputs.nixos-generators.nixosGenerate {
         {
           _module.args.nixpkgs = nixpkgs;
           _module.args.tfvars = tfvars;
+          _module.args.inputs = inputs;
           _module.args.targetSystem = targetSystem;
         }
         {
