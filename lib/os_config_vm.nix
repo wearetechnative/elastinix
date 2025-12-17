@@ -44,6 +44,7 @@ inputs.nixos-generators.nixosGenerate {
 
         inputs.agenix.nixosModules.default
         inputs.nixos-healthchecks.nixosModules.default
+        inputs.slack2zammad.nixosModules.slack2zammad
 
         (inputs.import-tree ../modules/nixos/programs)
         (inputs.import-tree ../modules/nixos/services)
