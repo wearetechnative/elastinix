@@ -133,6 +133,24 @@
         "type": "github"
       }
     },
+    "jsonify-aws-dotfiles": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_3"
+      },
+      "locked": {
+        "lastModified": 1724965798,
+        "narHash": "sha256-X1QK44UV09M849fSZB2CFpkcoBoA5URA+7s3QNUO9gs=",
+        "owner": "wearetechnative",
+        "repo": "jsonify-aws-dotfiles",
+        "rev": "476d770c059311e977ffd75fda59e11704330038",
+        "type": "github"
+      },
+      "original": {
+        "owner": "wearetechnative",
+        "repo": "jsonify-aws-dotfiles",
+        "type": "github"
+      }
+    },
     "nixlib": {
       "locked": {
         "lastModified": 1736643958,
@@ -172,7 +190,7 @@
     "nixos-healthchecks": {
       "inputs": {
         "flake-parts": "flake-parts_2",
-        "nixpkgs": "nixpkgs_3",
+        "nixpkgs": "nixpkgs_4",
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
@@ -301,6 +319,21 @@
     },
     "nixpkgs_3": {
       "locked": {
+        "lastModified": 1724727824,
+        "narHash": "sha256-0XH9MJk54imJm+RHOLTUJ7e+ponLW00tw5ke4MTVa1Y=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "36bae45077667aff5720e5b3f1a5458f51cf0776",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "ref": "nixos-24.05",
+        "type": "indirect"
+      }
+    },
+    "nixpkgs_4": {
+      "locked": {
         "lastModified": 1755186698,
         "narHash": "sha256-wNO3+Ks2jZJ4nTHMuks+cxAiVBGNuEBXsT29Bz6HASo=",
         "owner": "NixOS",
@@ -315,7 +348,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_4": {
+    "nixpkgs_5": {
       "locked": {
         "lastModified": 1765838191,
         "narHash": "sha256-m5KWt1nOm76ILk/JSCxBM4MfK3rYY7Wq9/TZIIeGnT8=",
@@ -331,7 +364,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_5": {
+    "nixpkgs_6": {
       "locked": {
         "lastModified": 1731433363,
         "narHash": "sha256-LXEUxBNzejjF+bvqp348FCan2dfTVrVHVVGnTGVOBtw=",
@@ -352,9 +385,10 @@
         "devshell": "devshell",
         "flake-parts": "flake-parts",
         "import-tree": "import-tree",
+        "jsonify-aws-dotfiles": "jsonify-aws-dotfiles",
         "nixos-generators": "nixos-generators",
         "nixos-healthchecks": "nixos-healthchecks",
-        "nixpkgs": "nixpkgs_4",
+        "nixpkgs": "nixpkgs_5",
         "nixpkgs-opentofu-v1-8-7": "nixpkgs-opentofu-v1-8-7",
         "nixpkgs-terraform-v1-5-3": "nixpkgs-terraform-v1-5-3",
         "nixpkgs-terraform-v1-5-7": "nixpkgs-terraform-v1-5-7",
@@ -363,7 +397,7 @@
     },
     "slack2zammad": {
       "inputs": {
-        "nixpkgs": "nixpkgs_5"
+        "nixpkgs": "nixpkgs_6"
       },
       "locked": {
         "lastModified": 1760451499,
