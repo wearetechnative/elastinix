@@ -20,6 +20,8 @@
 
     slack2zammad.url = "github:wearetechnative/slack2zammad";
 
+    jsonify-aws-dotfiles.url = "github:wearetechnative/jsonify-aws-dotfiles";
+
     flake-parts.url = "github:hercules-ci/flake-parts";
     devshell.url = "github:numtide/devshell";
   };
