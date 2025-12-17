@@ -41,7 +41,7 @@
       flake = {
         #lib.tf_bin = import ./lib/tf_bin.nix { inherit inputs; };
         lib.tf_command = import ./lib/tf_command.nix { inherit inputs; };
-        #lib.os_config_live = import ./lib/os_config_live.nix { inherit inputs; };
+        lib.os_config_live = import ./lib/os_config_live.nix { inherit inputs; };
       };
     };
 }
