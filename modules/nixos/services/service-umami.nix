@@ -78,11 +78,11 @@ in
         DISABLE_UPDATES   = true;
         DISABLE_TELEMETRY = true;
 
-        #BASE_PATH            = cfg.base_path;
-        #DATABASE_URL_FILE    = cfg.database_url_file;
+        BASE_PATH            = cfg.base_path;
+        DATABASE_URL_FILE    = cfg.database_url_file;
         APP_SECRET_FILE      = cfg.app_secret_file;
-        #TRACKER_SCRIPT_NAME  = cfg.tracker_script_name;
-        #COLLECT_API_ENDPOINT = cfg.collect_api_endpoint;
+        TRACKER_SCRIPT_NAME  = cfg.tracker_script_name;
+        COLLECT_API_ENDPOINT = cfg.collect_api_endpoint;
         DATABASE_URL         = cfg.database_url;
       };
     };
