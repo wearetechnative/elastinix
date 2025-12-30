@@ -8,14 +8,14 @@ in
     enable = lib.mkEnableOption "umami server";
 
     create_postgresql_database = lib.mkOption {
-      type        = lib.types.str;
+      type        = lib.types.bool;
       description = "Whether to automatically create the database for Umami using PostgreSQL. Both the database name and username will be umami, and the connection is made through unix sockets using peer authentication.";
     };
 
     port = lib.mkOption {
-      type        = lib.types.str;
+      type        = lib.types.int;
       description = "The port to listen on.";
-      default     = "3000";
+      default     = 3000;
     };
 
     hostname = lib.mkOption {
