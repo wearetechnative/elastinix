@@ -1,5 +1,5 @@
 { inputs }:
-  { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [],... } :
+  { nixpkgs, nixpkgs2411, fossarPhps, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [],... } :
 let
 
   tfvars = if varsfile == ""
@@ -19,7 +19,9 @@ let
 
         {
           _module.args.nixpkgs = nixpkgs;
+          _module.args.nixpkgs2411 = nixpkgs2411;
           _module.args.targetSystem = targetSystem;
+          _module.args.fossarPhps = fossarPhps;
         }
 
         "${nixpkgs}/nixos/modules/virtualisation/amazon-image.nix"

@@ -7,6 +7,9 @@
     nixos-generators.url = "github:nix-community/nixos-generators";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
+    # Nixpkgs 24.11
+    nixpkgs2411.url = "github:NixOS/nixpkgs/nixos-24.11";
+
     #first setup to support multiple terraforms make this a remote module, or just remove
     nixpkgs-terraform-v1-5-3.url = "github:NixOS/nixpkgs/nixos-23.05";
     nixpkgs-terraform-v1-5-7.url = "github:nixos/nixpkgs/3f293ea9ecd5c50e5bd393fd1c560275ea0e6975";
@@ -19,6 +22,7 @@
     agenix.url = "github:ryantm/agenix";
 
     slack2zammad.url = "github:wearetechnative/slack2zammad";
+    fossarPhps.url = "github:fossar/nix-phps";
 
     flake-parts.url = "github:hercules-ci/flake-parts";
     devshell.url = "github:numtide/devshell";

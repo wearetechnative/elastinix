@@ -1,5 +1,7 @@
 { inputs, ... } :
   { nixpkgs,
+    fossarPhps,
+    nixpkgs2411,
     runSystem,
     machineConfig ? {},
     targetSystem ? "x86_64-linux",
@@ -15,7 +17,7 @@ let
   useTfBin = (import ./tf_bin.nix {inherit inputs; }) (terraformBinConf // { inherit nixpkgs runSystem tfBinOverride; });
 
   bootstrapImage = (import ./os_config_bootstrap.nix { inherit inputs nixpkgs; }) targetSystem rootAuthorizedKeys;
-  liveConfig = (import ./os_config_live.nix { inherit inputs; }) { inherit nixpkgs targetSystem rootAuthorizedKeys machineConfig varsfile;};
+  liveConfig = (import ./os_config_live.nix { inherit inputs; }) { inherit nixpkgs nixpkgs2411 fossarPhps targetSystem rootAuthorizedKeys machineConfig varsfile;};
 
   tf_prelude = ''
     export TF_VAR_ec2_bootstrap_img_path="${bootstrapImage}/nixos_image.vhd";
