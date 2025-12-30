@@ -86,14 +86,14 @@ in
         DATABASE_URL         = cfg.database_url;
       };
     };
-  };
 
-  services.nginx.virtualHosts."umami.${environment_domain}" = {
-    enableACME = true;
-    forceSSL = true;
-    locations = {
-      "/" = {
-        proxyPass = "http://127.0.0.1:3000";
+    services.nginx.virtualHosts."umami.${environment_domain}" = {
+      enableACME = true;
+      forceSSL = true;
+      locations = {
+        "/" = {
+          proxyPass = "http://127.0.0.1:3000";
+        };
       };
     };
   };
