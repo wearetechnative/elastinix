@@ -31,25 +31,25 @@ in
     };
 
     database_url_file = lib.mkOption {
-      type        = lib.types.str;
+      type        = lib.types.nullOr lib.types.str;
       description = "A file containing a connection string for the database. The connection string must start with postgresql:// or postgres://. The contents of the file are read through systemd credentials, therefore the user running umami does not need permissions to read the file.";
       default     = null;
     };
 
     app_secret_file = lib.mkOption {
-      type        = lib.types.str;
+      type = lib.types.nullOr lib.types.str;
       description = "A file containing a secure random string. This is used for signing user sessions. The contents of the file are read through systemd credentials, therefore the user running umami does not need permissions to read the file. If you wish to set this to a string instead (not recommended since it will be placed world-readable in the Nix store), you can use the APP_SECRET option.";
       default     = null;
     };
 
     tracker_script_name = lib.mkOption {
-      type        = lib.types.str;
+      type        = lib.types.listOf lib.types.str;
       description = "Allows you to assign a custom name to the tracker script different from the default script.js.";
       default     = [];
     };
 
     collect_api_endpoint = lib.mkOption {
-      type        = lib.types.str;
+      type        = lib.types.nullOr lib.types.str;
       description = "Allows you to send metrics to a location different than the default /api/send.";
       default     = null;
     };
@@ -78,11 +78,11 @@ in
         DISABLE_UPDATES   = true;
         DISABLE_TELEMETRY = true;
 
-        BASE_PATH            = cfg.base_path;
-        DATABASE_URL_FILE    = cfg.database_url_file;
+        #BASE_PATH            = cfg.base_path;
+        #DATABASE_URL_FILE    = cfg.database_url_file;
         APP_SECRET_FILE      = cfg.app_secret_file;
-        TRACKER_SCRIPT_NAME  = cfg.tracker_script_name;
-        COLLECT_API_ENDPOINT = cfg.collect_api_endpoint;
+        #TRACKER_SCRIPT_NAME  = cfg.tracker_script_name;
+        #COLLECT_API_ENDPOINT = cfg.collect_api_endpoint;
         DATABASE_URL         = cfg.database_url;
       };
     };
