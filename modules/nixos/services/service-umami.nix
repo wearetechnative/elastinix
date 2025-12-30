@@ -1,6 +1,7 @@
 {lib, tfvars, config, pkgs, ...}:
 let
   cfg = config.elastinix.services.umami;
+  environment_domain = tfvars.environment_domain;
 in
   {
   options.elastinix.services.umami = {
@@ -83,6 +84,16 @@ in
         TRACKER_SCRIPT_NAME  = cfg.tracker_script_name;
         COLLECT_API_ENDPOINT = cfg.collect_api_endpoint;
         DATABASE_URL         = cfg.database_url;
+      };
+    };
+  };
+
+  services.nginx.virtualHosts."umami.${environment_domain}" = {
+    enableACME = true;
+    forceSSL = true;
+    locations = {
+      "/" = {
+        proxyPass = "http://127.0.0.1:3000";
       };
     };
   };
