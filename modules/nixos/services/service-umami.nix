@@ -57,6 +57,7 @@ in
     database_url = lib.mkOption {
       type        = lib.types.str;
       description = "url for database";
+      default     = "postgresql://umami@localhost/umami?host=/run/postgresql";
     };
   };
 
