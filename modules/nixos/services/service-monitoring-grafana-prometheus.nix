@@ -33,6 +33,35 @@ let
         example = ./dashboards/technative;
       };
 
+      dashboardFiles = lib.mkOption {
+        type = lib.types.listOf (lib.types.submodule {
+          options = {
+            name = lib.mkOption {
+              type = lib.types.str;
+              description = "Dashboard filename (e.g., 'ssl-check.json')";
+            };
+            source = lib.mkOption {
+              type = lib.types.path;
+              description = "Path to the dashboard JSON file (can be an agenix secret path at runtime)";
+            };
+          };
+        });
+        default = [];
+        description = ''
+          List of individual dashboard files for this customer.
+          Use this option when dashboards are stored as individual files (e.g., agenix secrets)
+          instead of in a directory. Cannot be used together with dashboardsPath.
+        '';
+        example = lib.literalExpression ''
+          [
+            {
+              name = "ssl-check.json";
+              source = config.age.secrets.dashboard-ssl.path;
+            }
+          ]
+        '';
+      };
+
       blackboxModule = lib.mkOption {
         type = lib.types.str;
         default = "http_2xx";
