@@ -1,7 +1,7 @@
 { lib, config, pkgs, tfvars, ... }:
 
 let
-  cfg = config.elastinix.services.monitoring;
+  cfg = config.elastinix.services.systemd-monitoring;
   infra_environment = tfvars.infra_environment;
 
   bin = {
@@ -10,8 +10,8 @@ let
   };
 
 in {
-  options.elastinix.services.monitoring = {
-    enable = lib.mkEnableOption "Systemd Monitoring";
+  options.elastinix.services.systemd-monitoring = {
+    enable = lib.mkEnableOption "Systemd systemd-monitoring";
 
     services = lib.mkOption {
       type = with lib.types; listOf str;
@@ -28,7 +28,7 @@ in {
 
       # Dynamically generate per-service rotation entries
       "monitored-services" = {
-        files = map (s: "/var/log/${s}-monitoring.log") cfg.services;
+        files = map (s: "/var/log/${s}-systemd-monitoring.log") cfg.services;
         frequency = "daily";
         rotate = 7;
       };
@@ -39,21 +39,21 @@ in {
       wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = "*:5/10";
-        Unit = "${infra_environment}-${s}-monitoring.service";
+        Unit = "${infra_environment}-${s}-systemd-monitoring.service";
       };
     });
 
     systemd.services =
       lib.mapAttrs'
       (s: v: {
-        name = "${infra_environment}-${s}-monitoring";
+        name = "${infra_environment}-${s}-systemd-monitoring";
         value = v;
       })
       (lib.genAttrs cfg.services (s: {
         serviceConfig.Type = "oneshot";
         wantedBy = [ "multi-user.target" ];
         script = ''
-        exec > >(tee -a /var/log/${s}-monitoring.log | while read line; do ${bin.logger} -t ${infra_environment}-${s}-monitoring.* "$line"; done) 2>&1
+        exec > >(tee -a /var/log/${s}-systemd-monitoring.log | while read line; do ${bin.logger} -t ${infra_environment}-${s}-systemd-monitoring.* "$line"; done) 2>&1
 
         active=$(${bin.systemctl} status ${s}.service | grep -o 'Active: active' || echo "inactive")
         success="Active: active"
