@@ -29,6 +29,7 @@ let
         inputs.agenix.nixosModules.default
         inputs.slack2zammad.nixosModules.slack2zammad
         inputs.nixos-healthchecks.nixosModules.default
+        inputs.monitoring.nixosModules.x86_64-linux.monitoring
 
         (inputs.import-tree ../modules/nixos/programs)
         (inputs.import-tree ../modules/nixos/services)

@@ -23,6 +23,7 @@
 
     flake-parts.url = "github:hercules-ci/flake-parts";
     devshell.url = "github:numtide/devshell";
+    monitoring.url = "github:wearetechnative/monitoring";
   };
 
   outputs = inputs@{ flake-parts, ... }:
