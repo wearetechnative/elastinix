@@ -66,6 +66,10 @@ in
       umami
     ];
 
+    systemd.services.umami.serviceConfig.Environment = [
+      "HOME=/tmp"
+    ];
+
     services.umami = {
       enable  = true;
       package = pkgs.umami;
