@@ -156,14 +156,17 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1767631166,
-        "narHash": "sha256-0yOBWohsdmc9JtffagSYUzgjP2FEtWTGsz4VTvzGrPs=",
-        "path": "/home/casper/git/wearetechnative/monitoring",
-        "type": "path"
+        "lastModified": 1768811623,
+        "narHash": "sha256-GvVyDPo1pVaOKR1zE+B1HEJGkxpWNP0jvyGuNpzOHm4=",
+        "owner": "wearetechnative",
+        "repo": "monitoring",
+        "rev": "35e747913daf33c208dea32d29b1c920666848ff",
+        "type": "github"
       },
       "original": {
-        "path": "/home/casper/git/wearetechnative/monitoring",
-        "type": "path"
+        "owner": "wearetechnative",
+        "repo": "monitoring",
+        "type": "github"
       }
     },
     "nixlib": {
