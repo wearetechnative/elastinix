@@ -28,6 +28,11 @@ in
       pkgs.system-sendmail
     ];
 
+    security.acme.certs."vaultwarden.${environment_domain}" = {
+      webroot = "/var/lib/acme/acme-challenge";
+      group = "nginx";
+    };
+
     systemd.services.vaultwarden.serviceConfig.ReadWritePaths = "/vaultwarden"; # needed to get systemd vaultwarden.service read outside system folders
 
     services.nginx.virtualHosts."vaultwarden.${environment_domain}" = {
