@@ -156,11 +156,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1768811623,
-        "narHash": "sha256-GvVyDPo1pVaOKR1zE+B1HEJGkxpWNP0jvyGuNpzOHm4=",
+        "lastModified": 1773322925,
+        "narHash": "sha256-8J3gaIBE1bunRquJQaNYjJVX9tce3RJDSLRPCk1rQok=",
         "owner": "wearetechnative",
         "repo": "monitoring",
-        "rev": "35e747913daf33c208dea32d29b1c920666848ff",
+        "rev": "5e720a87a233935388cfee2d1cbaa9f90a8e5804",
         "type": "github"
       },
       "original": {
