@@ -3,14 +3,14 @@
 with lib;
 
 let
-  cfg = config.services.jirasync-iit-tn;
+  cfg = config.services.jirasync;
 
   pythonEnv = pkgs.python3.withPackages (ps: with ps; [
     requests
   ]);
 
   jirasyncPackage = pkgs.stdenv.mkDerivation {
-    pname = "jirasync-iit-tn";
+    pname = "jirasync";
     version = "1.0.0";
 
     src = ./.;
@@ -21,27 +21,27 @@ let
       mkdir -p $out/bin $out/share/jirasync
 
       # Install the Python script
-      cp ../services-scripts/jirasync-iit-tn.py $out/share/jirasync/
-      chmod +x $out/share/jirasync/jirasync-iit-tn.py
+      cp ../services-scripts/jirasync.py $out/share/jirasync/
+      chmod +x $out/share/jirasync/jirasync.py
 
       # Create wrapper script
-      makeWrapper ${pythonEnv}/bin/python3 $out/bin/jirasync-iit-tn \
-        --add-flags "$out/share/jirasync/jirasync-iit-tn.py" \
+      makeWrapper ${pythonEnv}/bin/python3 $out/bin/jirasync \
+        --add-flags "$out/share/jirasync/jirasync.py" \
         --add-flags "--config ${config.age.secrets.jirasync-config.path}" \
         --add-flags "--days ${toString cfg.daysToSync}" \
         ${optionalString cfg.dryRun "--add-flags --dry-run"}
     '';
 
     meta = with lib; {
-      description = "Jira synchronization tool for IIT-TN";
+      description = "Jira synchronization tool";
       license = licenses.mit;
       platforms = platforms.linux;
     };
   };
 
 in {
-  options.services.jirasync-iit-tn = {
-    enable = mkEnableOption "Jira synchronization service for IIT-TN";
+  options.services.jirasync = {
+    enable = mkEnableOption "Jira synchronization service";
 
     daysToSync = mkOption {
       type = types.int;
@@ -57,7 +57,7 @@ in {
 
     interval = mkOption {
       type = types.str;
-      default = "daily";
+      default = "hourly";
       description = "Systemd timer interval (e.g., 'daily', 'hourly', '*:0/30' for every 30 minutes)";
     };
 
@@ -88,8 +88,8 @@ in {
     environment.systemPackages = [ jirasyncPackage ];
 
     # Systemd service
-    systemd.services.jirasync-iit-tn = {
-      description = "Jira IIT-TN synchronization service";
+    systemd.services.jirasync = {
+      description = "Jira synchronization service";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
 
@@ -97,7 +97,7 @@ in {
         Type = "oneshot";
         User = cfg.user;
         Group = cfg.group;
-        ExecStart = "${jirasyncPackage}/bin/jirasync-iit-tn";
+        ExecStart = "${jirasyncPackage}/bin/jirasync";
 
         # Security hardening
         PrivateTmp = true;
@@ -119,8 +119,8 @@ in {
     };
 
     # Systemd timer
-    systemd.timers.jirasync-iit-tn = {
-      description = "Timer for Jira IIT-TN synchronization";
+    systemd.timers.jirasync = {
+      description = "Timer for Jira synchronization";
       wantedBy = [ "timers.target" ];
 
       timerConfig = {
