@@ -27,5 +27,9 @@
     nettools
 
     postgresql
+
+    minica
+    lego
+    acme
   ];
 }
