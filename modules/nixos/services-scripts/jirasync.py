@@ -48,15 +48,12 @@ def load_config(config_file=None):
             sys.exit(1)
 
     # Get other config values with defaults
-    remote_org = config.get("remote_org", "improvement-it")
-    local_org = config.get("local_org", "technative")
-    project_key = config.get("project_key", "TNIIT")
-    status_mapping = config.get("status_mapping", {
-        "To Do": "To Do",
-        "In Progress": "In Progress",
-        "Waiting for Input": "Waiting for Input",
-        "Done": "Done"
-    })
+
+
+    remote_org = config.get("remote_org", "")
+    local_org = config.get("local_org", "")
+    project_key = config.get("project_key", "")
+    status_mapping = config.get("status_mapping") or {}
 
     return {
         "email": email,
