@@ -3,7 +3,7 @@
 with lib;
 
 let
-  cfg = config.services.jirasync;
+  cfg = config.elastinix.services.jirasync;
 
   pythonEnv = pkgs.python3.withPackages (ps: with ps; [
     requests
@@ -40,7 +40,7 @@ let
   };
 
 in {
-  options.services.jirasync = {
+  options.elastinix.services.jirasync = {
     enable = mkEnableOption "Jira synchronization service";
 
     daysToSync = mkOption {
