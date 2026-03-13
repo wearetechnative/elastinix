@@ -393,8 +393,8 @@ elastinix.services.jirasync = lib.mkIf (infra_environment == "prod") {
 ## Implementation Details
 
 - **Package**: Python script with requests library
+- **Source**: https://github.com/wearetechnative/jirasync
 - **Location**: `/nix/store/.../bin/jirasync`
-- **Script**: `modules/nixos/services-scripts/jirasync.py`
 - **Service definition**: `modules/nixos/services/service-jirasync.nix`
 
 ## Related Documentation
