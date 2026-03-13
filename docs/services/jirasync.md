@@ -199,27 +199,38 @@ The configuration file (typically encrypted with age) should be a JSON file cont
 
 ```json
 {
-  "jira_url": "https://acme-corp.atlassian.net",
-  "jira_user": "jirasync-service@mycompany.com",
-  "jira_token": "ATATT3xFfGF0...",
+  "source_jira_url": "https://acme-corp.atlassian.net",
   "source_project_key": "ACME",
-  "target_url": "https://mycompany.atlassian.net",
-  "target_project_key": "INT"
+  "source_board_id": 123,
+  "target_jira_url": "https://mycompany.atlassian.net",
+  "target_jira_user": "jirasync-service@mycompany.com",
+  "target_jira_token": "ATATT3xFfGF0...",
+  "target_project_key": "INT",
+  "target_board_id": 456
 }
 ```
 
 ### Field Descriptions
 
+**Source Configuration (Client/Remote - Read From):**
+
 | Field | Description | Example |
 |-------|-------------|---------|
-| `jira_url` | Source Jira instance URL (client's/remote Jira where issues are read from) | `https://acme-corp.atlassian.net` |
-| `jira_user` | Email address of your organization's user who created the API token | `jirasync-service@mycompany.com` |
-| `jira_token` | The API token created by your organization's user (see Prerequisites section) | `ATATT3xFfGF0...` |
+| `source_jira_url` | Source Jira instance URL (client's/remote Jira where issues are read from) | `https://acme-corp.atlassian.net` |
 | `source_project_key` | The source Jira project key to sync from (client's board) | `ACME` |
-| `target_url` | URL of your organization's Jira instance (where issues are synced to) | `https://mycompany.atlassian.net` |
-| `target_project_key` | The target project key in your organization's Jira | `INT` |
+| `source_board_id` | The board ID in the source Jira instance | `123` |
 
-**Important**: You only need **one API token** - created by a user in your own organization's Jira. This user must be granted access by the client to read their Jira board, and must have write permissions on your organization's target board.
+**Target Configuration (Your Organization - Write To):**
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `target_jira_url` | URL of your organization's Jira instance (where issues are synced to) | `https://mycompany.atlassian.net` |
+| `target_jira_user` | Email address of your organization's user who created the API token | `jirasync-service@mycompany.com` |
+| `target_jira_token` | The API token created by your organization's user (see Prerequisites section) | `ATATT3xFfGF0...` |
+| `target_project_key` | The target project key in your organization's Jira | `INT` |
+| `target_board_id` | The board ID in your organization's Jira instance | `456` |
+
+**Important**: You only need **one API token** - created by a user in your own organization's Jira (`target_jira_user` / `target_jira_token`). This user must be granted access by the client to read their Jira board (source), and must have write permissions on your organization's target board.
 
 **Security Notes:**
 - Always encrypt this file using agenix - never commit unencrypted credentials
