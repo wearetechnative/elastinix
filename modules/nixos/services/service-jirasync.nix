@@ -1,40 +1,12 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 with lib;
 
 let
   cfg = config.elastinix.services.jirasync;
 
-  pythonEnv = pkgs.python3.withPackages (ps: with ps; [
-    requests
-  ]);
-
-  jirasyncPackage = pkgs.stdenv.mkDerivation {
-    pname = "jirasync";
-    version = "1.0.0";
-
-    src = ../.;
-
-    nativeBuildInputs = [ pkgs.makeWrapper ];
-
-    installPhase = ''
-      mkdir -p $out/bin $out/share/jirasync
-
-      # Install the Python script
-      cp services-scripts/jirasync.py $out/share/jirasync/
-      chmod +x $out/share/jirasync/jirasync.py
-
-      # Create a generic wrapper without instance-specific config
-      makeWrapper ${pythonEnv}/bin/python3 $out/bin/jirasync \
-        --add-flags "$out/share/jirasync/jirasync.py"
-    '';
-
-    meta = with lib; {
-      description = "Jira synchronization tool";
-      license = licenses.mit;
-      platforms = platforms.linux;
-    };
-  };
+  # Use the jirasync package from the flake input
+  jirasyncPackage = inputs.jirasync.packages.${pkgs.system}.default;
 
 in {
   options.elastinix.services.jirasync = {
