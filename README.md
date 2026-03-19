@@ -93,6 +93,14 @@ packages = {
 }
 ```
 
+## Documentation
+
+### Services
+
+Elastinix provides a collection of NixOS services for common infrastructure needs.
+
+For a complete list of available services and detailed documentation, see the **[Services Documentation](docs/README.md)**.
+
 ## Developer information
 
 ### Release RunBook
