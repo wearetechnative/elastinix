@@ -40,7 +40,7 @@ in {
     systemd.timers."${infra_environment}-psql-backup" = {
       wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnCalendar = "*-*-* 23:00:00";
+        OnCalendar = "*-*-* 23:30:00";
         Unit = "${infra_environment}-psql-backup.service";
       };
     };
