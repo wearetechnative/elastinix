@@ -245,6 +245,17 @@ elastinix/
 
 ## Development Workflow
 
+### Git Commit Conventions
+
+**IMPORTANT**: Never include Co-Authored-By credits for AI agents in git commits.
+
+- ❌ **Never use**: `Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>`
+- ❌ **Never use**: Any AI agent attribution in commits
+- ✅ **Do use**: Standard commit messages without AI attribution
+- ✅ **Do use**: Descriptive commit messages that explain what and why
+
+Git commits should reflect human contributions only. AI assistance is a development tool, not a co-author.
+
 ### Adding a New Service
 
 1. **Create service module**: `modules/nixos/services/service-<name>.nix`
