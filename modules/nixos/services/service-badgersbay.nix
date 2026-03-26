@@ -1,12 +1,13 @@
-{ lib, config, pkgs, inputs, ... }:
+{ lib, config, pkgs, inputs, tfvars, ... }:
 
 let
   cfg = config.elastinix.services.badgersbay;
   badgersbayPackage = inputs.badgersbay.packages.${pkgs.system}.default;
+  environment_domain = tfvars.environment_domain;
 
   # Generate config.yaml content
   configFile = pkgs.writeText "badgersbay-config.yaml" ''
-    # Honeybadger Server Configuration
+    # Badgersbay Configuration
     networkport: ${toString cfg.port}
     storage_location: ${cfg.storagePath}/reports
 
@@ -107,6 +108,16 @@ in
         RemoveIPC = true;
         SystemCallFilter = [ "@system-service" "~@privileged" ];
         ReadWritePaths = [ cfg.storagePath ];
+      };
+    };
+
+    services.nginx.virtualHosts."badgersbay.${environment_domain}" = {
+      enableACME = true;
+      forceSSL = true;
+      locations = {
+        "/" = {
+          proxyPass = "http://127.0.0.1:${toString cfg.port}";
+        };
       };
     };
   };
