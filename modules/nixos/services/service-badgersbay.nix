@@ -40,6 +40,34 @@ in
       description = "Path where badgersbay stores and processes files";
     };
 
+    tokenFile = lib.mkOption {
+      type = lib.types.path;
+      description = ''
+        Path to YAML file containing API tokens for report submission.
+
+        Format:
+        ```yaml
+        tokens:
+          - hb_token_abc123
+          - hb_token_xyz789
+        ```
+
+        Required for authentication. Use agenix to encrypt this file.
+      '';
+      example = "config.age.secrets.badgersbay-tokens.path";
+    };
+
+    dashboardPasswordFile = lib.mkOption {
+      type = lib.types.path;
+      description = ''
+        Path to plaintext file containing the password for web dashboard access.
+        The file should contain a single line with the password.
+
+        Required for dashboard authentication. Use agenix to encrypt this file.
+      '';
+      example = "config.age.secrets.badgersbay-password.path";
+    };
+
     user = lib.mkOption {
       type = lib.types.str;
       default = "badgersbay";
@@ -80,7 +108,10 @@ in
       wantedBy = [ "multi-user.target" ];
 
       script = ''
-        ${badgersbayPackage}/bin/honeybadger-server --config ${cfg.storagePath}/config.yaml
+        ${badgersbayPackage}/bin/honeybadger-server \
+          --config ${cfg.storagePath}/config.yaml \
+          --token-file ${cfg.tokenFile} \
+          --dashboard-password-file ${cfg.dashboardPasswordFile}
       '';
 
       serviceConfig = {
