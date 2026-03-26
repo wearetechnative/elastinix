@@ -16,7 +16,9 @@ Services that integrate with external systems and APIs.
 *(Documentation coming soon)*
 
 ### Application Services
-*(Documentation coming soon)*
+Services that provide application-level functionality.
+
+- **[Badgersbay](services/badgersbay.md)** - File processing service with HTTP endpoint for receiving and storing files
 
 ## General Information
 
