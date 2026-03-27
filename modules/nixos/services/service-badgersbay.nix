@@ -4,23 +4,6 @@ let
   cfg = config.elastinix.services.badgersbay;
   badgersbayPackage = inputs.badgersbay.packages.${pkgs.system}.default;
   environment_domain = tfvars.environment_domain;
-
-  # Generate config.yaml content
-  configFile = pkgs.writeText "badgersbay-config.yaml" ''
-    # Badgersbay Configuration
-    networkport: ${toString cfg.port}
-    storage_location: ${cfg.storagePath}/reports
-
-    # Compliance Tracking
-    compliance:
-      enabled: true
-      audit_months: [3, 9]
-      required_reports:
-        mandatory:
-          - neofetch
-          - lynis
-        one_of: []
-  '';
 in
 
 {
@@ -79,6 +62,31 @@ in
       default = "badgersbay";
       description = "Group to run the service as";
     };
+
+    configFile = lib.mkOption {
+      type = lib.types.path;
+      default = pkgs.writeText "badgersbay-config.yaml" ''
+        # Badgersbay Configuration
+        networkport: ${toString cfg.port}
+        storage_location: ${cfg.storagePath}/reports
+
+        # Compliance Tracking
+        compliance:
+          enabled: true
+          audit_months: [3, 9]
+          required_reports:
+            mandatory:
+              - neofetch
+              - lynis
+            one_of: []
+      '';
+      description = ''
+        Path to the badgersbay configuration file.
+
+        By default, a configuration file is generated with the port and storage path
+        from the service options. You can override this to provide a custom configuration.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -96,7 +104,7 @@ in
     systemd.tmpfiles.rules = [
       "d '${cfg.storagePath}' 0750 ${cfg.user} ${cfg.group} - -"
       "d '${cfg.storagePath}/reports' 0750 ${cfg.user} ${cfg.group} - -"
-      "C '${cfg.storagePath}/config.yaml' 0640 ${cfg.user} ${cfg.group} - ${configFile}"
+      "C '${cfg.storagePath}/config.yaml' 0640 ${cfg.user} ${cfg.group} - ${cfg.configFile}"
     ];
 
     networking.firewall.allowedTCPPorts = [ cfg.port ];
