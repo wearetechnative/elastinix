@@ -101,23 +101,17 @@ in
 
     users.groups.${cfg.group} = lib.mkIf (cfg.group == "badgersbay") {};
 
-    systemd.tmpfiles.rules = [
-      "d '${cfg.storagePath}' 0750 ${cfg.user} ${cfg.group} - -"
-      "d '${cfg.storagePath}/reports' 0750 ${cfg.user} ${cfg.group} - -"
-      "C '${cfg.storagePath}/config.yaml' 0640 ${cfg.user} ${cfg.group} - ${cfg.configFile}"
-    ];
-
     networking.firewall.allowedTCPPorts = [ cfg.port ];
 
     systemd.services.badgersbay = {
       description = "Badgersbay file processing service";
-      after = [ "network-online.target" "systemd-tmpfiles-setup.service" ];
+      after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
 
       script = ''
         ${badgersbayPackage}/bin/honeybadger-server \
-          --config ${cfg.storagePath}/config.yaml \
+          --config ${cfg.configFile} \
           --token-file ${cfg.tokenFile} \
           --dashboard-password-file ${cfg.dashboardPasswordFile}
       '';
@@ -147,6 +141,14 @@ in
         RemoveIPC = true;
         SystemCallFilter = [ "@system-service" "~@privileged" ];
         ReadWritePaths = [ cfg.storagePath ];
+      };
+    };
+    
+    systemd.timers.badgersbay = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "*-*-* 03:00:00"; # elke dag om 03:00
+        Persistent = true;
       };
     };
 
