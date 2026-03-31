@@ -1,4 +1,4 @@
-{ config, pkgs, unstable, tfvars, lib, ... }:
+{ config, pkgs, tfvars, lib, ... }:
 let
   cfg = config.elastinix.services.zammad;
   infra_environment = tfvars.infra_environment;
