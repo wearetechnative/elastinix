@@ -1,4 +1,4 @@
-{ config, pkgs, tfvars, lib, ... }:
+{ config, pkgs, unstable, tfvars, lib, ... }:
 let
   cfg = config.elastinix.services.zammad;
   infra_environment = tfvars.infra_environment;
@@ -8,6 +8,12 @@ in
   options.elastinix.services.zammad = {
 
     enable = lib.mkEnableOption "Zammad";
+
+    package = lib.mkOption {
+      type = lib.types.package;
+      description = "";
+      default = pkgs.zammad;
+    };
 
     database_username = lib.mkOption {
       type = lib.types.str;
@@ -44,10 +50,9 @@ in
   config = lib.mkIf cfg.enable {
 
     services.zammad = {
-      package = pkgs.zammad;
+      package = cfg.package;
       enable = true;
       host = "0.0.0.0";
-      openPorts = true;
       secretKeyBaseFile = "${cfg.secret_key_base_file}";
 
       redis.createLocally = true;
