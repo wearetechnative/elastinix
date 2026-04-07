@@ -29,14 +29,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1774564427,
-        "narHash": "sha256-l+M/Amc8py0UUUhBJyCqDHXh7aX3MvHr0398Brf8iVA=",
-        "path": "/home/wtoorren/data/git/wearetechnative/badgersbay",
-        "type": "path"
+        "lastModified": 1774979665,
+        "narHash": "sha256-jPZ3sOh05ouvFYD2mqg6JLpqyyfE3+WT+9DoOKuxugg=",
+        "owner": "wearetechnative",
+        "repo": "badgersbay",
+        "rev": "543d2d7f6deb60b95f853c5916b21280f13a22b1",
+        "type": "github"
       },
       "original": {
-        "path": "/home/wtoorren/data/git/wearetechnative/badgersbay",
-        "type": "path"
+        "owner": "wearetechnative",
+        "repo": "badgersbay",
+        "type": "github"
       }
     },
     "darwin": {
