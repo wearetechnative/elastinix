@@ -30,6 +30,7 @@ let
         inputs.slack2zammad.nixosModules.slack2zammad
         inputs.nixos-healthchecks.nixosModules.default
         inputs.monitoring.nixosModules.monitoring
+        inputs.pontifex.nixosModules.pontifex
 
         (inputs.import-tree ../modules/nixos/programs)
         (inputs.import-tree ../modules/nixos/services)
