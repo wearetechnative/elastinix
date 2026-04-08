@@ -612,11 +612,11 @@
         "oldstable": "oldstable"
       },
       "locked": {
-        "lastModified": 1775640639,
-        "narHash": "sha256-O6x7KunJPJWmV39B6z/VQ26eIQL2rXoYT22D+RNK2KY=",
+        "lastModified": 1775641335,
+        "narHash": "sha256-M+8DvA3/eaffCNNXRv3uGaab0Wx/QIhPgWJuPCRfrBE=",
         "owner": "TechNative-B-V",
         "repo": "pontifex",
-        "rev": "8f0bad3d73b895bbcc52f93e7f548fa99327760b",
+        "rev": "7153aab8930c8a79f973c0e53c2ad2490abb820e",
         "type": "github"
       },
       "original": {
