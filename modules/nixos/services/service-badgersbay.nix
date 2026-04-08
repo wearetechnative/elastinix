@@ -147,7 +147,7 @@ in
     systemd.timers.badgersbay = {
       wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnCalendar = "*-*-* 03:00:00"; # elke dag om 03:00
+        OnCalendar = "hourly"; 
         Persistent = true;
       };
     };
