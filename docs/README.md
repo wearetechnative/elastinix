@@ -19,6 +19,7 @@ Services that integrate with external systems and APIs.
 Services that provide application-level functionality.
 
 - **[Badgersbay](services/badgersbay.md)** - File processing service with HTTP endpoint for receiving and storing files
+- **[Chhoto](services/chhoto.md)** - Lightweight self-hosted URL shortener with SQLite storage
 
 ## General Information
 
