@@ -1,0 +1,36 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Nix, NixOS, Nix Flakes
+  Platform: AWS cloud
+  Domain: shared NixOS build infrastructure and reusable services
+
+  Elastinix is a NixOS flake providing shared build code for the NixOS product family on AWS.
+  It includes reusable NixOS service modules and deployment tooling.
+
+  Key conventions:
+  - Services live under elastinix.services.<service-name> namespace
+  - Every service has a top-level enable boolean
+  - Multi-instance services use an instances attrset under the service
+  - Secrets management uses agenix for encryption
+  - Systemd security hardening is applied by default (PrivateTmp, ProtectSystem, NoNewPrivileges, etc.)
+  - External dependencies are pulled in as flake inputs with nixpkgs "follows" pattern
+  - Default user/group for services is root unless overridden
+  - No AI co-author attribution in git commits
+
+rules:
+  specs:
+    - Requirements involving secrets must specify agenix integration
+    - Multi-instance services must address circular dependency avoidance with age secrets
+    - Be explicit about the NixOS module option types and structure
+    - Specify systemd hardening expectations for any new service
+  tasks:
+    - Include a task for writing service documentation in docs/services/
+    - Include a task for testing with nix build
+    - Break tasks into independently verifiable steps
+  design:
+    - Follow the existing service module pattern in modules/nixos/services/
+    - Prefer flake inputs over fetchFromGitHub for external dependencies
+    - Use the "follows" pattern for nixpkgs in flake inputs
+    - Document circular dependency risks when combining multi-instance services with agenix
+    - Keep service defaults simple (root user/group) with override capability
