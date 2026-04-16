@@ -264,11 +264,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1773923683,
-        "narHash": "sha256-FB/MTHHuNwpcuaJxIVpvB9fIVgRWkUtIIjpVWTSpcUc=",
+        "lastModified": 1775629676,
+        "narHash": "sha256-84nnV4sINk9+W+0Oa8xZfaHaZvaRqG2UybEXXSp9KmI=",
         "owner": "wearetechnative",
         "repo": "jirasync",
-        "rev": "6ec8f3d282bec438110c5ac360124ff4ff0b7b93",
+        "rev": "377f0e189f8b53f270bcbf7170eb2ed74469bab0",
         "type": "github"
       },
       "original": {
