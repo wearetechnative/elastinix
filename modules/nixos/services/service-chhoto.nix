@@ -32,12 +32,12 @@ in
       environmentFiles = cfg.environmentFiles;
       settings = {
         port = cfg.port;
-        site_url = "https://chhoto-url.${environment_domain}";
+        site_url = "https://url.${environment_domain}";
         disable_frontend = false;
       };
     };
 
-    services.nginx.virtualHosts."chhoto-url.${environment_domain}" = {
+    services.nginx.virtualHosts."url.${environment_domain}" = {
       enableACME = true;
       forceSSL = true;
       locations = {
