@@ -10,6 +10,12 @@ in
 
     enable = lib.mkEnableOption "vaultwarden";
 
+    package = lib.mkOption {
+      type = lib.types.package;
+      description = "";
+      default = pkgs.vaultwarden;
+    };
+
     environment_file = lib.mkOption {
       type = lib.types.str;
       description = "The environment variables for vaultwarden";
@@ -20,6 +26,7 @@ in
     # Vaultwarden service configuration
     services.vaultwarden = {
       enable = true;
+      package = cfg.package;
       dbBackend = "postgresql";
       environmentFile = cfg.environment_file;
     };
