@@ -41,7 +41,7 @@ in
       forceSSL = true;
       locations = {
         "/" = {
-          proxyPass = "http://127.0.0.1:${builtins.toString cfg.port}";
+          proxyPass = "http://0.0.0.0:${builtins.toString cfg.port}";
         };
       };
     };
