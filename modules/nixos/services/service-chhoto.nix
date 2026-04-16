@@ -15,7 +15,7 @@ in
     };
 
     port = lib.mkOption {
-      type = lib.types.port;
+      type = lib.types.int;
       description = "Port for the chhoto-url server.";
     };
 
