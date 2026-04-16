@@ -1,6 +1,7 @@
-{ lib, config, ... }:
+{ lib, config, tfvars, ... }:
 let
   cfg = config.elastinix.services.chhoto;
+  environment_domain = tfvars.environment_domain;
 in
 {
   options.elastinix.services.chhoto = {
@@ -31,7 +32,17 @@ in
       environmentFiles = cfg.environmentFiles;
       settings = {
         port = cfg.port;
-        site_url = cfg.siteUrl;
+        site_url = "chhoto.${environment_domain}";
+      };
+    };
+
+    services.nginx.virtualHosts."chhoto.${environment_domain}" = {
+      enableACME = true;
+      forceSSL = true;
+      locations = {
+        "/" = {
+          proxyPass = "http://127.0.0.1:${cfg.port}";
+        };
       };
     };
   };
