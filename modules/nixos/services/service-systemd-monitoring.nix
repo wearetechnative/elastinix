@@ -23,9 +23,7 @@ in {
   config = lib.mkIf cfg.enable {
 
     # Create logrotate config per monitored service
-    services.logrotate.settings = {
-      header.dateext = true;
-
+    services.logrotate.settings = lib.mkIf (cfg.services != []) {
       # Dynamically generate per-service rotation entries
       "monitored-services" = {
         files = map (s: "/var/log/${s}-systemd-monitoring.log") cfg.services;
