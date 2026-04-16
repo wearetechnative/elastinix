@@ -32,16 +32,17 @@ in
       environmentFiles = cfg.environmentFiles;
       settings = {
         port = cfg.port;
-        site_url = "chhoto.${environment_domain}";
+        site_url = "https://chhoto-url.${environment_domain}";
+        disable_frontend = false;
       };
     };
 
-    services.nginx.virtualHosts."chhoto.${environment_domain}" = {
+    services.nginx.virtualHosts."chhoto-url.${environment_domain}" = {
       enableACME = true;
       forceSSL = true;
       locations = {
         "/" = {
-          proxyPass = "http://0.0.0.0:${builtins.toString cfg.port}";
+          proxyPass = "http://127.0.0.1:${builtins.toString cfg.port}";
         };
       };
     };
