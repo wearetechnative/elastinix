@@ -20,6 +20,7 @@ Services that provide application-level functionality.
 
 - **[Badgersbay](services/badgersbay.md)** - File processing service with HTTP endpoint for receiving and storing files
 - **[Chhoto](services/chhoto.md)** - Lightweight self-hosted URL shortener with SQLite storage
+- **[Documenso](services/documenso.md)** - Open-source document signing platform (DocuSign alternative) with PDF signing, BullMQ job processing, and S3 storage
 
 ## General Information
 
