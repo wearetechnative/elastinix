@@ -54,6 +54,21 @@
       owner = "documenso";
       mode = "0400";
     };
+
+    # SMTP credentials (optional - only needed for authenticated SMTP)
+    # Method 1: Separate password file
+    # documenso-smtp-password = {
+    #   file = ./secrets/smtp-password.age;
+    #   owner = "documenso";
+    #   mode = "0400";
+    # };
+
+    # Method 2: Combined credentials file (recommended)
+    # documenso-smtp-credentials = {
+    #   file = ./secrets/smtp-credentials.age;
+    #   owner = "documenso";
+    #   mode = "0400";
+    # };
   };
 
   # Documenso service configuration
@@ -72,14 +87,35 @@
       passwordFile = config.age.secrets.documenso-db-password.path;
     };
 
-    # SMTP configuration (local Postfix with AWS SES relay)
+    # SMTP configuration
+    # Example 1: Local Postfix relay (no auth)
     smtp = {
       host = "localhost";
       port = 25;
       fromName = "Document Signing";
       fromAddress = "noreply@example.com";
-      # No username/password needed for local relay
     };
+
+    # Example 2: Direct AWS SES (with separate credentials)
+    # smtp = {
+    #   host = "email-smtp.eu-central-1.amazonaws.com";
+    #   port = 587;
+    #   secure = false;  # Use STARTTLS for port 587
+    #   fromName = "Document Signing";
+    #   fromAddress = "noreply@example.com";
+    #   username = "AKIAIOSFODNN7EXAMPLE";
+    #   passwordFile = config.age.secrets.documenso-smtp-password.path;
+    # };
+
+    # Example 3: Direct AWS SES (with combined credentials file)
+    # smtp = {
+    #   host = "email-smtp.eu-central-1.amazonaws.com";
+    #   port = 587;
+    #   secure = false;  # Use STARTTLS for port 587
+    #   fromName = "Document Signing";
+    #   fromAddress = "noreply@example.com";
+    #   credentialsFile = config.age.secrets.documenso-smtp-credentials.path;
+    # };
 
     # S3 storage configuration
     storage = {

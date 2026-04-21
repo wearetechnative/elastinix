@@ -168,15 +168,56 @@ services.documenso.smtp = {
   fromName = "Documenso";          # Sender name
   fromAddress = "noreply@example.com";  # REQUIRED: Sender email
 
-  # Optional: SMTP authentication
+  # Optional: SMTP authentication (Method 1 - separate files)
   username = "smtp-user";
   passwordFile = "/run/secrets/smtp-password";
 
-  # Optional: TLS
-  secure = true;
+  # Optional: SMTP authentication (Method 2 - combined credentials file)
+  # Use EITHER username+passwordFile OR credentialsFile, not both
+  # credentialsFile = config.age.secrets.documenso-smtp-credentials.path;
+
+  # Optional: TLS configuration
+  secure = false;  # false = STARTTLS (port 587), true = direct TLS (port 465)
   unsafeIgnoreTls = false;
 };
 ```
+
+**SMTP Credential Methods:**
+
+Method 1 - Separate credentials (traditional):
+```nix
+smtp = {
+  username = "AKIAIOSFODNN7EXAMPLE";
+  passwordFile = config.age.secrets.smtp-password.path;
+};
+```
+
+Method 2 - Combined credentials file (like S3):
+```nix
+smtp = {
+  credentialsFile = config.age.secrets.smtp-credentials.path;
+};
+```
+
+The credentials file format:
+```bash
+SMTP_USERNAME=AKIAIOSFODNN7EXAMPLE
+SMTP_PASSWORD=your_smtp_password_here
+```
+
+**AWS SES Configuration:**
+```nix
+smtp = {
+  host = "email-smtp.eu-central-1.amazonaws.com";
+  port = 587;
+  secure = false;  # Use STARTTLS for port 587
+  fromAddress = "noreply@example.com";
+  fromName = "My App";
+  credentialsFile = config.age.secrets.ses-smtp-credentials.path;
+};
+```
+
+**Important:** AWS SES requires SMTP credentials (not IAM access keys). Create them in IAM → Users → Security Credentials → "SMTP credentials for Amazon SES".
 
 ### Storage
 
@@ -421,6 +462,89 @@ systemctl cat documenso | grep AWS_ACCESS_KEY_ID
 
 # Test S3 access manually
 aws s3 ls s3://your-bucket --profile your-profile
+```
+
+**CORS Errors in Browser:**
+
+If PDFs won't load in browser with CORS errors:
+
+1. Configure CORS on your S3 bucket:
+```json
+{
+  "CORSRules": [{
+    "AllowedOrigins": ["https://your-domain.com"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "MaxAgeSeconds": 3000
+  }]
+}
+```
+
+2. Apply with AWS CLI:
+```bash
+aws s3api put-bucket-cors --bucket your-bucket --cors-configuration file://cors.json
+```
+
+### SMTP / Email Errors
+
+**Error: `535 Authentication Credentials Invalid`**
+
+AWS SES requires SMTP credentials, not IAM access keys:
+- Go to IAM → Users → Security Credentials
+- Create "SMTP credentials for Amazon SES"
+- Use these credentials (not your IAM keys!)
+
+**Error: `SSL routines:tls_validate_record_header:wrong version number`**
+
+Port/TLS mismatch:
+```nix
+# For port 587 (STARTTLS)
+smtp = {
+  port = 587;
+  secure = false;  # ← Must be false!
+};
+
+# For port 465 (direct TLS)
+smtp = {
+  port = 465;
+  secure = true;  # ← Must be true!
+};
+```
+
+**Emails Not Being Sent:**
+
+1. Check document distribution method in database:
+```bash
+sudo -u postgres psql -d documenso -c \
+  "SELECT \"distributionMethod\" FROM \"DocumentMeta\" WHERE \"documentId\" = 1;"
+```
+
+Should be `EMAIL` (not `NONE`). If `NONE`, emails won't be sent.
+
+2. Check SMTP configuration in logs:
+```bash
+journalctl -u documenso | grep -i smtp
+```
+
+3. Verify email job processing (BullMQ):
+```bash
+# Check if jobs are being created
+journalctl -u documenso | grep -i "Submitting job"
+
+# Check Redis for queued jobs
+redis-cli -p 6379 keys '*'
+```
+
+**Test SMTP Connectivity:**
+
+```bash
+# Test SMTP connection
+curl -v --url 'smtp://email-smtp.eu-central-1.amazonaws.com:587' \
+  --mail-from 'sender@example.com' \
+  --mail-rcpt 'recipient@example.com' \
+  --user 'SMTP_USERNAME:SMTP_PASSWORD' \
+  --ssl-reqd \
+  -T - <<< 'Test email'
 ```
 
 ## Security Recommendations

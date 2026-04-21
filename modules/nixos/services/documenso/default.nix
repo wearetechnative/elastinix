@@ -124,6 +124,20 @@ in
         example = "config.age.secrets.documenso-smtp-password.path";
       };
 
+      credentialsFile = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = ''
+          File containing SMTP credentials in KEY=value format (alternative to username+passwordFile):
+
+          SMTP_USERNAME=your_username
+          SMTP_PASSWORD=your_password
+
+          Use either username+passwordFile OR credentialsFile, not both.
+        '';
+        example = "config.age.secrets.documenso-smtp-credentials.path";
+      };
+
       secure = mkOption {
         type = types.bool;
         default = false;
@@ -336,6 +350,13 @@ in
           assertion = cfg.smtp.fromAddress != "";
           message = "services.documenso.smtp.fromAddress must be set";
         }
+        {
+          assertion =
+            (cfg.smtp.username != null && cfg.smtp.passwordFile != null && cfg.smtp.credentialsFile == null) ||
+            (cfg.smtp.username == null && cfg.smtp.passwordFile == null && cfg.smtp.credentialsFile != null) ||
+            (cfg.smtp.username == null && cfg.smtp.passwordFile == null && cfg.smtp.credentialsFile == null);
+          message = "services.documenso.smtp: Use either username+passwordFile OR credentialsFile, not both";
+        }
       ];
 
       # User and group
@@ -378,6 +399,11 @@ in
             SMTP_PASSWORD=$(cat ${cfg.smtp.passwordFile})
           ''}
 
+          ${optionalString (cfg.smtp.credentialsFile != null) ''
+            # Source SMTP credentials
+            source ${cfg.smtp.credentialsFile}
+          ''}
+
           ${optionalString (cfg.storage.type == "s3") ''
             # Source S3 credentials
             source ${cfg.storage.credentialsFile}
@@ -413,6 +439,10 @@ in
             NEXT_PRIVATE_SMTP_USERNAME=${cfg.smtp.username}
           ''}
           ${optionalString (cfg.smtp.passwordFile != null) ''
+            NEXT_PRIVATE_SMTP_PASSWORD=$SMTP_PASSWORD
+          ''}
+          ${optionalString (cfg.smtp.credentialsFile != null) ''
+            NEXT_PRIVATE_SMTP_USERNAME=$SMTP_USERNAME
             NEXT_PRIVATE_SMTP_PASSWORD=$SMTP_PASSWORD
           ''}
           ${optionalString cfg.smtp.secure ''

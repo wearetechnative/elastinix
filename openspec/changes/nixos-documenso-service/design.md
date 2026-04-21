@@ -99,9 +99,39 @@ services.redis.servers.documenso = mkIf (cfg.jobs.provider == "bullmq") {
 - Lowers barrier for testing/evaluation
 - OpenSSL available by default
 - Idempotent (only if file doesn't exist)
-- Production users can provide own certificate
+- Production users can provide own certificate via certificateFile
+- Certificate can be encrypted with agenix for persistence across instances
 
 **Implementation:** ExecStartPre runs openssl commands to create PKCS#12 bundle
+
+### Decision 6: SMTP credentials via credentialsFile (alternative to username+passwordFile)
+
+**Choice:** Support both separate (username + passwordFile) and combined (credentialsFile) credential methods
+
+**Rationale:**
+- Consistency with S3 credentialsFile pattern
+- Simpler for AWS SES users (single encrypted file)
+- Reduces number of secret files to manage
+- Easier to rotate credentials atomically
+- Still supports traditional separate approach for backward compatibility
+
+**Implementation:**
+```nix
+# Method 1: Separate (original)
+smtp = {
+  username = "user";
+  passwordFile = config.age.secrets.smtp-password.path;
+};
+
+# Method 2: Combined (new)
+smtp = {
+  credentialsFile = config.age.secrets.smtp-credentials.path;
+};
+```
+
+File format: `SMTP_USERNAME=user\nSMTP_PASSWORD=pass`
+
+**Validation:** Assertion prevents using both methods simultaneously
 
 ## Risks / Trade-offs
 
@@ -123,6 +153,18 @@ services.redis.servers.documenso = mkIf (cfg.jobs.provider == "bullmq") {
 - Con: Less explicit configuration
 - Acceptable: Redis config still overridable
 
+### [Risk] AWS SES SMTP configuration complexity
+- Port 587 requires `secure = false` (STARTTLS), port 465 requires `secure = true` (direct TLS)
+- AWS SES SMTP credentials are different from IAM access keys
+- **Mitigation:** Comprehensive documentation with examples, troubleshooting guide for common errors
+
+### [Trade-off] Stateless vs stateful certificate management
+- autoGenerate = true: Stateless but new cert on each rebuild
+- certificateFile via agenix: Persistent cert across instances, requires secret management
+- Pro (stateless): Works with Auto Scaling, Spot instances, no EBS needed
+- Con (stateless): Certificate changes on each instance recreation
+- Acceptable: For production, use agenix-encrypted certificate for persistence
+
 ## Migration Plan
 
 ### Initial Deployment
@@ -141,7 +183,7 @@ Integration steps:
 
 ### Testing
 
-Run NixOS VM test:
+**Automated NixOS VM test:**
 ```bash
 nix-build modules/nixos/tests/documenso.nix
 ```
@@ -155,6 +197,45 @@ Test verifies:
 - Redis configured and running
 - Systemd security hardening applied
 
+**Manual end-to-end validation (completed):**
+
+Created standalone VM test environment (`/tmp/documenso-test/vm-config.nix`) that validated:
+
+1. **S3 Integration:**
+   - Document upload to real AWS S3 bucket
+   - S3 CORS configuration for PDF viewing in browser
+   - Presigned URL generation and access
+   - IAM credential management via credentialsFile
+
+2. **SMTP/Email Delivery:**
+   - AWS SES SMTP integration (port 587 with STARTTLS)
+   - SMTP credentialsFile authentication method
+   - Email job queueing via BullMQ
+   - Email delivery to recipients
+   - Document distribution workflow
+
+3. **Complete Signing Workflow:**
+   - User authentication and session management
+   - Document upload and metadata storage
+   - Recipient configuration (multiple recipients)
+   - Field placement (signature, date, text)
+   - Document distribution via email
+   - Signing completion and audit trail
+
+4. **Edge Cases Validated:**
+   - SMTP secure=false required for STARTTLS (port 587)
+   - AWS SES requires SMTP credentials (not IAM keys)
+   - S3 CORS must allow origin for PDF viewing
+   - DocumentMeta.distributionMethod must be "EMAIL" for email sending
+   - BullMQ jobs process asynchronously (not immediate)
+
+**Configuration Patterns Tested:**
+- External PostgreSQL (VM local for testing, RDS-ready)
+- Redis auto-enablement with BullMQ
+- Certificate auto-generation with passphraseFile
+- All secrets via agenix-compatible file paths
+- Stateless deployment (certificate via agenix, no persistent storage needed)
+
 ### Rollback
 
 If deployment fails:
@@ -164,4 +245,20 @@ If deployment fails:
 
 ## Open Questions
 
-None - implementation is complete and tested.
+None - implementation is complete and extensively tested.
+
+## Future Enhancements
+
+**CloudWatch Logs Integration** (GitHub Issue #11):
+- Optional CloudWatch Logs agent configuration
+- Centralized log aggregation for multi-instance deployments
+- Log retention policies
+- Enables fully stateless EC2 deployments (no local log persistence needed)
+- Complements existing stateless architecture (RDS + S3 + ElastiCache + agenix)
+
+**Design considerations:**
+- Use `pkgs.amazon-cloudwatch-agent`
+- Configure via systemd service streaming journald logs
+- Support EC2 instance profile IAM authentication
+- Auto-create log groups (optional)
+- Configurable retention periods

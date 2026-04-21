@@ -47,3 +47,50 @@
 - [x] 6.3 Add backup recommendations to README
 - [x] 6.4 Document upgrade procedure
 - [x] 6.5 Add troubleshooting section to README
+
+## 7. Feature Enhancements
+
+- [x] 7.1 Add SMTP credentialsFile option (alternative to username+passwordFile)
+- [x] 7.2 Add validation assertions for SMTP credential methods
+- [x] 7.3 Update environment generator to support credentialsFile
+- [x] 7.4 Document SMTP credentialsFile in README
+- [x] 7.5 Add SMTP credentialsFile examples to example.nix
+- [x] 7.6 Update agenix secrets section in example.nix
+
+## 8. AWS Integration Documentation
+
+- [x] 8.1 Document AWS SES SMTP configuration (port 587 vs 465)
+- [x] 8.2 Explain STARTTLS vs direct TLS configuration
+- [x] 8.3 Document SES SMTP credentials vs IAM access keys
+- [x] 8.4 Add S3 CORS configuration examples
+- [x] 8.5 Document IAM permissions for S3 and SES
+- [x] 8.6 Add stateless EC2 deployment guidance
+- [x] 8.7 Document certificate management via agenix
+
+## 9. Troubleshooting Documentation
+
+- [x] 9.1 Add SMTP authentication error troubleshooting
+- [x] 9.2 Add SSL/TLS configuration error troubleshooting
+- [x] 9.3 Add email delivery troubleshooting (distributionMethod, BullMQ)
+- [x] 9.4 Add S3 CORS error troubleshooting
+- [x] 9.5 Add Redis/BullMQ job monitoring guidance
+- [x] 9.6 Add SMTP connectivity testing examples
+
+## 10. End-to-End Validation
+
+- [x] 10.1 Create standalone VM test configuration
+- [x] 10.2 Test S3 document upload with real AWS credentials
+- [x] 10.3 Configure and test S3 CORS for PDF viewing
+- [x] 10.4 Test AWS SES SMTP integration (port 587 + STARTTLS)
+- [x] 10.5 Validate email delivery workflow
+- [x] 10.6 Test multi-recipient document distribution
+- [x] 10.7 Complete full signing workflow from upload to completion
+- [x] 10.8 Test BullMQ job processing with Redis
+- [x] 10.9 Validate certificate auto-generation
+- [x] 10.10 Document all edge cases and solutions
+
+## 11. Future Planning
+
+- [x] 11.1 Create GitHub issue for CloudWatch Logs integration (#11)
+- [ ] 11.2 Plan CloudWatch Logs implementation approach
+- [ ] 11.3 Design CloudWatch Logs configuration interface
