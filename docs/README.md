@@ -10,7 +10,9 @@ Services that integrate with external systems and APIs.
 - **[Jira Sync](services/jirasync.md)** - Multi-instance Jira synchronization service with flexible scheduling and age-encrypted configuration support
 
 ### Infrastructure Services
-*(Documentation coming soon)*
+Services that provide infrastructure-level functionality.
+
+- **[Postfix AWS SES Relay](services/postfix-relay-aws.md)** - Centralized mail relay for AWS SES with SASL authentication, network security, and sender address rewriting
 
 ### Monitoring Services
 *(Documentation coming soon)*
