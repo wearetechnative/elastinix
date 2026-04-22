@@ -92,36 +92,40 @@ in {
     # Example: "noreply@example.com" -> "example.com"
     services.postfix = {
       enable = true;
-      relayHost = cfg.sesEndpoint;
-      relayPort = cfg.sesPort;
-      networks = cfg.trustedNetworks;
-      hostname = config.networking.hostName;
-      domain = builtins.elemAt (builtins.split "@" cfg.defaultSenderAddress) 2;
 
-      config = {
-        # SASL Authentication
-        smtp_sasl_auth_enable = "yes";
-        smtp_sasl_security_options = "noanonymous";
-        smtp_sasl_password_maps = "hash:/var/lib/postfix/sasl_passwd";
+      settings = {
+        main = {
+          # Network and hostname configuration
+          mynetworks = cfg.trustedNetworks;
+          myhostname = config.networking.hostName;
+          mydomain = builtins.elemAt (builtins.split "@" cfg.defaultSenderAddress) 2;
 
-        # TLS Configuration
-        smtp_use_tls = "yes";
-        smtp_tls_security_level = "encrypt";
-        smtp_tls_note_starttls_offer = "yes";
+          # Relay Configuration (NixOS 25.11+)
+          relayhost = [ "[${cfg.sesEndpoint}]:${toString cfg.sesPort}" ];
 
-        # Address Rewriting
-        smtp_generic_maps = "hash:/var/lib/postfix/generic";
-        alias_maps = "hash:/var/lib/postfix/aliases";
+          # SASL Authentication
+          smtp_sasl_auth_enable = true;
+          smtp_sasl_security_options = "noanonymous";
+          smtp_sasl_password_maps = "hash:/var/lib/postfix/sasl_passwd";
 
-        # SES Compliance Settings
-        message_size_limit = toString cfg.messageSizeLimit;
-        default_destination_concurrency_limit = "2";
-        default_destination_rate_delay = "1s";
+          # TLS Configuration
+          smtp_use_tls = true;
+          smtp_tls_security_level = "encrypt";
+          smtp_tls_note_starttls_offer = true;
 
-        # Bounce Handling
-        bounce_notice_recipient = cfg.rootAlias;
-        "2bounce_notice_recipient" = cfg.rootAlias;
-        error_notice_recipient = cfg.rootAlias;
+          # Address Rewriting
+          smtp_generic_maps = "hash:/var/lib/postfix/generic";
+
+          # SES Compliance Settings
+          message_size_limit = cfg.messageSizeLimit;
+          default_destination_concurrency_limit = 2;
+          default_destination_rate_delay = "1s";
+
+          # Bounce Handling
+          bounce_notice_recipient = cfg.rootAlias;
+          "2bounce_notice_recipient" = cfg.rootAlias;
+          error_notice_recipient = cfg.rootAlias;
+        };
       };
 
       # Map Files

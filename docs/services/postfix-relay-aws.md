@@ -17,37 +17,37 @@ The Postfix AWS SES relay service provides a dedicated mail relay host within yo
 ┌────────────────────────────────────────────────────────────────┐
 │                     VPC (10.0.0.0/16)                          │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │                                                           │  │
+│  │                                                          │  │
 │  │  App Server 1        App Server 2       App Server N     │  │
 │  │  (10.0.1.10)        (10.0.1.11)         (10.0.1.x)       │  │
-│  │      │                  │                    │            │  │
-│  │      │ SMTP:25          │ SMTP:25            │            │  │
-│  │      └──────────────────┴────────────────────┘            │  │
-│  │                         │                                 │  │
-│  │                         ▼                                 │  │
-│  │              ┌──────────────────────┐                     │  │
-│  │              │   Mail Relay Host    │                     │  │
-│  │              │   (10.0.2.5)         │                     │  │
-│  │              │                      │                     │  │
-│  │              │  Postfix Relay       │                     │  │
-│  │              │  + mynetworks filter │                     │  │
-│  │              └──────────┬───────────┘                     │  │
-│  │                         │                                 │  │
-│  │                         │ SMTP:587/TLS                    │  │
-│  └─────────────────────────┼─────────────────────────────────┘  │
-│                            │                                    │
-│                            │ (via NAT Gateway)                  │
-│                            ▼                                    │
-│                   ┌─────────────────┐                           │
-│                   │    AWS SES      │                           │
-│                   │  SMTP Endpoint  │                           │
-│                   └─────────────────┘                           │
-│                                                                 │
+│  │      │                  │                    │           │  │
+│  │      │ SMTP:25          │ SMTP:25            │           │  │
+│  │      └──────────────────┴────────────────────┘           │  │
+│  │                         │                                │  │
+│  │                         ▼                                │  │
+│  │              ┌──────────────────────┐                    │  │
+│  │              │   Mail Relay Host    │                    │  │
+│  │              │   (10.0.2.5)         │                    │  │
+│  │              │                      │                    │  │
+│  │              │  Postfix Relay       │                    │  │
+│  │              │  + mynetworks filter │                    │  │
+│  │              └──────────┬───────────┘                    │  │
+│  │                         │                                │  │
+│  │                         │ SMTP:587/TLS                   │  │
+│  └─────────────────────────┼────────────────────────────────┘  │
+│                            │                                   │
+│                            │ (via NAT Gateway)                 │
+│                            ▼                                   │
+│                   ┌─────────────────┐                          │
+│                   │    AWS SES      │                          │
+│                   │  SMTP Endpoint  │                          │
+│                   └─────────────────┘                          │
+│                                                                │
 │  Security Layers:                                              │
-│  1. AWS Security Group - only relay host → SES                │
-│  2. Postfix mynetworks - only accept from 10.0.0.0/16         │
+│  1. AWS Security Group - only relay host → SES                 │
+│  2. Postfix mynetworks - only accept from 10.0.0.0/16          │
 │  3. TLS encryption for SES connection                          │
-│                                                                 │
+│                                                                │
 └────────────────────────────────────────────────────────────────┘
 ```
 
