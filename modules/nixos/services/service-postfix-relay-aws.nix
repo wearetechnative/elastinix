@@ -96,7 +96,7 @@ in {
       settings = {
         main = {
           # Network and hostname configuration
-          mynetworks = concatStringsSep ", " cfg.trustedNetworks;
+          mynetworks = cfg.trustedNetworks;
           myhostname = config.networking.hostName;
           mydomain = builtins.elemAt (builtins.split "@" cfg.defaultSenderAddress) 2;
 
@@ -130,6 +130,10 @@ in {
           bounce_notice_recipient = cfg.rootAlias;
           "2bounce_notice_recipient" = cfg.rootAlias;
           error_notice_recipient = cfg.rootAlias;
+
+          # Fix for smtpd crash: remove $mynetworks from proxy_read_maps
+          # mynetworks is not a map/dictionary, it's a network list
+          proxy_read_maps = "";
         };
       };
 
