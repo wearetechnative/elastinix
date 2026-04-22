@@ -612,17 +612,17 @@
         "oldstable": "oldstable"
       },
       "locked": {
-        "lastModified": 1775819936,
-        "narHash": "sha256-f42wzcS7P1ziB5qod92S6clDTbNiVPD3LaUWLunt55A=",
-        "owner": "TechNative-B-V",
-        "repo": "pontifex",
-        "rev": "9f02a9df68a52bbce9d0c1a0a26b5dc2109fc984",
-        "type": "github"
+        "lastModified": 1776868973,
+        "narHash": "sha256-XA6hvR8f8aJmIl2RoA1/Idfj6REB8kMBdNZsOUdrfFA=",
+        "ref": "refs/heads/main",
+        "rev": "8bfaba4b90077104b4c7699354d31095840b9cf7",
+        "revCount": 78,
+        "type": "git",
+        "url": "ssh://git@github.com/TechNative-B-V/pontifex.git"
       },
       "original": {
-        "owner": "TechNative-B-V",
-        "repo": "pontifex",
-        "type": "github"
+        "type": "git",
+        "url": "ssh://git@github.com/TechNative-B-V/pontifex.git"
       }
     },
     "root": {
