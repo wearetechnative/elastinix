@@ -133,7 +133,8 @@ in {
 
           # Fix for smtpd crash: remove $mynetworks from proxy_read_maps
           # mynetworks is not a map/dictionary, it's a network list
-          proxy_read_maps = "";
+          # Keep only essential maps needed by smtpd
+          proxy_read_maps = "proxy:unix:passwd.byname $alias_maps";
 
           # Fix for smtpd crash: remove mynetworks from parent_domain_matches_subdomains
           # parent_domain_matches_subdomains expects map names, not network lists
