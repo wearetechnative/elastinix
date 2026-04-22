@@ -303,6 +303,120 @@ default_destination_rate_delay = "1s";        # 1 second delay between messages
 
 Postfix will queue messages if rate limits are exceeded.
 
+## Client Configuration
+
+Application servers that need to send email should be configured as Postfix relay clients. They forward all outgoing mail to the central relay host.
+
+### Basic Client Setup
+
+```nix
+{
+  # Postfix relay client (forwards all mail to compute2)
+  services.postfix = {
+    enable = true;
+    hostname = "appserver-${environment}";
+    domain = "example.com";
+
+    settings = {
+      main = {
+        # Relay all mail through central relay server
+        relayhost = [ "mailrelay.internal:25" ];
+
+        # Network configuration - only listen on loopback
+        inet_interfaces = "loopback-only";
+        inet_protocols = "ipv4";
+
+        # Local delivery only to localhost
+        mydestination = ["localhost"];
+
+        # Aliases for system mail
+        alias_maps = ["hash:/etc/postfix/aliases"];
+      };
+    };
+
+    mapFiles = {
+      aliases = pkgs.writeText "postfix-aliases" ''
+        root: sysadmin@example.com
+        postmaster: sysadmin@example.com
+      '';
+    };
+  };
+}
+```
+
+### Dynamic Environment Configuration
+
+For multiple environments (prod/nonprod), use dynamic configuration:
+
+```nix
+let
+  infra_environment = "prod";  # or "nonprod"
+
+  postfix_relay_domain = if infra_environment == "prod"
+    then "tools.example.cloud"
+    else "np-tools.example.cloud";
+
+  postfix_relay_host = "postfix.${postfix_relay_domain}";
+
+in {
+  services.postfix = {
+    enable = true;
+    hostname = "appserver-${infra_environment}";
+    domain = "example.com";
+
+    settings = {
+      main = {
+        relayhost = [ "${postfix_relay_host}:25" ];
+        inet_interfaces = "loopback-only";
+        inet_protocols = "ipv4";
+        mydestination = ["localhost"];
+        alias_maps = ["hash:/etc/postfix/aliases"];
+      };
+    };
+
+    mapFiles = {
+      aliases = pkgs.writeText "postfix-aliases" ''
+        root: sysadmin@example.com
+        postmaster: sysadmin@example.com
+      '';
+    };
+  };
+}
+```
+
+### DNS Configuration
+
+Configure Route53 (or equivalent) to point `postfix.tools.example.cloud` to the relay host's **private IP** for VPC-only access:
+
+```hcl
+# Terraform example
+resource "aws_route53_record" "postfix_relay" {
+  zone_id = aws_route53_zone.internal.zone_id
+  name    = "postfix"
+  type    = "A"
+  ttl     = 60
+  records = [aws_instance.mail_relay.private_ip]
+}
+```
+
+### Client Testing
+
+From the application server:
+
+```bash
+# Send test email
+echo "Test from client" | mail -s "Client Test" test@example.com
+
+# Check mail queue
+mailq
+
+# Watch logs
+journalctl -u postfix -f
+
+# Verify relay is being used
+postconf relayhost
+```
+
 ## Testing
 
 ### 1. Verify Service Status
