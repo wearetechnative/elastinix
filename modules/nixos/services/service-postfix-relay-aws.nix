@@ -115,9 +115,10 @@ in {
 
           # Address Rewriting
           # Use both hash (for exact matches) and regexp (for catch-all)
+          # Note: NixOS postfix module places mapFiles in /var/lib/postfix/conf/
           smtp_generic_maps = [
-            "hash:/var/lib/postfix/generic"
-            "regexp:/var/lib/postfix/generic_regexp"
+            "hash:/var/lib/postfix/conf/generic"
+            "regexp:/var/lib/postfix/conf/generic_regexp"
           ];
 
           # SES Compliance Settings
