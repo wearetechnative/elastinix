@@ -114,7 +114,11 @@ in {
           smtp_tls_note_starttls_offer = true;
 
           # Address Rewriting
-          smtp_generic_maps = "hash:/var/lib/postfix/generic";
+          # Use both hash (for exact matches) and regexp (for catch-all)
+          smtp_generic_maps = [
+            "hash:/var/lib/postfix/generic"
+            "regexp:/var/lib/postfix/generic_regexp"
+          ];
 
           # SES Compliance Settings
           message_size_limit = cfg.messageSizeLimit;
@@ -130,16 +134,19 @@ in {
 
       # Map Files
       mapFiles = {
-        # Sender rewriting (generic maps)
+        # Sender rewriting - exact matches (hash map)
         generic = pkgs.writeText "postfix-generic" (
           concatStringsSep "\n" (
             # Specific sender mappings from cfg.senderMaps
             (mapAttrsToList (from: to: "${from} ${to}") cfg.senderMaps)
-            ++
-            # Catch-all: rewrite any address without proper domain to defaultSenderAddress
-            [ "/.+@[^.]+$/ ${cfg.defaultSenderAddress}" ]
           )
         );
+
+        # Sender rewriting - regex catch-all (regexp map)
+        generic_regexp = pkgs.writeText "postfix-generic-regexp" ''
+          # Catch-all: rewrite any address without proper domain to defaultSenderAddress
+          /.+@[^.]+$/ ${cfg.defaultSenderAddress}
+        '';
 
         # Local mail aliases
         aliases = pkgs.writeText "postfix-aliases" ''
@@ -157,6 +164,10 @@ in {
       wantedBy = [ "multi-user.target" ];
 
       script = ''
+        # Ensure /var/lib/postfix is owned by postfix user
+        # (postmap switches to postfix user and needs write access)
+        chown postfix:postfix /var/lib/postfix
+
         # Install credentials file with correct permissions
         install -D -m 600 -o postfix -g postfix \
           ${cfg.credentialsFile} \
