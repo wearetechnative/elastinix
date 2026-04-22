@@ -96,7 +96,7 @@ in {
       settings = {
         main = {
           # Network and hostname configuration
-          mynetworks = cfg.trustedNetworks;
+          mynetworks = concatStringsSep ", " cfg.trustedNetworks;
           myhostname = config.networking.hostName;
           mydomain = builtins.elemAt (builtins.split "@" cfg.defaultSenderAddress) 2;
 
