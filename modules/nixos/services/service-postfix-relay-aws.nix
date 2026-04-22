@@ -139,6 +139,11 @@ in {
           # parent_domain_matches_subdomains expects map names, not network lists
           # Default includes mynetworks, but that causes "expecting 'type:name' form" error
           parent_domain_matches_subdomains = "debug_peer_list,fast_flush_domains,permit_mx_backup_networks,qmqpd_authorized_clients,relay_domains,smtpd_access_maps";
+
+          # Fix for smtpd crash: override smtpd parameters that default to $mynetworks
+          # These smtpd_* parameters should use network lists, not $mynetworks variable expansion
+          smtpd_client_event_limit_exceptions = cfg.trustedNetworks;
+          smtpd_forbid_bare_newline_exclusions = cfg.trustedNetworks;
         };
       };
 
