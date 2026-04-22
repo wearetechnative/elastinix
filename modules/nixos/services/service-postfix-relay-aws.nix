@@ -134,6 +134,11 @@ in {
           # Fix for smtpd crash: remove $mynetworks from proxy_read_maps
           # mynetworks is not a map/dictionary, it's a network list
           proxy_read_maps = "";
+
+          # Fix for smtpd crash: remove mynetworks from parent_domain_matches_subdomains
+          # parent_domain_matches_subdomains expects map names, not network lists
+          # Default includes mynetworks, but that causes "expecting 'type:name' form" error
+          parent_domain_matches_subdomains = "debug_peer_list,fast_flush_domains,permit_mx_backup_networks,qmqpd_authorized_clients,relay_domains,smtpd_access_maps";
         };
       };
 
