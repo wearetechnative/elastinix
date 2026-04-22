@@ -1,148 +1,69 @@
-# Postfix AWS SES Relay
+# Postfix Mail Relay
 
-Centralized mail relay service for forwarding all email through AWS SES with SASL authentication, network security, and sender address rewriting.
+Centralized mail relay for forwarding all email through AWS SES with SASL authentication and sender address rewriting.
 
-## Overview
+## Features
 
-The Postfix AWS SES relay service provides a dedicated mail relay host within your VPC that all application servers can use to send email through AWS SES. This architecture:
-
-- **Centralizes credential management** - AWS SES SMTP credentials stored in one place
-- **Enforces network security** - Only trusted subnets can relay mail
-- **Ensures SES compliance** - Automatic sender address rewriting and message size limits
-- **Simplifies configuration** - Applications just point to the relay host
+- **Centralized credentials** - AWS SES SMTP credentials in one place
+- **Network security** - Only trusted VPC subnets can relay
+- **SES compliance** - Automatic sender rewriting, 10MB limit, rate limiting
+- **Client support** - Simple relay configuration for application servers
 
 ## Architecture
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                     VPC (10.0.0.0/16)                          │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                                                          │  │
-│  │  App Server 1        App Server 2       App Server N     │  │
-│  │  (10.0.1.10)        (10.0.1.11)         (10.0.1.x)       │  │
-│  │      │                  │                    │           │  │
-│  │      │ SMTP:25          │ SMTP:25            │           │  │
-│  │      └──────────────────┴────────────────────┘           │  │
-│  │                         │                                │  │
-│  │                         ▼                                │  │
-│  │              ┌──────────────────────┐                    │  │
-│  │              │   Mail Relay Host    │                    │  │
-│  │              │   (10.0.2.5)         │                    │  │
-│  │              │                      │                    │  │
-│  │              │  Postfix Relay       │                    │  │
-│  │              │  + mynetworks filter │                    │  │
-│  │              └──────────┬───────────┘                    │  │
-│  │                         │                                │  │
-│  │                         │ SMTP:587/TLS                   │  │
-│  └─────────────────────────┼────────────────────────────────┘  │
-│                            │                                   │
-│                            │ (via NAT Gateway)                 │
-│                            ▼                                   │
-│                   ┌─────────────────┐                          │
-│                   │    AWS SES      │                          │
-│                   │  SMTP Endpoint  │                          │
-│                   └─────────────────┘                          │
-│                                                                │
-│  Security Layers:                                              │
-│  1. AWS Security Group - only relay host → SES                 │
-│  2. Postfix mynetworks - only accept from 10.0.0.0/16          │
-│  3. TLS encryption for SES connection                          │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
+Application Servers (VPC)
+  ↓ SMTP:25
+Relay Host (Postfix)
+  ↓ SMTP:587/TLS
+AWS SES
+  ↓
+Recipients
 ```
+
+**Security**: AWS Security Group + Postfix mynetworks + TLS encryption
 
 ## Prerequisites
 
-### 1. AWS SES Identity Verification
+**1. AWS SES Setup**
+- Verify domain or email addresses in AWS SES
+- Create SMTP credentials in IAM (not regular IAM keys)
+- Request production access (sandbox limits: 1 email/sec, 200/day)
 
-All sender addresses must be verified in AWS SES before use:
-
+**2. Agenix Secret**
 ```bash
-# Verify a domain (recommended)
-aws ses verify-domain-identity --domain example.com
-
-# Or verify individual email addresses
-aws ses verify-email-identity --email-address noreply@example.com
-aws ses verify-email-identity --email-address sysadmin@example.com
+# Format: [host]:port username:password
+echo "[email-smtp.eu-central-1.amazonaws.com]:587 AKIAXXX:SecretXXX" | agenix -e secrets/ses-smtp.age
 ```
 
-**Important:** In SES sandbox mode, you must also verify recipient addresses. Request production access to send to any recipient.
-
-### 2. AWS SES SMTP Credentials
-
-Generate SMTP credentials in the AWS SES console or via AWS CLI:
-
-```bash
-# Create IAM user for SES SMTP
-aws iam create-user --user-name ses-smtp-user
-
-# Attach SES sending policy
-aws iam attach-user-policy \
-  --user-name ses-smtp-user \
-  --policy-arn arn:aws:iam::aws:policy/AmazonSesSendingAccess
-
-# Create SMTP credentials (converts IAM credentials to SMTP format)
-# Follow AWS documentation for SMTP credential conversion
-```
-
-### 3. Agenix Secret Configuration
-
-Encrypt SMTP credentials using agenix:
-
-```bash
-# Create credentials file (format: [host]:port username:password)
-cat > ses-smtp-creds <<EOF
-[email-smtp.eu-west-1.amazonaws.com]:587 AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-EOF
-
-# Encrypt with agenix
-agenix -e secrets/ses-smtp.age
-
-# Clean up plaintext file
-rm ses-smtp-creds
-```
-
-## Configuration
-
-### Basic Configuration
+## Server Configuration
 
 ```nix
 {
   elastinix.services.postfix-relay-aws = {
     enable = true;
 
-    # AWS SES SMTP endpoint (region-specific)
-    sesEndpoint = "email-smtp.eu-west-1.amazonaws.com";
-    sesPort = 587;  # 587=STARTTLS (default), 465=TLS, 25=plain
-
-    # Path to agenix-encrypted SASL credentials
+    sesEndpoint = "email-smtp.eu-central-1.amazonaws.com";
+    sesPort = 587;  # 587=STARTTLS, 465=TLS, 25=plain
     credentialsFile = config.age.secrets.ses-smtp.path;
 
-    # Networks allowed to relay mail (VPC CIDR + localhost)
     trustedNetworks = [
       "10.0.0.0/16"    # VPC CIDR
       "127.0.0.0/8"    # localhost
-      "::1/128"        # IPv6 localhost
     ];
 
-    # Where local system mail (root@, postmaster@) is forwarded
     rootAlias = "sysadmin@example.com";
-
-    # Default FROM address for sender rewriting
     defaultSenderAddress = "noreply@example.com";
 
-    # Optional: per-user sender mappings
+    # Optional: per-user mappings
     senderMaps = {
       "root@" = "sysadmin@example.com";
       "www-data@" = "webserver@example.com";
-      "postgres@" = "database@example.com";
     };
 
-    # Message size limit (default 10MB, SES maximum)
-    messageSizeLimit = 10485760;
+    messageSizeLimit = 10485760;  # 10MB (SES max)
   };
 
-  # Agenix secret configuration
   age.secrets.ses-smtp = {
     file = ./secrets/ses-smtp.age;
     owner = "postfix";
@@ -151,452 +72,118 @@ rm ses-smtp-creds
 }
 ```
 
-### SES Endpoints by Region
-
-| Region | SMTP Endpoint |
-|--------|---------------|
-| us-east-1 | email-smtp.us-east-1.amazonaws.com |
-| us-west-2 | email-smtp.us-west-2.amazonaws.com |
-| eu-west-1 | email-smtp.eu-west-1.amazonaws.com |
-| eu-central-1 | email-smtp.eu-central-1.amazonaws.com |
-| ap-southeast-1 | email-smtp.ap-southeast-1.amazonaws.com |
-
-See [AWS SES Regions and Endpoints](https://docs.aws.amazon.com/general/latest/gr/ses.html) for complete list.
-
-## Sender Address Rewriting Scenarios
-
-### Scenario 1: Local System Mail
-
-Cron jobs and system services send mail as `root@hostname.local`:
-
-```
-FROM: root@mailrelay.local
-TO: root
-
-↓ (alias_maps + senderMaps)
-
-FROM: sysadmin@example.com
-TO: sysadmin@example.com
-```
-
-### Scenario 2: Application Without Domain
-
-Web application sends as `www-data@hostname`:
-
-```
-FROM: www-data@appserver
-TO: customer@external.com
-
-↓ (senderMaps)
-
-FROM: webserver@example.com
-TO: customer@external.com
-```
-
-### Scenario 3: Already Verified Domain
-
-Application uses correct SES-verified address:
-
-```
-FROM: noreply@example.com
-TO: user@customer.com
-
-↓ (no rewriting)
-
-FROM: noreply@example.com
-TO: user@customer.com
-```
-
-### Scenario 4: Catch-All Rewriting
-
-Any sender without proper domain:
-
-```
-FROM: app@localhost
-TO: admin@example.com
-
-↓ (catch-all regex → defaultSenderAddress)
-
-FROM: noreply@example.com
-TO: admin@example.com
-```
-
-## Security
-
-### Defense in Depth
-
-This service implements multiple security layers:
-
-#### Layer 1: AWS Security Groups
-
-Configure security groups for network-level filtering:
-
-```hcl
-# Terraform example
-resource "aws_security_group_rule" "relay_to_ses" {
-  type              = "egress"
-  from_port         = 587
-  to_port           = 587
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]  # SES endpoints
-  security_group_id = aws_security_group.mail_relay.id
-}
-
-resource "aws_security_group_rule" "apps_to_relay" {
-  type                     = "ingress"
-  from_port                = 25
-  to_port                  = 25
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.app_servers.id
-  security_group_id        = aws_security_group.mail_relay.id
-}
-```
-
-#### Layer 2: Postfix mynetworks
-
-The `trustedNetworks` option configures Postfix to only accept mail from specific networks:
-
-```nix
-trustedNetworks = [ "10.0.0.0/16" "127.0.0.0/8" ];
-```
-
-This prevents open relay - only hosts in these networks can send mail.
-
-#### Layer 3: TLS Encryption
-
-All connections to AWS SES use TLS encryption:
-- Port 587: STARTTLS (opportunistic → mandatory via `smtp_tls_security_level = encrypt`)
-- Port 465: TLS wrapper (deprecated but supported)
-
-### Credential Security
-
-- Credentials stored in agenix-encrypted files
-- Decrypted at boot to `/run/agenix/*` (tmpfs, mode 600)
-- Postfix reads credentials via systemd setup service
-- Hashed credentials stored in `/var/lib/postfix/sasl_passwd.db` (mode 600, owner postfix)
-
-## SES Compliance Settings
-
-### Message Size Limit
-
-AWS SES has a 10MB message size limit. The service enforces this by default:
-
-```nix
-messageSizeLimit = 10485760;  # 10MB in bytes
-```
-
-Messages exceeding this limit are rejected before sending to SES.
-
-### Rate Limiting
-
-To prevent hitting SES rate limits, the service configures conservative Postfix defaults:
-
-```nix
-# In services.postfix.config
-default_destination_concurrency_limit = "2";  # Max 2 concurrent connections
-default_destination_rate_delay = "1s";        # 1 second delay between messages
-```
-
-**SES Rate Limits:**
-- **Sandbox mode**: 1 email/second, 200 emails/day
-- **Production mode**: Varies by account (request increase via AWS support)
-
-Postfix will queue messages if rate limits are exceeded.
+**SES Endpoints**: [AWS documentation](https://docs.aws.amazon.com/general/latest/gr/ses.html)
 
 ## Client Configuration
 
-Application servers that need to send email should be configured as Postfix relay clients. They forward all outgoing mail to the central relay host.
-
-### Basic Client Setup
-
-```nix
-{
-  # Postfix relay client (forwards all mail to compute2)
-  services.postfix = {
-    enable = true;
-    hostname = "appserver-${environment}";
-    domain = "example.com";
-
-    settings = {
-      main = {
-        # Relay all mail through central relay server
-        relayhost = [ "mailrelay.internal:25" ];
-
-        # Network configuration - only listen on loopback
-        inet_interfaces = "loopback-only";
-        inet_protocols = "ipv4";
-
-        # Local delivery only to localhost
-        mydestination = ["localhost"];
-
-        # Aliases for system mail
-        alias_maps = ["hash:/etc/postfix/aliases"];
-      };
-    };
-
-    mapFiles = {
-      aliases = pkgs.writeText "postfix-aliases" ''
-        root: sysadmin@example.com
-        postmaster: sysadmin@example.com
-      '';
-    };
-  };
-}
-```
-
-### Dynamic Environment Configuration
-
-For multiple environments (prod/nonprod), use dynamic configuration:
+Application servers forward all mail to relay host:
 
 ```nix
 let
-  infra_environment = "prod";  # or "nonprod"
-
-  postfix_relay_domain = if infra_environment == "prod"
-    then "tools.example.cloud"
-    else "np-tools.example.cloud";
-
-  postfix_relay_host = "postfix.${postfix_relay_domain}";
-
+  postfix_relay_host = "postfix.internal";  # or "postfix.${domain}"
 in {
   services.postfix = {
     enable = true;
-    hostname = "appserver-${infra_environment}";
+    hostname = "appserver";
     domain = "example.com";
 
-    settings = {
-      main = {
-        relayhost = [ "${postfix_relay_host}:25" ];
-        inet_interfaces = "loopback-only";
-        inet_protocols = "ipv4";
-        mydestination = ["localhost"];
-        alias_maps = ["hash:/etc/postfix/aliases"];
-      };
+    settings.main = {  # NixOS 25.11+
+      relayhost = [ "${postfix_relay_host}:25" ];
+      inet_interfaces = "loopback-only";
+      inet_protocols = "ipv4";
+      mydestination = ["localhost"];
+      alias_maps = ["hash:/etc/postfix/aliases"];
     };
 
-    mapFiles = {
-      aliases = pkgs.writeText "postfix-aliases" ''
-        root: sysadmin@example.com
-        postmaster: sysadmin@example.com
-      '';
-    };
+    mapFiles.aliases = pkgs.writeText "aliases" ''
+      root: sysadmin@example.com
+      postmaster: sysadmin@example.com
+    '';
   };
 }
 ```
 
-### DNS Configuration
-
-Configure Route53 (or equivalent) to point `postfix.tools.example.cloud` to the relay host's **private IP** for VPC-only access:
-
-```hcl
-# Terraform example
-resource "aws_route53_record" "postfix_relay" {
-  zone_id = aws_route53_zone.internal.zone_id
-  name    = "postfix"
-  type    = "A"
-  ttl     = 60
-  records = [aws_instance.mail_relay.private_ip]
-}
+**NixOS 25.05** (old API):
+```nix
+services.postfix = {
+  relayHost = postfix_relay_host;
+  relayPort = 25;
+  config.inet_interfaces = "loopback-only";
+  destination = ["localhost"];
+  # ... same mapFiles
+};
 ```
 
-### Client Testing
+**DNS**: Point `postfix.internal` to relay host's **private IP** for VPC-only access.
 
-From the application server:
+## Sender Address Rewriting
 
-```bash
-# Send test email
-echo "Test from client" | mail -s "Client Test" test@example.com
-
-# Check mail queue
-mailq
-
-# Watch logs
-journalctl -u postfix -f
-
-# Verify relay is being used
-postconf relayhost
-```
+| From | To |
+|------|-----|
+| `root@hostname` | `sysadmin@example.com` (via senderMaps) |
+| `www-data@appserver` | `webserver@example.com` (via senderMaps) |
+| `noreply@example.com` | unchanged (already verified) |
+| `app@localhost` | `noreply@example.com` (catch-all regex) |
 
 ## Testing
 
-### 1. Verify Service Status
-
 ```bash
-# Check SASL credentials setup service
-systemctl status postfix-setup-sasl.service
+# Server: Check status
+systemctl status postfix postfix-setup-sasl
+journalctl -u postfix -f
 
-# Check Postfix service
-systemctl status postfix.service
-
-# Check Postfix logs
-journalctl -u postfix.service -f
-```
-
-### 2. Send Test Email
-
-```bash
-# Using mail command
-echo "Test email body" | mail -s "Test Subject" test@example.com
-
-# Using sendmail
-sendmail -t <<EOF
-From: noreply@example.com
-To: test@example.com
-Subject: Test from relay
-
-This is a test email.
-EOF
-```
-
-### 3. Monitor Mail Queue
-
-```bash
-# Check mail queue
-mailq
-
-# Watch mail log
-tail -f /var/log/mail.log
-
-# Or with journalctl
-journalctl -u postfix.service -f
-```
-
-### 4. Test From Application Server
-
-Configure application to use relay host as SMTP server:
-
-```python
-# Python example
-import smtplib
-
-smtp = smtplib.SMTP('mailrelay.internal', 25)
-smtp.sendmail(
-    'noreply@example.com',
-    ['test@example.com'],
-    'Subject: Test\n\nTest email'
-)
-smtp.quit()
+# Client: Send test
+echo "Test" | mail -s "Test" user@example.com
+mailq  # Check queue
+postconf relayhost  # Verify relay config
 ```
 
 ## Troubleshooting
 
-### Credentials Not Working
+**Authentication failed (535)**
+- Use SES SMTP credentials (not IAM keys)
+- Check credentials format: `[host]:port username:password`
+- Verify file permissions: `ls -la /var/lib/postfix/sasl_passwd*`
 
-**Symptom:** Authentication failures in logs
+**Connection refused**
+- Check AWS Security Group egress to port 587
+- Test: `nc -zv email-smtp.eu-central-1.amazonaws.com 587`
+- Verify NAT Gateway configuration
 
-```
-SASL authentication failed; server email-smtp.eu-west-1.amazonaws.com[...] said: 535 Authentication Credentials Invalid
-```
+**Sender not verified (554)**
+- Verify addresses in AWS SES console
+- Check `senderMaps` and `defaultSenderAddress` configuration
 
-**Solution:**
-1. Verify credentials file format: `[host]:port username:password`
-2. Check credentials are valid in AWS console
-3. Verify file permissions: `ls -la /var/lib/postfix/sasl_passwd*`
-4. Re-run setup: `systemctl restart postfix-setup-sasl.service`
+**Mail queue building up**
+- Check SES rate limits (sandbox vs production)
+- Monitor: `mailq` and `journalctl -u postfix`
+- Request SES limit increase from AWS
 
-### Connection Refused
+**smtpd crash (dictionary error)**
+- Ensure IPv6 (::1/128) removed from trustedNetworks
+- Check `proxy_read_maps` and `parent_domain_matches_subdomains` settings
 
-**Symptom:** Connection errors to SES endpoint
+## Security
 
-```
-connect to email-smtp.eu-west-1.amazonaws.com[...]:587: Connection refused
-```
+- Store credentials in agenix/sops-nix encrypted files
+- Restrict relay to VPC CIDR only (trustedNetworks)
+- Use TLS for SES connection (port 587 with STARTTLS)
+- Regular database backups if using database storage
+- Monitor logs for suspicious activity
 
-**Solution:**
-1. Check AWS Security Group allows egress to port 587
-2. Verify network connectivity: `nc -zv email-smtp.eu-west-1.amazonaws.com 587`
-3. Check NAT Gateway configuration
+## Performance
 
-### Sender Address Not Verified
+**SES Rate Limits**:
+- Sandbox: 1 email/sec, 200 emails/day
+- Production: Varies (request increase via AWS support)
 
-**Symptom:** SES rejects email due to unverified sender
-
-```
-554 Message rejected: Email address is not verified
-```
-
-**Solution:**
-1. Verify sender addresses in AWS SES console
-2. Check `senderMaps` configuration
-3. Verify `defaultSenderAddress` is verified
-
-### Mail Queue Building Up
-
-**Symptom:** `mailq` shows many queued messages
-
-**Solution:**
-1. Check SES rate limits (sandbox vs production)
-2. Adjust rate limiting settings if needed
-3. Request SES sending limit increase from AWS
-4. Check for delivery errors: `mailq` and logs
-
-### Permission Denied
-
-**Symptom:** Postfix can't read credentials file
-
-```
-warning: hash:/var/lib/postfix/sasl_passwd: Permission denied
-```
-
-**Solution:**
-1. Check agenix secret owner: `owner = "postfix"; group = "postfix";`
-2. Verify setup service ran: `systemctl status postfix-setup-sasl.service`
-3. Check file permissions: `ls -la /var/lib/postfix/sasl_passwd*`
-
-## Future Enhancements
-
-### Multi-Instance Support
-
-Currently supports single SES endpoint per host. Future enhancement for multiple endpoints:
-
-```nix
-elastinix.services.postfix-relay-aws = {
-  enable = true;
-  instances = {
-    production = {
-      sesEndpoint = "email-smtp.eu-west-1.amazonaws.com";
-      trustedNetworks = [ "10.0.0.0/16" ];
-      # ... config ...
-    };
-    staging = {
-      sesEndpoint = "email-smtp.us-east-1.amazonaws.com";
-      trustedNetworks = [ "10.1.0.0/16" ];
-      # ... config ...
-    };
-  };
-};
-```
-
-**Use cases:**
-- Multi-account AWS setups
-- Different regions for different environments
-- Staging vs production separation
-
-### Virtual Alias Domains
-
-Support multiple sending domains:
-
-```nix
-virtualAliasDomains = [
-  "example.com"
-  "example.org"
-];
-```
-
-### Monitoring Integration
-
-Integration with existing Elastinix monitoring:
-
-```nix
-elastinix.services.systemd-monitoring.services = [
-  "postfix.service"
-  "postfix-setup-sasl.service"
-];
-```
+**Postfix Defaults**:
+- 2 concurrent connections to SES
+- 1 second delay between messages
+- 10MB message size limit
 
 ## References
 
-- [AWS SES SMTP Documentation](https://docs.aws.amazon.com/ses/latest/dg/send-email-smtp.html)
-- [Postfix SASL README](http://www.postfix.org/SASL_README.html)
-- [Postfix TLS README](http://www.postfix.org/TLS_README.html)
+- [AWS SES SMTP](https://docs.aws.amazon.com/ses/latest/dg/send-email-smtp.html)
+- [Postfix SASL](http://www.postfix.org/SASL_README.html)
 - [NixOS Postfix Module](https://search.nixos.org/options?query=services.postfix)
