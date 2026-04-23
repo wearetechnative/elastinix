@@ -12,6 +12,10 @@ Open-source document signing platform (DocuSign alternative).
 - **PDF signing** - Auto-generate or provide X.509 certificates
 - **Security** - Agenix secrets, systemd hardening
 
+## Documentation
+
+For complete deployment instructions, advanced configuration, and detailed troubleshooting, see the **[Administration Guide](documenso-admin.md)**.
+
 ## Quick Start
 
 **1. Generate Secrets**
