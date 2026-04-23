@@ -10,7 +10,9 @@ Services that integrate with external systems and APIs.
 - **[Jira Sync](services/jirasync.md)** - Multi-instance Jira synchronization service with flexible scheduling and age-encrypted configuration support
 
 ### Infrastructure Services
-*(Documentation coming soon)*
+Services that provide infrastructure-level functionality.
+
+- **[Postfix AWS SES Relay](services/postfix-relay-aws.md)** - Centralized mail relay for AWS SES with SASL authentication, network security, and sender address rewriting
 
 ### Monitoring Services
 *(Documentation coming soon)*
@@ -20,6 +22,7 @@ Services that provide application-level functionality.
 
 - **[Badgersbay](services/badgersbay.md)** - File processing service with HTTP endpoint for receiving and storing files
 - **[Chhoto](services/chhoto.md)** - Lightweight self-hosted URL shortener with SQLite storage
+- **[Documenso](services/documenso.md)** - Open-source document signing platform (DocuSign alternative) with PDF signing, BullMQ job processing, and S3 storage
 
 ## General Information
 
