@@ -272,6 +272,32 @@ curl http://localhost:3000/api/certificate-status
 ls -la /var/lib/documenso/cert.p12  # Should be 0400, owner: documenso
 ```
 
+**Playwright browser errors** (document completion fails):
+
+`Executable doesn't exist at .../chromium_headless_shell-1169/chrome-linux/headless_shell`
+
+This means the Playwright browser version compatibility symlink failed. Check:
+```bash
+# Verify symlink exists
+ls -la /var/lib/documenso/.cache/ms-playwright/chromium_headless_shell-1169
+
+# Check service logs for setup errors
+journalctl -u documenso | grep "Playwright browser setup"
+
+# Verify playwright-driver is available
+nix-store -q --references /run/current-system | grep playwright
+```
+
+The module automatically creates a symlink from Documenso's expected version (1169) to the actual nixpkgs version. This is handled at service startup via ExecStartPre. See [issue #13](https://github.com/wearetechnative/elastinix/issues/13) for details.
+
+**S3 endpoint errors** (`Invalid endpoint`):
+
+Ensure endpoint includes `https://` protocol prefix:
+```nix
+storage.endpoint = "https://s3.eu-west-1.amazonaws.com";  # Correct
+# NOT: "s3.eu-west-1.amazonaws.com"  # Missing protocol
+```
+
 **S3 CORS errors** (PDFs won't load in browser):
 ```json
 {

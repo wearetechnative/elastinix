@@ -171,9 +171,9 @@ in
 
       endpoint = mkOption {
         type = types.str;
-        default = "s3.amazonaws.com";
-        example = "s3.eu-west-1.amazonaws.com";
-        description = "S3 endpoint URL";
+        default = "https://s3.amazonaws.com";
+        example = "https://s3.eu-west-1.amazonaws.com";
+        description = "S3 endpoint URL (must include https:// protocol)";
       };
 
       region = mkOption {
@@ -504,6 +504,11 @@ in
 
         environment = {
           NODE_ENV = "production";
+          # Use pre-packaged Playwright browsers from nixpkgs with version compatibility layer
+          # ExecStartPre creates symlinks from expected version to actual nixpkgs version
+          PLAYWRIGHT_BROWSERS_PATH = "${cfg.stateDir}/.cache/ms-playwright";
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+          PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "1";
         };
 
         serviceConfig = {
@@ -512,6 +517,36 @@ in
           Group = cfg.group;
           WorkingDirectory = cfg.stateDir;
           EnvironmentFile = [ "${cfg.stateDir}/.env" ] ++ cfg.environmentFiles;
+
+          # Playwright browser setup (create version-compatible symlinks)
+          # Documenso hardcodes Chromium version 1169, but nixpkgs provides newer versions
+          # Create symlink to bridge version mismatch - see issue #13
+          ExecStartPre = pkgs.writeShellScript "documenso-playwright-setup" ''
+            set -euo pipefail
+
+            NIXPKGS_BROWSERS="${pkgs.playwright-driver.browsers}"
+            STATE_BROWSERS="${cfg.stateDir}/.cache/ms-playwright"
+
+            # Ensure directory exists with proper permissions
+            mkdir -p "$STATE_BROWSERS"
+            chown ${cfg.user}:${cfg.group} "$STATE_BROWSERS"
+
+            # Find actual Chromium version in nixpkgs (e.g., chromium_headless_shell-1194)
+            ACTUAL_VERSION=$(ls "$NIXPKGS_BROWSERS" | grep "^chromium_headless_shell-" | head -n1)
+
+            if [ -z "$ACTUAL_VERSION" ]; then
+              echo "ERROR: No Chromium browser found in ${pkgs.playwright-driver.browsers}" >&2
+              echo "Check that playwright-driver package is available" >&2
+              exit 1
+            fi
+
+            # Create symlink from expected version to actual version
+            # Documenso expects: chromium_headless_shell-1169
+            # nixpkgs provides: chromium_headless_shell-<newer>
+            ln -sfn "$NIXPKGS_BROWSERS/$ACTUAL_VERSION" "$STATE_BROWSERS/chromium_headless_shell-1169"
+
+            echo "Playwright browser setup: $ACTUAL_VERSION -> chromium_headless_shell-1169"
+          '';
 
           # Certificate auto-generation (if enabled)
           ExecStartPre = mkIf cfg.signing.autoGenerate (pkgs.writeShellScript "documenso-gen-cert" ''
@@ -531,8 +566,9 @@ in
                 -out /tmp/documenso-cert.pem \
                 -subj "/C=NL/O=Documenso/CN=$HOSTNAME"
 
-              # Create PKCS#12 bundle
-              ${pkgs.openssl}/bin/openssl pkcs12 -export \
+              # Create PKCS#12 bundle with legacy encryption for Node.js compatibility
+              # Use -legacy for older PKCS#12 format that Node.js libraries can read reliably
+              ${pkgs.openssl}/bin/openssl pkcs12 -export -legacy \
                 -out "${cfg.signing.certificateFile}" \
                 -inkey /tmp/documenso-key.pem \
                 -in /tmp/documenso-cert.pem \
