@@ -518,71 +518,72 @@ in
           WorkingDirectory = cfg.stateDir;
           EnvironmentFile = [ "${cfg.stateDir}/.env" ] ++ cfg.environmentFiles;
 
-          # Playwright browser setup (create version-compatible symlinks)
-          # Documenso hardcodes Chromium version 1169, but nixpkgs provides newer versions
-          # Create symlink to bridge version mismatch - see issue #13
-          ExecStartPre = pkgs.writeShellScript "documenso-playwright-setup" ''
-            set -euo pipefail
+          # Pre-start scripts: browser setup and certificate generation
+          ExecStartPre =
+            # 1. Playwright browser setup (always runs)
+            # Documenso hardcodes Chromium version 1169, but nixpkgs provides newer versions
+            # Create symlink to bridge version mismatch - see issue #13
+            [ (pkgs.writeShellScript "documenso-playwright-setup" ''
+              set -euo pipefail
 
-            NIXPKGS_BROWSERS="${pkgs.playwright-driver.browsers}"
-            STATE_BROWSERS="${cfg.stateDir}/.cache/ms-playwright"
+              NIXPKGS_BROWSERS="${pkgs.playwright-driver.browsers}"
+              STATE_BROWSERS="${cfg.stateDir}/.cache/ms-playwright"
 
-            # Ensure directory exists with proper permissions
-            mkdir -p "$STATE_BROWSERS"
-            chown ${cfg.user}:${cfg.group} "$STATE_BROWSERS"
+              # Ensure directory exists with proper permissions
+              mkdir -p "$STATE_BROWSERS"
+              chown ${cfg.user}:${cfg.group} "$STATE_BROWSERS"
 
-            # Find actual Chromium version in nixpkgs (e.g., chromium_headless_shell-1194)
-            ACTUAL_VERSION=$(ls "$NIXPKGS_BROWSERS" | grep "^chromium_headless_shell-" | head -n1)
+              # Find actual Chromium version in nixpkgs (e.g., chromium_headless_shell-1194)
+              ACTUAL_VERSION=$(ls "$NIXPKGS_BROWSERS" | grep "^chromium_headless_shell-" | head -n1)
 
-            if [ -z "$ACTUAL_VERSION" ]; then
-              echo "ERROR: No Chromium browser found in ${pkgs.playwright-driver.browsers}" >&2
-              echo "Check that playwright-driver package is available" >&2
-              exit 1
-            fi
+              if [ -z "$ACTUAL_VERSION" ]; then
+                echo "ERROR: No Chromium browser found in ${pkgs.playwright-driver.browsers}" >&2
+                echo "Check that playwright-driver package is available" >&2
+                exit 1
+              fi
 
-            # Create symlink from expected version to actual version
-            # Documenso expects: chromium_headless_shell-1169
-            # nixpkgs provides: chromium_headless_shell-<newer>
-            ln -sfn "$NIXPKGS_BROWSERS/$ACTUAL_VERSION" "$STATE_BROWSERS/chromium_headless_shell-1169"
+              # Create symlink from expected version to actual version
+              # Documenso expects: chromium_headless_shell-1169
+              # nixpkgs provides: chromium_headless_shell-<newer>
+              ln -sfn "$NIXPKGS_BROWSERS/$ACTUAL_VERSION" "$STATE_BROWSERS/chromium_headless_shell-1169"
 
-            echo "Playwright browser setup: $ACTUAL_VERSION -> chromium_headless_shell-1169"
-          '';
+              echo "Playwright browser setup: $ACTUAL_VERSION -> chromium_headless_shell-1169"
+            '') ]
+            # 2. Certificate auto-generation (conditional on cfg.signing.autoGenerate)
+            ++ optional cfg.signing.autoGenerate (pkgs.writeShellScript "documenso-gen-cert" ''
+              set -euo pipefail
 
-          # Certificate auto-generation (if enabled)
-          ExecStartPre = mkIf cfg.signing.autoGenerate (pkgs.writeShellScript "documenso-gen-cert" ''
-            set -euo pipefail
+              if [ ! -f "${cfg.signing.certificateFile}" ]; then
+                echo "Generating self-signed PDF signing certificate..."
 
-            if [ ! -f "${cfg.signing.certificateFile}" ]; then
-              echo "Generating self-signed PDF signing certificate..."
+                PASSPHRASE=$(cat ${cfg.signing.passphraseFile})
 
-              PASSPHRASE=$(cat ${cfg.signing.passphraseFile})
+                # Extract hostname from publicUrl (strip protocol and port)
+                HOSTNAME=$(echo "${cfg.publicUrl}" | sed -e 's|^[^/]*//||' -e 's|:.*||')
 
-              # Extract hostname from publicUrl (strip protocol and port)
-              HOSTNAME=$(echo "${cfg.publicUrl}" | sed -e 's|^[^/]*//||' -e 's|:.*||')
+                # Generate RSA private key + certificate
+                ${pkgs.openssl}/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                  -keyout /tmp/documenso-key.pem \
+                  -out /tmp/documenso-cert.pem \
+                  -subj "/C=NL/O=Documenso/CN=$HOSTNAME"
 
-              # Generate RSA private key + certificate
-              ${pkgs.openssl}/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                -keyout /tmp/documenso-key.pem \
-                -out /tmp/documenso-cert.pem \
-                -subj "/C=NL/O=Documenso/CN=$HOSTNAME"
+                # Create PKCS#12 bundle with legacy encryption for Node.js compatibility
+                # Use -legacy for older PKCS#12 format that Node.js libraries can read reliably
+                ${pkgs.openssl}/bin/openssl pkcs12 -export -legacy \
+                  -out "${cfg.signing.certificateFile}" \
+                  -inkey /tmp/documenso-key.pem \
+                  -in /tmp/documenso-cert.pem \
+                  -passout pass:$PASSPHRASE
 
-              # Create PKCS#12 bundle with legacy encryption for Node.js compatibility
-              # Use -legacy for older PKCS#12 format that Node.js libraries can read reliably
-              ${pkgs.openssl}/bin/openssl pkcs12 -export -legacy \
-                -out "${cfg.signing.certificateFile}" \
-                -inkey /tmp/documenso-key.pem \
-                -in /tmp/documenso-cert.pem \
-                -passout pass:$PASSPHRASE
+                # Cleanup temp files
+                rm /tmp/documenso-key.pem /tmp/documenso-cert.pem
 
-              # Cleanup temp files
-              rm /tmp/documenso-key.pem /tmp/documenso-cert.pem
+                # Set permissions
+                chmod 400 "${cfg.signing.certificateFile}"
 
-              # Set permissions
-              chmod 400 "${cfg.signing.certificateFile}"
-
-              echo "Certificate generated at ${cfg.signing.certificateFile}"
-            fi
-          '');
+                echo "Certificate generated at ${cfg.signing.certificateFile}"
+              fi
+            '');
 
           # Start Documenso (wrapper handles migrations automatically)
           ExecStart = "${cfg.package}/bin/documenso";
