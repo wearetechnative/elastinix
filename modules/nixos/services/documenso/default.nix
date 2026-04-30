@@ -567,12 +567,15 @@ in
                   -out /tmp/documenso-cert.pem \
                   -subj "/C=NL/O=Documenso/CN=$HOSTNAME"
 
-                # Create PKCS#12 bundle with legacy encryption for Node.js compatibility
-                # Use -legacy for older PKCS#12 format that Node.js libraries can read reliably
-                ${pkgs.openssl}/bin/openssl pkcs12 -export -legacy \
+                # Create PKCS#12 bundle with AES256 encryption for Node.js compatibility
+                # Modern encryption algorithms supported by Node.js crypto libraries
+                ${pkgs.openssl}/bin/openssl pkcs12 -export \
                   -out "${cfg.signing.certificateFile}" \
                   -inkey /tmp/documenso-key.pem \
                   -in /tmp/documenso-cert.pem \
+                  -keypbe AES-256-CBC \
+                  -certpbe AES-256-CBC \
+                  -macalg SHA256 \
                   -passout pass:$PASSPHRASE
 
                 # Cleanup temp files
