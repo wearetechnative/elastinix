@@ -388,15 +388,15 @@ in
         };
 
         script = ''
-          # Read secrets
-          DB_PASS=$(cat ${cfg.database.passwordFile})
-          NEXTAUTH_SECRET=$(cat ${cfg.secrets.nextAuthSecretFile})
-          ENCRYPTION_KEY=$(cat ${cfg.secrets.encryptionKeyFile})
-          ENCRYPTION_SECONDARY_KEY=$(cat ${cfg.secrets.encryptionSecondaryKeyFile})
-          SIGNING_PASSPHRASE=$(cat ${cfg.signing.passphraseFile})
+          # Read secrets (strip trailing newlines)
+          DB_PASS=$(cat ${cfg.database.passwordFile} | tr -d '\n')
+          NEXTAUTH_SECRET=$(cat ${cfg.secrets.nextAuthSecretFile} | tr -d '\n')
+          ENCRYPTION_KEY=$(cat ${cfg.secrets.encryptionKeyFile} | tr -d '\n')
+          ENCRYPTION_SECONDARY_KEY=$(cat ${cfg.secrets.encryptionSecondaryKeyFile} | tr -d '\n')
+          SIGNING_PASSPHRASE=$(cat ${cfg.signing.passphraseFile} | tr -d '\n')
 
           ${optionalString (cfg.smtp.passwordFile != null) ''
-            SMTP_PASSWORD=$(cat ${cfg.smtp.passwordFile})
+            SMTP_PASSWORD=$(cat ${cfg.smtp.passwordFile} | tr -d '\n')
           ''}
 
           ${optionalString (cfg.smtp.credentialsFile != null) ''
@@ -410,7 +410,7 @@ in
           ''}
 
           ${optionalString (cfg.jobs.provider == "bullmq" && cfg.jobs.redis.passwordFile != null) ''
-            REDIS_PASSWORD=$(cat ${cfg.jobs.redis.passwordFile})
+            REDIS_PASSWORD=$(cat ${cfg.jobs.redis.passwordFile} | tr -d '\n')
           ''}
 
           # Generate .env file
@@ -567,15 +567,12 @@ in
                   -out /tmp/documenso-cert.pem \
                   -subj "/C=NL/O=Documenso/CN=$HOSTNAME"
 
-                # Create PKCS#12 bundle with AES256 encryption for Node.js compatibility
-                # Modern encryption algorithms supported by Node.js crypto libraries
-                ${pkgs.openssl}/bin/openssl pkcs12 -export \
+                # Create PKCS#12 bundle with legacy RC2-40-CBC encryption
+                # The Rust signing library (@documenso/pdf-sign) only supports legacy PKCS#12 format
+                ${pkgs.openssl}/bin/openssl pkcs12 -export -legacy \
                   -out "${cfg.signing.certificateFile}" \
                   -inkey /tmp/documenso-key.pem \
                   -in /tmp/documenso-cert.pem \
-                  -keypbe AES-256-CBC \
-                  -certpbe AES-256-CBC \
-                  -macalg SHA256 \
                   -passout pass:$PASSPHRASE
 
                 # Cleanup temp files
