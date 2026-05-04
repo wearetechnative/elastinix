@@ -14,6 +14,11 @@ Services that provide infrastructure-level functionality.
 
 - **[Postfix AWS SES Relay](services/postfix-relay-aws.md)** - Centralized mail relay for AWS SES with SASL authentication, network security, and sender address rewriting
 
+### Security Services
+Services that provide security scanning and compliance functionality.
+
+- **[Vulnix Scan](services/vulnix-scan.md)** - Weekly automated vulnerability scanning of the NixOS system closure using vulnix
+
 ### Monitoring Services
 *(Documentation coming soon)*
 
