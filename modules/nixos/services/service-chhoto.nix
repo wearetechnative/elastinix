@@ -21,7 +21,7 @@ in
 
     siteUrl = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
-      default = null;
+      default = "chhoto.${environment_domain}";
       description = "External URL where chhoto-url is publicly accessible.";
     };
   };
@@ -32,7 +32,7 @@ in
       environmentFiles = cfg.environmentFiles;
       settings = {
         port = cfg.port;
-        site_url = "https://url.${environment_domain}";
+        site_url = cfg.siteUrl;
         disable_frontend = false;
       };
     };
