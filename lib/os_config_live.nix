@@ -29,7 +29,7 @@ let
         inputs.agenix.nixosModules.default
         inputs.slack2zammad.nixosModules.slack2zammad
         inputs.nixos-healthchecks.nixosModules.default
-        inputs.monitoring.nixosModules.monitoring
+        inputs.grafana-prometheus.nixosModules.grafana-prometheus
         inputs.pontifex.nixosModules.pontifex
 
         (inputs.import-tree ../modules/nixos/programs)

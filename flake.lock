@@ -198,6 +198,24 @@
         "type": "github"
       }
     },
+    "grafana-prometheus": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_3"
+      },
+      "locked": {
+        "lastModified": 1778505762,
+        "narHash": "sha256-9kF6KW6gjGdwczzU3Ix6F69lyoewjVcOtvspgrNylqY=",
+        "owner": "wearetechnative",
+        "repo": "monitoring",
+        "rev": "c6740506ad4a2847bb89d876b17b8649d3d70a45",
+        "type": "github"
+      },
+      "original": {
+        "owner": "wearetechnative",
+        "repo": "monitoring",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -279,7 +297,7 @@
     },
     "jsonify-aws-dotfiles": {
       "inputs": {
-        "nixpkgs": "nixpkgs_3"
+        "nixpkgs": "nixpkgs_4"
       },
       "locked": {
         "lastModified": 1724965798,
@@ -292,24 +310,6 @@
       "original": {
         "owner": "wearetechnative",
         "repo": "jsonify-aws-dotfiles",
-        "type": "github"
-      }
-    },
-    "monitoring": {
-      "inputs": {
-        "nixpkgs": "nixpkgs_4"
-      },
-      "locked": {
-        "lastModified": 1773322925,
-        "narHash": "sha256-8J3gaIBE1bunRquJQaNYjJVX9tce3RJDSLRPCk1rQok=",
-        "owner": "wearetechnative",
-        "repo": "monitoring",
-        "rev": "5e720a87a233935388cfee2d1cbaa9f90a8e5804",
-        "type": "github"
-      },
-      "original": {
-        "owner": "wearetechnative",
-        "repo": "monitoring",
         "type": "github"
       }
     },
@@ -481,21 +481,6 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1724727824,
-        "narHash": "sha256-0XH9MJk54imJm+RHOLTUJ7e+ponLW00tw5ke4MTVa1Y=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "36bae45077667aff5720e5b3f1a5458f51cf0776",
-        "type": "github"
-      },
-      "original": {
-        "id": "nixpkgs",
-        "ref": "nixos-24.05",
-        "type": "indirect"
-      }
-    },
-    "nixpkgs_4": {
-      "locked": {
         "lastModified": 1767379071,
         "narHash": "sha256-EgE0pxsrW9jp9YFMkHL9JMXxcqi/OoumPJYwf+Okucw=",
         "owner": "NixOS",
@@ -508,6 +493,21 @@
         "ref": "nixos-unstable",
         "repo": "nixpkgs",
         "type": "github"
+      }
+    },
+    "nixpkgs_4": {
+      "locked": {
+        "lastModified": 1724727824,
+        "narHash": "sha256-0XH9MJk54imJm+RHOLTUJ7e+ponLW00tw5ke4MTVa1Y=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "36bae45077667aff5720e5b3f1a5458f51cf0776",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "ref": "nixos-24.05",
+        "type": "indirect"
       }
     },
     "nixpkgs_5": {
@@ -631,10 +631,10 @@
         "badgersbay": "badgersbay",
         "devshell": "devshell",
         "flake-parts": "flake-parts",
+        "grafana-prometheus": "grafana-prometheus",
         "import-tree": "import-tree",
         "jirasync": "jirasync",
         "jsonify-aws-dotfiles": "jsonify-aws-dotfiles",
-        "monitoring": "monitoring",
         "nixos-generators": "nixos-generators",
         "nixos-healthchecks": "nixos-healthchecks",
         "nixpkgs": "nixpkgs_6",
