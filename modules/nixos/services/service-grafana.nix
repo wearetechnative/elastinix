@@ -1,7 +1,7 @@
 { lib, config, tfvars, ... }:
 
 let
-  cfg = config.elastinix.services.monitoring;
+  cfg = config.elastinix.services.grafana;
   environment_domain = tfvars.environment_domain;
 
   # Customer submodule for elastinix
@@ -77,7 +77,7 @@ let
   };
 
 in {
-  options.elastinix.services.monitoring = {
+  options.elastinix.services.grafana = {
     enable = lib.mkEnableOption "Prometheus and Grafana monitoring stack";
 
     customers = lib.mkOption {
@@ -145,8 +145,8 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Use the monitoring flake module
-    services.monitoring = {
+    # Use the grafana flake module
+    services.grafana = {
       enable = true;
       customers = cfg.customers;
       root_domain = cfg.root_domain;
