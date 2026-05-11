@@ -171,9 +171,9 @@ in
 
       endpoint = mkOption {
         type = types.str;
-        default = "s3.amazonaws.com";
-        example = "s3.eu-west-1.amazonaws.com";
-        description = "S3 endpoint URL";
+        default = "https://s3.amazonaws.com";
+        example = "https://s3.eu-west-1.amazonaws.com";
+        description = "S3 endpoint URL (must include https:// protocol)";
       };
 
       region = mkOption {
@@ -388,15 +388,15 @@ in
         };
 
         script = ''
-          # Read secrets
-          DB_PASS=$(cat ${cfg.database.passwordFile})
-          NEXTAUTH_SECRET=$(cat ${cfg.secrets.nextAuthSecretFile})
-          ENCRYPTION_KEY=$(cat ${cfg.secrets.encryptionKeyFile})
-          ENCRYPTION_SECONDARY_KEY=$(cat ${cfg.secrets.encryptionSecondaryKeyFile})
-          SIGNING_PASSPHRASE=$(cat ${cfg.signing.passphraseFile})
+          # Read secrets (strip trailing newlines)
+          DB_PASS=$(cat ${cfg.database.passwordFile} | tr -d '\n')
+          NEXTAUTH_SECRET=$(cat ${cfg.secrets.nextAuthSecretFile} | tr -d '\n')
+          ENCRYPTION_KEY=$(cat ${cfg.secrets.encryptionKeyFile} | tr -d '\n')
+          ENCRYPTION_SECONDARY_KEY=$(cat ${cfg.secrets.encryptionSecondaryKeyFile} | tr -d '\n')
+          SIGNING_PASSPHRASE=$(cat ${cfg.signing.passphraseFile} | tr -d '\n')
 
           ${optionalString (cfg.smtp.passwordFile != null) ''
-            SMTP_PASSWORD=$(cat ${cfg.smtp.passwordFile})
+            SMTP_PASSWORD=$(cat ${cfg.smtp.passwordFile} | tr -d '\n')
           ''}
 
           ${optionalString (cfg.smtp.credentialsFile != null) ''
@@ -410,7 +410,7 @@ in
           ''}
 
           ${optionalString (cfg.jobs.provider == "bullmq" && cfg.jobs.redis.passwordFile != null) ''
-            REDIS_PASSWORD=$(cat ${cfg.jobs.redis.passwordFile})
+            REDIS_PASSWORD=$(cat ${cfg.jobs.redis.passwordFile} | tr -d '\n')
           ''}
 
           # Generate .env file
@@ -504,6 +504,11 @@ in
 
         environment = {
           NODE_ENV = "production";
+          # Use pre-packaged Playwright browsers from nixpkgs with version compatibility layer
+          # ExecStartPre creates symlinks from expected version to actual nixpkgs version
+          PLAYWRIGHT_BROWSERS_PATH = "${cfg.stateDir}/.cache/ms-playwright";
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+          PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "1";
         };
 
         serviceConfig = {
@@ -513,40 +518,72 @@ in
           WorkingDirectory = cfg.stateDir;
           EnvironmentFile = [ "${cfg.stateDir}/.env" ] ++ cfg.environmentFiles;
 
-          # Certificate auto-generation (if enabled)
-          ExecStartPre = mkIf cfg.signing.autoGenerate (pkgs.writeShellScript "documenso-gen-cert" ''
-            set -euo pipefail
+          # Pre-start scripts: browser setup and certificate generation
+          ExecStartPre =
+            # 1. Playwright browser setup (always runs)
+            # Documenso hardcodes Chromium version 1169, but nixpkgs provides newer versions
+            # Create symlink to bridge version mismatch - see issue #13
+            [ (pkgs.writeShellScript "documenso-playwright-setup" ''
+              set -euo pipefail
 
-            if [ ! -f "${cfg.signing.certificateFile}" ]; then
-              echo "Generating self-signed PDF signing certificate..."
+              NIXPKGS_BROWSERS="${pkgs.playwright-driver.browsers}"
+              STATE_BROWSERS="${cfg.stateDir}/.cache/ms-playwright"
 
-              PASSPHRASE=$(cat ${cfg.signing.passphraseFile})
+              # Ensure directory exists with proper permissions
+              mkdir -p "$STATE_BROWSERS"
+              chown ${cfg.user}:${cfg.group} "$STATE_BROWSERS"
 
-              # Extract hostname from publicUrl (strip protocol and port)
-              HOSTNAME=$(echo "${cfg.publicUrl}" | sed -e 's|^[^/]*//||' -e 's|:.*||')
+              # Find actual Chromium version in nixpkgs (e.g., chromium_headless_shell-1194)
+              ACTUAL_VERSION=$(ls "$NIXPKGS_BROWSERS" | grep "^chromium_headless_shell-" | head -n1)
 
-              # Generate RSA private key + certificate
-              ${pkgs.openssl}/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                -keyout /tmp/documenso-key.pem \
-                -out /tmp/documenso-cert.pem \
-                -subj "/C=NL/O=Documenso/CN=$HOSTNAME"
+              if [ -z "$ACTUAL_VERSION" ]; then
+                echo "ERROR: No Chromium browser found in ${pkgs.playwright-driver.browsers}" >&2
+                echo "Check that playwright-driver package is available" >&2
+                exit 1
+              fi
 
-              # Create PKCS#12 bundle
-              ${pkgs.openssl}/bin/openssl pkcs12 -export \
-                -out "${cfg.signing.certificateFile}" \
-                -inkey /tmp/documenso-key.pem \
-                -in /tmp/documenso-cert.pem \
-                -passout pass:$PASSPHRASE
+              # Create symlink from expected version to actual version
+              # Documenso expects: chromium_headless_shell-1169
+              # nixpkgs provides: chromium_headless_shell-<newer>
+              ln -sfn "$NIXPKGS_BROWSERS/$ACTUAL_VERSION" "$STATE_BROWSERS/chromium_headless_shell-1169"
 
-              # Cleanup temp files
-              rm /tmp/documenso-key.pem /tmp/documenso-cert.pem
+              echo "Playwright browser setup: $ACTUAL_VERSION -> chromium_headless_shell-1169"
+            '') ]
+            # 2. Certificate auto-generation (conditional on cfg.signing.autoGenerate)
+            ++ optional cfg.signing.autoGenerate (pkgs.writeShellScript "documenso-gen-cert" ''
+              set -euo pipefail
 
-              # Set permissions
-              chmod 400 "${cfg.signing.certificateFile}"
+              if [ ! -f "${cfg.signing.certificateFile}" ]; then
+                echo "Generating self-signed PDF signing certificate..."
 
-              echo "Certificate generated at ${cfg.signing.certificateFile}"
-            fi
-          '');
+                PASSPHRASE=$(cat ${cfg.signing.passphraseFile})
+
+                # Extract hostname from publicUrl (strip protocol and port)
+                HOSTNAME=$(echo "${cfg.publicUrl}" | sed -e 's|^[^/]*//||' -e 's|:.*||')
+
+                # Generate RSA private key + certificate
+                ${pkgs.openssl}/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                  -keyout /tmp/documenso-key.pem \
+                  -out /tmp/documenso-cert.pem \
+                  -subj "/C=NL/O=Documenso/CN=$HOSTNAME"
+
+                # Create PKCS#12 bundle with legacy RC2-40-CBC encryption
+                # The Rust signing library (@documenso/pdf-sign) only supports legacy PKCS#12 format
+                ${pkgs.openssl}/bin/openssl pkcs12 -export -legacy \
+                  -out "${cfg.signing.certificateFile}" \
+                  -inkey /tmp/documenso-key.pem \
+                  -in /tmp/documenso-cert.pem \
+                  -passout pass:$PASSPHRASE
+
+                # Cleanup temp files
+                rm /tmp/documenso-key.pem /tmp/documenso-cert.pem
+
+                # Set permissions
+                chmod 400 "${cfg.signing.certificateFile}"
+
+                echo "Certificate generated at ${cfg.signing.certificateFile}"
+              fi
+            '');
 
           # Start Documenso (wrapper handles migrations automatically)
           ExecStart = "${cfg.package}/bin/documenso";
