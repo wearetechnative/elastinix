@@ -20,7 +20,8 @@ Services that provide security scanning and compliance functionality.
 - **[Vulnix Scan](services/vulnix-scan.md)** - Weekly automated vulnerability scanning of the NixOS system closure using vulnix
 
 ### Monitoring Services
-*(Documentation coming soon)*
+
+- **[Hostinfo](services/hostinfo.md)** - Lightweight HTTP server exposing system inventory JSON (enabled services, NixOS version, optional SBOM) for monitoring and dashboard use
 
 ### Application Services
 Services that provide application-level functionality.
