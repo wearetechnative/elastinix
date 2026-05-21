@@ -189,6 +189,9 @@ in {
           ${cfg.credentialsFile} \
           /var/lib/postfix/sasl_passwd
 
+        # Remove existing .db file so postmap (running as postfix user) can recreate it
+        rm -f /var/lib/postfix/sasl_passwd.db
+
         # Generate hashed credentials database
         ${pkgs.postfix}/bin/postmap /var/lib/postfix/sasl_passwd
 
