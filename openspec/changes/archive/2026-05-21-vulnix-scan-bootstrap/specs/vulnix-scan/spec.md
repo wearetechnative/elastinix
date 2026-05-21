@@ -24,7 +24,7 @@ De service SHALL `/var/lib/sbom/packages.json` lezen (aangeleverd door de deploy
 ## MODIFIED Requirements
 
 ### Requirement: Systemd security hardening
-De service SHALL `ReadWritePaths` uitbreiden met `/var/lib/vulnix-cache` (naast het bestaande `/var/lib/sbom`). De service SHALL ook `ReadOnlyPaths=/var/lib/sbom` toevoegen zodat packages.json leesbaar is.
+De service SHALL `ReadWritePaths` uitbreiden met zowel `/var/lib/sbom` als `/var/lib/vulnix-cache`. De service schrijft `system.json` naar `/var/lib/sbom` en de NVD cache naar `/var/lib/vulnix-cache`.
 
 #### Scenario: Hardened service schrijft naar vulnix-cache
 - **WHEN** de service bootstrap uitvoert of de NVD cache bijwerkt

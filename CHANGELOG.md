@@ -2,6 +2,16 @@
 
 ## Next version
 
+### Fixed
+- **vulnix-scan bootstrap op t3.small**: service werkte niet op instances met weinig RAM (1.9GB, geen swap) — initiële NVD cache-opbouw werd afgebroken door OOM killer
+  - Bootstrap-mechanisme: bij lege cache tijdelijk 1.5GB swapfile aanmaken, NVD database opbouwen (~2 min), swapfile verwijderen
+  - Disk-check vooraf: minimaal 2GB vrij vereist; anders overgeslagen met waarschuwing
+  - `ExecStopPost` ruimt swapfile op bij onverwacht afbreken
+  - Cache verplaatst van `/var/lib/sbom/cache` naar `/var/lib/vulnix-cache` (scheiding verantwoordelijkheden)
+
+### Changed
+- **vulnix-scan packages.json**: service genereert packages.json niet meer zelf via `nix-store -qR`; leest `/var/lib/sbom/packages.json` dat door de deploy-wrapper aangeleverd wordt bij elke deployment
+
 ### Added
 - **Jira Ticket Create service**: Scheduled Jira ticket creation per client and check type
   - Define reusable check types once (schedule, title template, description, issue type, due date offset)
