@@ -3,6 +3,14 @@
 ## Next version
 
 ### Added
+- **Jira Ticket Create service**: Scheduled Jira ticket creation per client and check type
+  - Define reusable check types once (frequency, title template, description, issue type, due date offset)
+  - Apply check types to multiple clients; generates one systemd timer+service per client×check combination
+  - Supported frequencies: first working day of month, quarter, or week
+  - `{period}` placeholder in title templates replaced at runtime (e.g. `2026-Q2`)
+  - Per-client Jira URL/user overrides for multi-instance setups
+  - Jira API token via agenix secret per client
+  - Standard elastinix systemd hardening applied to all generated services
 - **Documenso service**: Pure NixOS module for open-source document signing platform
   - Supports external PostgreSQL with automatic Prisma migrations
   - BullMQ/Redis integration for scheduled signing reminders
