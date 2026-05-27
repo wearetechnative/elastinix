@@ -11,8 +11,7 @@ let
   allInstances = flatten (mapAttrsToList (clientName: clientCfg:
     map (checkName: {
       name        = "${clientName}-${checkName}";
-      clientName  = clientName;
-      checkName   = checkName;
+      inherit clientName checkName;
       client      = clientCfg;
       checkType   = cfg.checkTypes.${checkName};
     }) clientCfg.checks
@@ -237,8 +236,8 @@ in {
       nameValuePair "jiraticketcreate/${instance.name}.json" {
         text = builtins.toJSON {
           ticket = {
-            board      = instance.client.board;
-            issue_type = instance.checkType.issueType;
+            inherit (instance.client) board;
+            inherit (instance.checkType) issueType;
           };
         };
       }
