@@ -76,6 +76,17 @@ let
         [ "$dow" -eq 1 ]
       }
     '';
+
+    every_working_day = ''
+      get_current_period() {
+        date +%Y-%m-%d
+      }
+      is_trigger_day() {
+        local dow
+        dow=$(date +%u)
+        [ "$dow" -le 5 ]
+      }
+    '';
   };
 
   # Build the ExecStart script for one instance
@@ -84,10 +95,17 @@ let
       effectiveJiraUrl  = if instance.client.jiraUrl  != null then instance.client.jiraUrl  else cfg.jiraUrl;
       effectiveJiraUser = if instance.client.jiraUser != null then instance.client.jiraUser else cfg.jiraUser;
       ct = instance.checkType;
+      isStructured = builtins.isString ct.schedule;
     in ''
-      ${frequencyScript.${ct.frequency}}
+      ${if isStructured then ''
+        ${frequencyScript.${ct.schedule}}
 
-      is_trigger_day || exit 0
+        is_trigger_day || exit 0
+      '' else ''
+        get_current_period() {
+          date +%Y-%m-%d
+        }
+      ''}
 
       PERIOD=$(get_current_period)
       TITLE=$(echo "${ct.titleTemplate}" | sed "s/{period}/$PERIOD/g")
@@ -96,22 +114,29 @@ let
       TMPFILE=$(mktemp)
       trap 'rm -f "$TMPFILE"' EXIT
 
-      cat > "$TMPFILE" << JIRAEOF
-      {
-        "api": {
-          "url": "${effectiveJiraUrl}",
-          "user": "${effectiveJiraUser}",
-          "token_file": "${instance.client.tokenSecretPath}"
-        },
-        "ticket": {
-          "board": "${instance.client.board}",
-          "title": "$TITLE",
-          "description": "${ct.description}",
-          "issue_type": "${ct.issueType}",
-          "due_date": "$DUE_DATE"
-        }
-      }
-      JIRAEOF
+      ${pkgs.jq}/bin/jq -n \
+        --arg url        "${effectiveJiraUrl}" \
+        --arg user       "${effectiveJiraUser}" \
+        --arg token_file "${instance.client.tokenSecretPath}" \
+        --arg board      "${instance.client.board}" \
+        --arg title      "$TITLE" \
+        --arg description "${ct.description}" \
+        --arg issue_type "${ct.issueType}" \
+        --arg due_date   "$DUE_DATE" \
+        '{
+          api: {
+            url: $url,
+            user: $user,
+            token_file: $token_file
+          },
+          ticket: {
+            board: $board,
+            title: $title,
+            description: $description,
+            issue_type: $issue_type,
+            due_date: $due_date
+          }
+        }' > "$TMPFILE"
 
       ${jiraticketcreatePackage}/bin/jiraticketcreate --config "$TMPFILE"
     '';
@@ -133,13 +158,21 @@ in {
     checkTypes = mkOption {
       type = types.attrsOf (types.submodule {
         options = {
-          frequency = mkOption {
-            type = types.enum [
-              "first_working_day_of_month"
-              "first_working_day_of_quarter"
-              "first_working_day_of_week"
-            ];
-            description = "When to create the ticket. Supported: first_working_day_of_month, first_working_day_of_quarter, first_working_day_of_week.";
+          schedule = mkOption {
+            type = types.either
+              (types.enum [
+                "first_working_day_of_month"
+                "first_working_day_of_quarter"
+                "first_working_day_of_week"
+                "every_working_day"
+              ])
+              (types.submodule {
+                options.calendar = mkOption {
+                  type = types.str;
+                  description = "systemd OnCalendar expression (e.g. \"Mon-Fri *-*-* 08:00:00\").";
+                };
+              });
+            description = "When to create the ticket. Either a structured frequency string or a raw systemd calendar expression ({ calendar = \"...\"; }).";
           };
           titleTemplate = mkOption {
             type = types.str;
@@ -245,7 +278,9 @@ in {
         description = "Timer for Jira ticket creation (${instance.name})";
         wantedBy    = [ "timers.target" ];
         timerConfig = {
-          OnCalendar = "daily";
+          OnCalendar = if builtins.isString instance.checkType.schedule
+            then "daily"
+            else instance.checkType.schedule.calendar;
           Persistent = true;
         };
       }

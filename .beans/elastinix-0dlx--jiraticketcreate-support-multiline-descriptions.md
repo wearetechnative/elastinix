@@ -1,10 +1,11 @@
 ---
 # elastinix-0dlx
 title: 'jiraticketcreate: support multiline descriptions'
-status: todo
+status: completed
 type: task
 created_at: 2026-05-26T13:49:28Z
-updated_at: 2026-05-26T13:49:28Z
+updated_at: 2026-05-27T08:00:00Z
+openspec-link: openspec/changes/archive/2026-05-27-jiraticketcreate-safe-json-assembly
 ---
 
 The `description` field in `checkTypes` currently does not support multiline strings. The value is embedded directly into a bash heredoc as a JSON string literal, so literal newlines break the JSON.

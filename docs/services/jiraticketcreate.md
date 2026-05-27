@@ -28,16 +28,23 @@ elastinix.services.jiraticketcreate = {
 
   checkTypes = {
     aws-permission-matrix = {
-      frequency         = "first_working_day_of_quarter";
+      schedule          = "first_working_day_of_quarter";
       titleTemplate     = "[{period}] AWS Permission Matrix Review";
       description       = "Quarterly review of AWS IAM permissions and access rights.";
       issueType         = "Task";
       dueDateOffsetDays = 14;
     };
     security-scan = {
-      frequency         = "first_working_day_of_month";
+      schedule          = "first_working_day_of_month";
       titleTemplate     = "[{period}] Monthly Security Scan";
-      description       = "Run vulnerability scan and review findings.";
+      description       = ''
+        Run vulnerability scan and review findings.
+
+        Steps:
+        1. Run scanner against all production hosts
+        2. Review critical and high findings
+        3. Create follow-up tickets for unresolved issues
+      '';
       dueDateOffsetDays = 7;
     };
   };
@@ -79,9 +86,9 @@ This generates 3 systemd units:
 
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
-| `frequency` | enum | yes | — | When to create the ticket (see below) |
+| `schedule` | string or `{ calendar }` | yes | — | When to create the ticket (see below) |
 | `titleTemplate` | str | yes | — | Ticket title; use `{period}` as placeholder |
-| `description` | str | yes | — | Ticket description (plain text) |
+| `description` | str | yes | — | Ticket description (plain text). Multiline Nix strings (`''...''`) are supported. |
 | `issueType` | str | no | `"Task"` | Jira issue type name |
 | `dueDateOffsetDays` | int | no | `0` | Days after trigger date to set as due date |
 
@@ -95,25 +102,54 @@ This generates 3 systemd units:
 | `jiraUrl` | str or null | no | `null` | Override module-level `jiraUrl` |
 | `jiraUser` | str or null | no | `null` | Override module-level `jiraUser` |
 
-## Frequency values
+## Schedule values
+
+The `schedule` option accepts two forms:
+
+### Structured frequency (string)
+
+The systemd timer fires daily; the service script checks internally whether today is the trigger day.
 
 | Value | Triggers on | Period string |
 |-------|-------------|---------------|
 | `first_working_day_of_month` | First Mon–Fri of each month | `2026-06` |
 | `first_working_day_of_quarter` | First Mon–Fri of Jan/Apr/Jul/Oct | `2026-Q2` |
 | `first_working_day_of_week` | Every Monday | `2026-W22` |
+| `every_working_day` | Every Mon–Fri | `2026-05-26` |
 
-The `{period}` placeholder in `titleTemplate` is replaced with the period string at runtime.
+### Raw calendar expression (attrset)
+
+Scheduling is delegated entirely to systemd. The service always creates a ticket when it runs.
+
+```nix
+schedule = { calendar = "Thu *-*-* 08:00:00"; };  # every Thursday at 08:00
+schedule = { calendar = "Mon-Fri *-*-* 07:30:00"; };  # every working day at 07:30
+```
+
+The period string on the calendar path is always the current date (`%Y-%m-%d`).
 
 **Note:** "Working day" means Mon–Fri only. Public holidays are not taken into account.
 
-**Future:** A more expressive frequency model (e.g. "2nd Thursday of the month") is planned:
+## Migration from previous versions
+
+If you used the old `frequency` and `timerCalendar` options, replace them with `schedule`:
+
 ```nix
-frequency = {
-  type    = "nth_weekday_of_month";
-  n       = 2;
-  weekday = "thursday";
-};
+# Before
+frequency     = "first_working_day_of_month";
+timerCalendar = "daily";
+
+# After
+schedule = "first_working_day_of_month";
+```
+
+```nix
+# Before
+frequency     = "every_working_day";
+timerCalendar = "Mon-Fri *-*-* 08:00:00";
+
+# After
+schedule = { calendar = "Mon-Fri *-*-* 08:00:00"; };
 ```
 
 ## Age secret format
