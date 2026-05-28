@@ -8,6 +8,7 @@ This directory contains documentation for all Elastinix services. Each service h
 Services that integrate with external systems and APIs.
 
 - **[Jira Sync](services/jirasync.md)** - Multi-instance Jira synchronization service with flexible scheduling and age-encrypted configuration support
+- **[Jira Ticket Create](services/jiraticketcreate.md)** - Scheduled Jira ticket creation per client and check type, with systemd timer-based scheduling
 
 ### Infrastructure Services
 Services that provide infrastructure-level functionality.
