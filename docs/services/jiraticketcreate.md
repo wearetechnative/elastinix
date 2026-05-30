@@ -33,6 +33,7 @@ elastinix.services.jiraticketcreate = {
       description       = "Quarterly review of AWS IAM permissions and access rights.";
       issueType         = "Task";
       dueDateOffsetDays = 14;
+      status            = "In Progress";  # optional: transition ticket to this status after creation
     };
     security-scan = {
       schedule          = "first_working_day_of_month";
@@ -91,6 +92,7 @@ This generates 3 systemd units:
 | `description` | str | yes | — | Ticket description (plain text). Multiline Nix strings (`''...''`) are supported. |
 | `issueType` | str | no | `"Task"` | Jira issue type name |
 | `dueDateOffsetDays` | int | no | `0` | Days after trigger date to set as due date |
+| `status` | str or null | no | `null` | Jira status to transition the ticket to after creation (e.g. `"In Progress"`). When null, no transition is performed. |
 
 ### `clients.<name>`
 

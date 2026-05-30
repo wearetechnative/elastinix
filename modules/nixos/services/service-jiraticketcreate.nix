@@ -139,6 +139,7 @@ let
         --arg description "${ct.description}" \
         --arg issue_type "${ct.issueType}" \
         --arg due_date   "$DUE_DATE" \
+        ${if ct.status != null then ''--arg status       "${ct.status}"'' else ""} \
         '{
           api: {
             url: $url,
@@ -151,6 +152,7 @@ let
             description: $description,
             issue_type: $issue_type,
             due_date: $due_date
+            ${if ct.status != null then ", status: $status" else ""}
           }
         }' > "$TMPFILE"
 
@@ -212,6 +214,11 @@ in
               type = types.int;
               default = 0;
               description = "Number of calendar days after the trigger date to set as due date. 0 means same day.";
+            };
+            status = mkOption {
+              type = types.nullOr types.str;
+              default = null;
+              description = "Optional Jira status to transition the ticket to after creation (e.g. \"In Progress\"). When null, no transition is performed.";
             };
           };
         }
