@@ -27,6 +27,7 @@ Services that provide security scanning and compliance functionality.
 ### Application Services
 Services that provide application-level functionality.
 
+- **[Atuin](services/atuin.md)** - Self-hosted Atuin shell-history sync server (native `services.atuin`) with local or external PostgreSQL and nginx TLS termination
 - **[Badgersbay](services/badgersbay.md)** - File processing service with HTTP endpoint for receiving and storing files
 - **[Chhoto](services/chhoto.md)** - Lightweight self-hosted URL shortener with SQLite storage
 - **[Documenso](services/documenso.md)** - Open-source document signing platform (DocuSign alternative) with PDF signing, BullMQ job processing, and S3 storage
