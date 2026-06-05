@@ -17,6 +17,7 @@ in
     port = lib.mkOption {
       type = lib.types.port;
       description = "Port for the chhoto-url server.";
+      default = 4567;
     };
 
     siteUrl = lib.mkOption {
