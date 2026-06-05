@@ -13,11 +13,19 @@ in
 
     package = mkOption {
       type = types.package;
-      default = pkgs.documenso;
+      default = pkgs.documenso.overrideAttrs (prev: {
+        postFixup = (prev.postFixup or "") + ''
+          substituteInPlace $out/apps/remix/build/server/main.js \
+            --replace-fail \
+              "serve({ fetch: handler.fetch, port: 3000 });" \
+              "serve({ fetch: handler.fetch, port: Number(process.env.PORT) || 3000 });"
+        '';
+      });
       defaultText = literalExpression "pkgs.documenso";
       description = ''
         Documenso package to use.
-        Defaults to the version in nixpkgs.
+        Defaults to the version in nixpkgs, patched so the `port` option
+        (via $PORT) is honoured instead of the hardcoded 3000.
       '';
     };
 
