@@ -57,7 +57,7 @@ in
     database_url = lib.mkOption {
       type        = lib.types.nullOr lib.types.str;
       description = "url for database";
-      default     = if cfg.createPostgresqlDatabase then "postgresql://umami@localhost/umami?host=/run/postgresql" else null;
+      default     = if cfg.create_postgresql_database then "postgresql://umami@localhost/umami?host=/run/postgresql" else null;
     };
   };
 
