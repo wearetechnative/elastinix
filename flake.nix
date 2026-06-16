@@ -23,11 +23,9 @@
     jsonify-aws-dotfiles.url = "github:wearetechnative/jsonify-aws-dotfiles";
     jirasync.url = "github:wearetechnative/jirasync";
     jirasync.inputs.nixpkgs.follows = "nixpkgs";
-    jiraticketcreate.url = "path:/home/wtoorren/data/git/wearetechnative/jiraticketcreate";
-    #jiraticketcreate.url = "github:wearetechnative/jiraticketcreate";
+    jiraticketcreate.url = "github:wearetechnative/jiraticketcreate";
     jiraticketcreate.inputs.nixpkgs.follows = "nixpkgs";
     badgersbay.url = "github:wearetechnative/badgersbay";
-    #badgersbay.url = "path:/home/wtoorren/data/git/wearetechnative/badgersbay";
     badgersbay.inputs.nixpkgs.follows = "nixpkgs";
 
     flake-parts.url = "github:hercules-ci/flake-parts";
