@@ -20,7 +20,7 @@ in {
         echo "Generating package manifest from /run/current-system..."
 
         echo "Scanning packages for known CVEs..."
-        ${pkgs.vulnix}/bin/vulnix --from-file /var/lib/sbom/packages.json > /var/lib/sbom/output.json || EXIT=$?
+        ${pkgs.vulnix}/bin/vulnix --cache-dir /var/lib/sbom/cache --from-file /var/lib/sbom/packages.json > /var/lib/sbom/output.json || EXIT=$?
 
         if [ "''${EXIT:-0}" -eq 2 ]; then
           echo "Vulnerabilities found. See /var/lib/sbom/system.json for details."
