@@ -321,17 +321,14 @@
         ]
       },
       "locked": {
-        "lastModified": 1779800905,
-        "narHash": "sha256-OAoVJLHEbLsxOmlG8O1mBd5aAlYaUk57kh3sutLBgJs=",
-        "owner": "wearetechnative",
-        "repo": "jiraticketcreate",
-        "rev": "1131305eb22a6065d734a7e173ee3e8722e6609e",
-        "type": "github"
+        "lastModified": 1781601171,
+        "narHash": "sha256-2S7mP/WeJMK4LTbnHTR1II9KXGQFP/70rwVnlnQHIGw=",
+        "path": "/home/wtoorren/data/git/wearetechnative/jiraticketcreate",
+        "type": "path"
       },
       "original": {
-        "owner": "wearetechnative",
-        "repo": "jiraticketcreate",
-        "type": "github"
+        "path": "/home/wtoorren/data/git/wearetechnative/jiraticketcreate",
+        "type": "path"
       }
     },
     "jsonify-aws-dotfiles": {
