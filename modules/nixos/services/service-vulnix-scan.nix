@@ -3,26 +3,6 @@
 let
   cfg = config.elastinix.services.vulnix-scan;
 
-  generatePackagesJson = pkgs.writeScript "generate-vulnix-packages-json" ''
-    #!${pkgs.python3}/bin/python3
-    import json, subprocess, os, re
-
-    result = subprocess.run(
-        ["${pkgs.nix}/bin/nix-store", "-qR", "/run/current-system"],
-        capture_output=True, text=True
-    )
-    paths = result.stdout.strip().split("\n")
-
-    packages = {}
-    for i, path in enumerate(paths):
-        basename = os.path.basename(path)
-        name = re.sub(r"^[a-z0-9]{32}-", "", basename)
-        if name:
-            packages[f"pkg{i}"] = {"name": name, "patches": []}
-
-    with open("/var/lib/sbom/packages.json", "w") as f:
-        json.dump(packages, f)
-  '';
 in {
   options.elastinix.services.vulnix-scan = {
     enable = lib.mkEnableOption "weekly vulnerability scanning with vulnix";
@@ -38,10 +18,9 @@ in {
 
       script = ''
         echo "Generating package manifest from /run/current-system..."
-        ${generatePackagesJson}
 
         echo "Scanning packages for known CVEs..."
-        ${pkgs.vulnix}/bin/vulnix --json --cache-dir /var/lib/sbom/cache --from-file /var/lib/sbom/packages.json --no-requisites > /var/lib/sbom/system.json || EXIT=$?
+        ${pkgs.vulnix}/bin/vulnix --from-file /var/lib/sbom/packages.json > /var/lib/sbom/output.json || EXIT=$?
 
         if [ "''${EXIT:-0}" -eq 2 ]; then
           echo "Vulnerabilities found. See /var/lib/sbom/system.json for details."
