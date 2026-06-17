@@ -4,8 +4,6 @@
 
     #nixos 25.11
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11"; # This nixpkgs archive is used by nixos-generators
-    nixos-generators.url = "github:nix-community/nixos-generators";
-    nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
     #first setup to support multiple terraforms make this a remote module, or just remove
     nixpkgs-terraform-v1-5-3.url = "github:NixOS/nixpkgs/nixos-23.05";
