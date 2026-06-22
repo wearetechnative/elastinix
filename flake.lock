@@ -531,11 +531,11 @@
     },
     "nixpkgs_6": {
       "locked": {
-        "lastModified": 1765838191,
-        "narHash": "sha256-m5KWt1nOm76ILk/JSCxBM4MfK3rYY7Wq9/TZIIeGnT8=",
+        "lastModified": 1781509190,
+        "narHash": "sha256-uJZs9Di8I6ciTp6jiojj0HzlNpBkud8ax5aT/O5aJkw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "c6f52ebd45e5925c188d1a20119978aa4ffd5ef6",
+        "rev": "d6df3513510aa548c83868fd22bfddd0a8c0a0d4",
         "type": "github"
       },
       "original": {
@@ -615,11 +615,11 @@
         "oldstable": "oldstable"
       },
       "locked": {
-        "lastModified": 1779448637,
-        "narHash": "sha256-QX33E/rH41RPJkx2PRlkW1OXqX2WgtV6xZdCSVaEv3E=",
+        "lastModified": 1782131550,
+        "narHash": "sha256-vN0IsWNLtYpf7KXnxAkal9bs7X6huk41Ji/9H7+mHbA=",
         "ref": "refs/heads/main",
-        "rev": "21cac79e0ba7b8a2cec15f9151bacaae9f39f928",
-        "revCount": 86,
+        "rev": "1e408275be58fd6978d306114314da8a31eca1e9",
+        "revCount": 87,
         "type": "git",
         "url": "ssh://git@github.com/TechNative-B-V/pontifex.git"
       },
