@@ -105,6 +105,7 @@ let
       effectiveJiraUser =
         if instance.client.jiraUser != null then instance.client.jiraUser else cfg.jiraUser;
       ct = instance.checkType;
+      effectiveLabels = [ "jiraticketcreate-elastinix" ] ++ ct.labels;
       isStructured = builtins.isString ct.schedule;
     in
     ''
@@ -140,6 +141,7 @@ let
         --arg issue_type "${ct.issueType}" \
         --arg due_date   "$DUE_DATE" \
         ${if ct.status != null then ''--arg status       "${ct.status}"'' else ""} \
+        --argjson labels '${builtins.toJSON effectiveLabels}' \
         '{
           api: {
             url: $url,
@@ -153,6 +155,7 @@ let
             issue_type: $issue_type,
             due_date: $due_date
             ${if ct.status != null then ", status: $status" else ""}
+            , labels: $labels
           }
         }' > "$TMPFILE"
 
@@ -219,6 +222,11 @@ in
               type = types.nullOr types.str;
               default = null;
               description = "Optional Jira status to transition the ticket to after creation (e.g. \"In Progress\"). When null, no transition is performed.";
+            };
+            labels = mkOption {
+              type = types.listOf types.str;
+              default = [];
+              description = "Extra Jira labels to add to created tickets. The module always prepends \"jiraticketcreate-elastinix\" regardless of this value.";
             };
           };
         }

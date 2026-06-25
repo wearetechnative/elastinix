@@ -321,11 +321,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1779802730,
-        "narHash": "sha256-Hqp2rWGTO8UcZLHaOa3g144mVe401dAc2OAABmGzN6M=",
+        "lastModified": 1782303057,
+        "narHash": "sha256-VIP9KFeW91GvnxTjugpnJpcryOPIVOJmOdlYJhoyCLY=",
         "owner": "wearetechnative",
         "repo": "jiraticketcreate",
-        "rev": "2fd7235adce117b46134cc8e25dd8a3a41ebf977",
+        "rev": "43027401a64926050a12b82dfc8cb88f9e91c9b9",
         "type": "github"
       },
       "original": {
