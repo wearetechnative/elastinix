@@ -17,7 +17,7 @@
     agenix.url = "github:ryantm/agenix";
 
     slack2zammad.url = "github:wearetechnative/slack2zammad";
-    pontifex = { url = "ssh://git@github.com/TechNative-B-V/pontifex.git"; type = "git"; };
+    pontifex = { url = "ssh://git@github.com/technative-mcs/pontifex.git"; type = "git"; };
     jsonify-aws-dotfiles.url = "github:wearetechnative/jsonify-aws-dotfiles";
     jirasync.url = "github:wearetechnative/jirasync";
     jirasync.inputs.nixpkgs.follows = "nixpkgs";
