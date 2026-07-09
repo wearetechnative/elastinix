@@ -28,19 +28,16 @@ The module SHALL create a systemd timer `vulnix-scan.timer` that triggers `vulni
 - **WHEN** the host was powered off during a scheduled run and then boots up
 - **THEN** the service runs shortly after boot to catch up on the missed execution
 
-### Requirement: Generate package manifest from store paths
-The service SHALL generate a `packages.json` file by enumerating store paths via `nix-store -qR /run/current-system` and extracting derivation names from the store path format (`/nix/store/<hash>-<name>`). This manifest SHALL be written to `/var/lib/sbom/packages.json`.
-
-#### Scenario: Package manifest generated
-- **WHEN** the service runs
-- **THEN** `/var/lib/sbom/packages.json` contains a JSON object with an entry for each store path in the system closure, each with a `name` and `patches` field
-
-#### Scenario: No .drv files required
-- **WHEN** the service runs on a host where `.drv` files are not present in the Nix store
-- **THEN** the package manifest is generated successfully from store path names alone
-
 ### Requirement: Scan packages with vulnix
-The service SHALL run `vulnix --json --from-file /var/lib/sbom/packages.json --no-requisites` to scan the generated package manifest against the NIST NVD database for known CVEs.
+The service SHALL read `/var/lib/sbom/packages.json` (provided by the deploy-wrapper) and scan it via `vulnix --from-file`. The service SHALL NOT generate packages.json itself.
+
+#### Scenario: packages.json present
+- **WHEN** `/var/lib/sbom/packages.json` exists
+- **THEN** the service SHALL run `vulnix --json --from-file /var/lib/sbom/packages.json --no-requisites --cache-dir /var/lib/vulnix-cache`
+
+#### Scenario: packages.json absent
+- **WHEN** `/var/lib/sbom/packages.json` does not exist
+- **THEN** the service SHALL log a warning and exit with code 0 (no failure)
 
 #### Scenario: Successful scan with no vulnerabilities
 - **WHEN** vulnix finds no known CVEs matching the packages
@@ -80,8 +77,16 @@ The service SHALL always exit with code 0 regardless of whether vulnerabilities 
 - **THEN** the service script exits with code 0 and the systemd service reports success
 
 ### Requirement: Systemd security hardening
-The service SHALL apply standard elastinix systemd hardening: `PrivateTmp=true`, `ProtectSystem=strict`, `ProtectHome=true`, `NoNewPrivileges=true`, `PrivateDevices=true`, `ProtectKernelTunables=true`, `ProtectKernelModules=true`, `ProtectControlGroups=true`, `RestrictNamespaces=true`, `LockPersonality=true`, `RestrictRealtime=true`, `RestrictSUIDSGID=true`, `RemoveIPC=true`. The service SHALL have `ReadWritePaths=/var/lib/sbom` to allow writing output files.
+The service SHALL apply standard elastinix systemd hardening: `PrivateTmp=true`, `ProtectSystem=strict`, `ProtectHome=true`, `NoNewPrivileges=true`, `PrivateDevices=true`, `ProtectKernelTunables=true`, `ProtectKernelModules=true`, `ProtectControlGroups=true`, `RestrictNamespaces=true`, `LockPersonality=true`, `RestrictRealtime=true`, `RestrictSUIDSGID=true`, `RemoveIPC=true`. The service SHALL have `ReadWritePaths` including both `/var/lib/sbom` and `/var/lib/vulnix-cache` to allow writing output files and the NVD cache.
 
 #### Scenario: Hardened service writes SBOM
 - **WHEN** the service runs with security hardening active
 - **THEN** it can still read `/nix/store`, query store paths, and write to `/var/lib/sbom/`
+
+#### Scenario: Hardened service writes to vulnix-cache
+- **WHEN** the service performs a bootstrap or updates the NVD cache
+- **THEN** the service SHALL have write access to `/var/lib/vulnix-cache`
+
+#### Scenario: Hardened service reads packages.json
+- **WHEN** the service starts the scan
+- **THEN** the service SHALL have read access to `/var/lib/sbom/packages.json`

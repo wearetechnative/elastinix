@@ -31,10 +31,10 @@ in {
       description = "Port for the hostinfo HTTP server";
     };
 
-    enableSbom = lib.mkOption {
+    enableVulnixReport = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Expose /var/lib/sbom/system.json as sbom.json via the hostinfo server";
+      description = "Expose /var/lib/vulnix/output.json as vulnix-report.json via the hostinfo server";
     };
   };
 
@@ -42,8 +42,8 @@ in {
 
     systemd.tmpfiles.rules = [
       "d /var/lib/hostinfo 0755 root root -"
-    ] ++ lib.optional cfg.enableSbom
-      "L+ /var/lib/hostinfo/sbom.json - - - - /var/lib/sbom/system.json";
+    ] ++ lib.optional cfg.enableVulnixReport
+      "L+ /var/lib/hostinfo/vulnix-report.json - - - - /var/lib/vulnix/output.json";
 
     # Oneshot service: injects buildTime into static template and writes services.json
     systemd.services.elastinix-hostinfo-inventory = {
