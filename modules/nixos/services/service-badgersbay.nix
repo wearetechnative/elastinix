@@ -95,11 +95,14 @@ in
 
     users.users.${cfg.user} = lib.mkIf (cfg.user == "badgersbay") {
       isSystemUser = true;
+      uid = 994;
       group = cfg.group;
       description = "Badgersbay service user";
     };
 
-    users.groups.${cfg.group} = lib.mkIf (cfg.group == "badgersbay") {};
+    users.groups.${cfg.group} = lib.mkIf (cfg.group == "badgersbay") {
+      gid = 991;
+    };
 
     networking.firewall.allowedTCPPorts = [ cfg.port ];
 
