@@ -20,10 +20,15 @@ in {
             description = "Path to the Jira sync configuration file";
           };
 
+          stateFile = mkOption {
+            type = types.str;
+            description = "Full path to the state file (e.g. /var/lib/jirasync/iit.state.json)";
+          };
+
           daysToSync = mkOption {
-            type = types.int;
-            default = 90;
-            description = "Number of days to look back for issues";
+            type = types.nullOr types.int;
+            default = null;
+            description = "Bootstrap: days to look back on first run (ignored if state file exists). Leave null to fetch all on first run.";
           };
 
           dryRun = mkOption {
@@ -85,7 +90,8 @@ in {
         script = ''
           ${jirasyncPackage}/bin/jirasync \
             --config "${instanceCfg.configFile}" \
-            --days "${toString instanceCfg.daysToSync}" \
+            --state-file "${instanceCfg.stateFile}" \
+            ${optionalString (instanceCfg.daysToSync != null) "--days ${toString instanceCfg.daysToSync}"} \
             ${optionalString instanceCfg.dryRun "--dry-run"}
         '';
 
@@ -93,6 +99,9 @@ in {
           Type = "oneshot";
           User = instanceCfg.user;
           Group = instanceCfg.group;
+
+          # Allow writing state file to its configured location
+          ReadWritePaths = [ (builtins.dirOf instanceCfg.stateFile) ];
 
           # Security hardening
           PrivateTmp = true;
