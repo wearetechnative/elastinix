@@ -37,9 +37,9 @@ let
         (inputs.import-tree ../modules/nixos/tests)
 
         {
-          environment.systemPackages = [
-             inputs.agenix.packages.${targetSystem}.agenix
-          ];
+          documentation.enable = false; # Kills documentation for packages installed via `environment.systemPackages` in to path
+          nixpkgs.flake.setFlakeRegistry = false; # Kills nix shell/run/build nixpkgs#pkg
+          nixpkgs.flake.setNixPath = false; # Kills nix-shell -p pkg, nix-build '<nixpkgs>'
         }
 
         machineConfig
