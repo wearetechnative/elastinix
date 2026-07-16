@@ -2,8 +2,8 @@
   description = "Elastinix, getting Nix to the Cloud";
   inputs = {
 
-    #nixos 25.11
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11"; # This nixpkgs archive is used by nixos-generators
+    #nixos 26.05
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05"; # This nixpkgs archive is used by nixos-generators
 
     #first setup to support multiple terraforms make this a remote module, or just remove
     nixpkgs-terraform-v1-5-3.url = "github:NixOS/nixpkgs/nixos-23.05";

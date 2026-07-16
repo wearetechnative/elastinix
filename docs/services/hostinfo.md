@@ -71,8 +71,8 @@ Generated daily at `/var/lib/hostinfo/services.json`:
     "awsUtils": true,
     "docker": true
   },
-  "nixosVersion": "25.11.0",
-  "systemStateVersion": "25.11"
+  "nixosVersion": "26.05.0",
+  "systemStateVersion": "26.05"
 }
 ```
 

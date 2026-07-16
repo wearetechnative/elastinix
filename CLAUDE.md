@@ -166,13 +166,13 @@ jirasync.inputs.nixpkgs.follows = "nixpkgs";
 
 **Without follows**:
 ```
-elastinix → nixpkgs (25.11)
+elastinix → nixpkgs (26.05)
          → jirasync → nixpkgs (24.11)  ← Duplicate!
 ```
 
 **With follows**:
 ```
-elastinix → nixpkgs (25.11)
+elastinix → nixpkgs (26.05)
          → jirasync ────────┘  ← Reuses elastinix's nixpkgs
 ```
 
