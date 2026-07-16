@@ -64,6 +64,12 @@ in {
   config = mkIf cfg.enable {
     environment.systemPackages = [ jirasyncPackage ];
 
+    # Create state file directories for all instances
+    systemd.tmpfiles.rules = concatMap (name:
+      let instanceCfg = cfg.instances.${name};
+      in [ "d ${builtins.dirOf instanceCfg.stateFile} 0750 ${instanceCfg.user} ${instanceCfg.group} -" ]
+    ) (attrNames cfg.instances);
+
     # Create users and groups for all instances (skip root as it already exists)
     users.users = listToAttrs (filter (x: x.name != "root") (map (name:
       let instanceCfg = cfg.instances.${name};
