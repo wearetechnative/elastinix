@@ -26,6 +26,11 @@
     badgersbay.url = "github:wearetechnative/badgersbay";
     badgersbay.inputs.nixpkgs.follows = "nixpkgs";
 
+    # OptScale FinOps appliance (nixosModules.optscale-appliance + overlays.default).
+    # Private repo — fetched over SSH (like pontifex), not the github: fetcher.
+    optscale.url = "git+ssh://git@github.com/wearetechnative/optscale-nixified";
+    optscale.inputs.nixpkgs.follows = "nixpkgs";
+
     flake-parts.url = "github:hercules-ci/flake-parts";
     devshell.url = "github:numtide/devshell";
     grafana-prometheus.url = "github:wearetechnative/monitoring";

@@ -37,6 +37,7 @@
       inputs.nixos-healthchecks.nixosModules.default
       inputs.slack2zammad.nixosModules.slack2zammad
       inputs.pontifex.nixosModules.pontifex
+      inputs.optscale.nixosModules.optscale-appliance
 
       (inputs.import-tree ../modules/nixos/programs)
       (inputs.import-tree ../modules/nixos/services)

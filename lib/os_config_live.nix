@@ -31,6 +31,7 @@ let
         inputs.nixos-healthchecks.nixosModules.default
         inputs.grafana-prometheus.nixosModules.grafana-prometheus
         inputs.pontifex.nixosModules.pontifex
+        inputs.optscale.nixosModules.optscale-appliance
 
         (inputs.import-tree ../modules/nixos/programs)
         (inputs.import-tree ../modules/nixos/services)
