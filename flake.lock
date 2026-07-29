@@ -656,11 +656,11 @@
         "oldstable": "oldstable"
       },
       "locked": {
-        "lastModified": 1783413026,
-        "narHash": "sha256-ezPkeGGZyao0QglvOMNwphpxJhz171996qP/jZHdio0=",
+        "lastModified": 1785311723,
+        "narHash": "sha256-5/zVElKX6FsslU+jf2aQ2TfnK6d2QD/E5Rq3GzWMPsY=",
         "ref": "refs/heads/main",
-        "rev": "bf0015aadd668b2f06e69ed15c93d09584aca9d4",
-        "revCount": 90,
+        "rev": "671b9c93afbde35eeff4f411603a6aa18aa2e75a",
+        "revCount": 92,
         "type": "git",
         "url": "ssh://git@github.com/technative-mcs/pontifex.git"
       },
