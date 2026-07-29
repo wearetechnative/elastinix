@@ -18,7 +18,8 @@ Services that provide infrastructure-level functionality.
 ### Security Services
 Services that provide security scanning and compliance functionality.
 
-- **[Vulnix Scan](services/vulnix-scan.md)** - Weekly automated vulnerability scanning of the NixOS system closure using vulnix
+- **[Vulnerability Scan Central](services/vulnerability-scan-central.md)** - Combined central vulnerability scanner: vulnix for NixOS packages (all hosts) and trivy for Docker images (per host via `enableDockerScan`)
+- **[Vulnerability Prometheus Exporter](services/vulnerability-prometheus-exporter.md)** - Prometheus exporter exposing per-host vulnerability metrics from vulnix and trivy scan results
 
 ### Monitoring Services
 

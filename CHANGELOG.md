@@ -13,6 +13,23 @@
 - **vulnix-scan packages.json**: service genereert packages.json niet meer zelf via `nix-store -qR`; leest `/var/lib/sbom/packages.json` dat door de deploy-wrapper aangeleverd wordt bij elke deployment
 
 ### Added
+- **Central vulnerability scanning** (ISO 27001): Architecture shift from local per-host scanning to centralized scanning on a dedicated scanner host
+  - **`hostinfo.enableInventory`**: Existing inventory service now behind an explicit option (default `true`, backwards-compatible) — set to `false` to disable `services.json` generation
+  - **`hostinfo.enablePackages`**: New option (default `false`) — exposes `/var/lib/packages/packages.json` (uploaded by Terraform) via hostinfo HTTP port
+  - **`hostinfo.enableDockerImages`**: New option (default `false`) — daily Docker inventory via Docker socket, exposes `docker-images.json` via hostinfo HTTP port
+  - **`vulnerability-scan-central`**: Combined central scanner replacing separate `vulnix-scan-central` and `trivy-scan-central` services; vulnix runs for all hosts, trivy runs per-host via `enableDockerScan = true`
+    - `vulnixCacheDir` option (default `/var/lib/vulnix-cache`) — configurable NVD cache location
+    - `trivyCacheDir` option (default `/var/lib/trivy-cache`) — configurable trivy DB cache, required to work within systemd `ProtectSystem = "strict"` hardening
+  - **`vulnerability-prometheus-exporter`**: Prometheus exporter on port 9200 that reads vulnix and trivy scan results and exposes per-host severity metrics for Grafana dashboards and alerting
+
+### Fixed
+- **`vulnerability-scan-central` trivy DB download**: trivy tried to write its vulnerability DB to `/root/.cache` which is read-only under systemd hardening — fixed by passing `--cache-dir` to a writable path (`trivyCacheDir`)
+- **`vulnerability-scan-central` scan continuity**: script used `set -euo pipefail` causing the entire scan to abort on any single failure — replaced with per-command error handling; failed hosts/images are logged and counted, scan always completes
+- **`vulnerability-scan-central` warnings not counted**: curl failures (unreachable hosts, HTTP non-200) were logged but not counted — scan completion line now shows `Warnings: N, Errors: M` so unreachable hosts are visible in the summary
+
+### Changed
+- **`vulnix-scan` removed**: Local per-host vulnix scanner replaced by `vulnerability-scan-central` — see `docs/services/vulnix-scan.md` for migration guide
+
 - **Jira Ticket Create service**: Scheduled Jira ticket creation per client and check type
   - Define reusable check types once (schedule, title template, description, issue type, due date offset)
   - Apply check types to multiple clients; generates one systemd timer+service per client×check combination
