@@ -1,10 +1,11 @@
 ---
 # elastinix-ac79
 title: 'service-jiraticketcreate: always add jiraticketcreate-elastinix label + optional extra labels'
-status: in-progress
+status: completed
 type: task
 created_at: 2026-06-24T00:00:00Z
-updated_at: 2026-06-24T00:00:00Z
+updated_at: 2026-07-27T00:00:00Z
+openspec-link: openspec/changes/archive/2026-07-27-jiraticketcreate-module-labels
 ---
 
 The `service-jiraticketcreate` NixOS module should always include a `"jiraticketcreate-elastinix"` label on every ticket it creates, so tickets are always traceable to their origin. Users can add extra labels via an optional `labels` field on `checkTypes`.
