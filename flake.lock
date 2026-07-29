@@ -339,11 +339,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1724965798,
-        "narHash": "sha256-X1QK44UV09M849fSZB2CFpkcoBoA5URA+7s3QNUO9gs=",
+        "lastModified": 1785330205,
+        "narHash": "sha256-wZiHoaXZ+kC1Jrl09YxXDrqQfJqDNxsMR12obcgeAxI=",
         "owner": "wearetechnative",
         "repo": "jsonify-aws-dotfiles",
-        "rev": "476d770c059311e977ffd75fda59e11704330038",
+        "rev": "dc9170928d9b63ab52fe094336385c63386f4692",
         "type": "github"
       },
       "original": {
@@ -500,16 +500,15 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1724727824,
-        "narHash": "sha256-0XH9MJk54imJm+RHOLTUJ7e+ponLW00tw5ke4MTVa1Y=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "36bae45077667aff5720e5b3f1a5458f51cf0776",
-        "type": "github"
+        "lastModified": 1785133411,
+        "narHash": "sha256-7S1XAczkWGQbntnS7lEDlvgyq4jYfTWBLv25CkTv7W0=",
+        "rev": "2f5a153c270b70cb0f8c11f46d96d6d3bc39f4e3",
+        "type": "tarball",
+        "url": "https://releases.nixos.org/nixos/26.05/nixos-26.05.6282.2f5a153c270b/nixexprs.tar.xz"
       },
       "original": {
         "id": "nixpkgs",
-        "ref": "nixos-24.05",
+        "ref": "nixos-26.05",
         "type": "indirect"
       }
     },
