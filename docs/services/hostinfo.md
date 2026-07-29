@@ -4,9 +4,10 @@ The Hostinfo service (`elastinix.services.hostinfo`) exposes system information 
 
 ## Features
 
-- **Services inventory**: Daily-generated JSON listing all enabled elastinix services and programs
+- **Services inventory**: Daily-generated JSON listing all enabled elastinix services and programs (optional, on by default)
 - **Extensible**: Any JSON file placed in `/var/lib/hostinfo/` is automatically served
 - **Optional SBOM**: Exposes vulnerability scan results from `elastinix.services.vulnix-scan` as `sbom.json`
+- **Optional packages**: Exposes an externally-uploaded `packages.json` from `/var/lib/packages/`
 - **Pure builds**: Static data is embedded at build time; only the timestamp is injected at runtime
 - **Configurable port**: Default `3333`, override as needed
 - **Automatic firewall**: Opens the configured port without manual configuration
@@ -19,6 +20,39 @@ The Hostinfo service (`elastinix.services.hostinfo`) exposes system information 
 ```nix
 elastinix.services.hostinfo = {
   enable = true;
+};
+```
+
+### Without inventory generation
+
+Run the HTTP server without generating `services.json` (e.g. to serve only externally-provided files):
+
+```nix
+elastinix.services.hostinfo = {
+  enable = true;
+  enableInventory = false;
+};
+```
+
+### With packages inventory
+
+Expose the package list uploaded by Terraform to `/var/lib/packages/packages.json`:
+
+```nix
+elastinix.services.hostinfo = {
+  enable = true;
+  enablePackages = true;
+};
+```
+
+### With Docker image inventory
+
+Expose the list of running Docker containers as `docker-images.json` for central trivy scanning:
+
+```nix
+elastinix.services.hostinfo = {
+  enable = true;
+  enableDockerImages = true;
 };
 ```
 
@@ -50,7 +84,11 @@ elastinix.services.hostinfo = {
 |--------|------|---------|-------------|
 | `enable` | boolean | `false` | Enable the hostinfo service |
 | `port` | port (1–65535) | `3333` | Port for the HTTP server |
+| `enableInventory` | boolean | `true` | Generate `services.json` via daily timer. Set to `false` to skip inventory generation. |
+| `enablePackages` | boolean | `false` | Symlink `/var/lib/packages/packages.json` as `packages.json`. Source uploaded externally by Terraform. |
+| `enableDockerImages` | boolean | `false` | Generate Docker image inventory from Docker socket and expose as `docker-images.json` |
 | `enableSbom` | boolean | `false` | Symlink `/var/lib/sbom/system.json` as `sbom.json` |
+| `enableVulnixReport` | boolean | `false` | Symlink `/var/lib/vulnix/output.json` as `vulnix-report.json` |
 
 ## JSON Output
 
@@ -85,6 +123,10 @@ Generated daily at `/var/lib/hostinfo/services.json`:
 | `nixosVersion` | Full NixOS version string |
 | `systemStateVersion` | NixOS state version |
 
+### `packages.json` (when `enablePackages = true`)
+
+A symlink to `/var/lib/packages/packages.json`, containing the NixOS package inventory uploaded by Terraform. If the source file does not exist yet, the HTTP server returns a 404 for this path.
+
 ### `sbom.json` (when `enableSbom = true`)
 
 A symlink to `/var/lib/sbom/system.json`, containing vulnix vulnerability scan output. Requires `elastinix.services.vulnix-scan.enable = true`.
@@ -99,8 +141,8 @@ To add custom JSON to the hostinfo server, drop files into `/var/lib/hostinfo/`.
 
 | Unit | Type | Description |
 |------|------|-------------|
-| `elastinix-hostinfo-inventory.service` | oneshot | Generates `services.json` with current timestamp |
-| `elastinix-hostinfo-inventory.timer` | timer | Triggers inventory generation daily (persistent) |
+| `elastinix-hostinfo-inventory.service` | oneshot | Generates `services.json` with current timestamp (only when `enableInventory = true`) |
+| `elastinix-hostinfo-inventory.timer` | timer | Triggers inventory generation daily (only when `enableInventory = true`) |
 | `elastinix-hostinfo-server.service` | simple | Python HTTP server serving `/var/lib/hostinfo/` |
 
 ## Useful Commands
@@ -151,5 +193,5 @@ No authentication is applied. The endpoint is intended for internal network use.
 
 - **Service definition**: `modules/nixos/services/service-hostinfo.nix`
 - **HTTP server**: Python `http.server` (stdlib, no external deps)
-- **Inventory generation**: `jq` injects `buildTime` at runtime into a pure Nix-store template
-- **SBOM symlink**: `systemd.tmpfiles` `L+` rule (only created when `enableSbom = true`)
+- **Inventory generation**: `jq` injects `buildTime` at runtime into a pure Nix-store template (only when `enableInventory = true`)
+- **Symlinks**: `systemd.tmpfiles` `L+` rules for `enableSbom`, `enableVulnixReport`, and `enablePackages`

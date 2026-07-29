@@ -18,8 +18,8 @@
 ## 3. Verification
 
 - [x] 3.1 Verify the module builds with `nix build` (nonProdApply or equivalent)
-- [ ] 3.2 Confirm `/var/lib/hostinfo/services.json` is accessible via HTTP after deploy
-- [ ] 3.3 Confirm `buildTime` is populated with current timestamp (not a placeholder)
+- [x] 3.2 Confirm `/var/lib/hostinfo/services.json` is accessible via HTTP after deploy
+- [x] 3.3 Confirm `buildTime` is populated with current timestamp (not a placeholder)
 
 ## 4. Migration (technative-awsaccounts-workloads)
 
