@@ -3,6 +3,7 @@
 let
   cfg = config.elastinix.services.vaultwarden;
   environment_domain = tfvars.environment_domain;
+  vaultwarden_domain = "technative.eu";
 in
 
   {
@@ -42,12 +43,24 @@ in
 
     systemd.services.vaultwarden.serviceConfig.ReadWritePaths = "/vaultwarden"; # needed to get systemd vaultwarden.service read outside system folders
 
-    services.nginx.virtualHosts."vaultwarden.${environment_domain}" = {
-      enableACME = true;
-      forceSSL = true;
-      locations = {
-        "/" = {
-          proxyPass = "http://127.0.0.1:8222";
+    services.nginx.virtualHosts = {
+      "vaultwarden.${environment_domain}" = {
+        enableACME = true;
+        forceSSL = true;
+        locations = {
+          "/" = {
+            proxyPass = "http://127.0.0.1:8222";
+          };
+        };
+      };
+    } // lib.optionalAttrs (tfvars.infra_environment == "prod") {
+      "vaultwarden.${vaultwarden_domain}" = {
+        enableACME = true;
+        forceSSL = true;
+        locations = {
+          "/" = {
+            proxyPass = "http://127.0.0.1:8222";
+          };
         };
       };
     };
