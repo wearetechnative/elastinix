@@ -46,6 +46,16 @@ in
       };
     };
 
+    services.nginx.virtualHosts."ollama.ainative.eu" = {
+      enableACME = true;
+      forceSSL = true;
+      locations = {
+        "/" = {
+          proxyPass = "http://127.0.0.1:7070"; # FRP vhostHTTPPort on this host; Host header ($host=invokeai.ainative.eu) drives FRP subdomain routing
+        };
+      };
+    };
+
     services.nginx.virtualHosts."openwebui.ainative.eu" = {
       enableACME = true;
       forceSSL = true;
