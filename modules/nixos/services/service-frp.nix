@@ -32,7 +32,7 @@ in
       forceSSL = true;
       locations = {
         "/" = {
-          proxyPass = "http://invokeai.ainative.eu:7070";
+          proxyPass = "http://127.0.0.1:7070"; # FRP vhostHTTPPort on this host; Host header ($host=invokeai.ainative.eu) drives FRP subdomain routing
           extraConfig = ''
             auth_basic "Restricted Content";
             proxy_pass_request_headers on;
@@ -46,12 +46,22 @@ in
       };
     };
 
+    services.nginx.virtualHosts."ollama.ainative.eu" = {
+      enableACME = true;
+      forceSSL = true;
+      locations = {
+        "/" = {
+          proxyPass = "http://127.0.0.1:7070"; # FRP vhostHTTPPort on this host; Host header ($host=invokeai.ainative.eu) drives FRP subdomain routing
+        };
+      };
+    };
+
     services.nginx.virtualHosts."openwebui.ainative.eu" = {
       enableACME = true;
       forceSSL = true;
       locations = {
         "/" = {
-          proxyPass = "http://openwebui.ainative.eu:7070";
+          proxyPass = "http://127.0.0.1:7070"; # FRP vhostHTTPPort on this host; Host header ($host=openwebui.ainative.eu) drives FRP subdomain routing
           extraConfig = ''
             proxy_set_header Upgrade           $http_upgrade;
             proxy_set_header Connection        $connection_upgrade;
@@ -66,7 +76,7 @@ in
       forceSSL = true;
       locations = {
         "/" = {
-          proxyPass = "http://test.ainative.eu:7070";
+          proxyPass = "http://127.0.0.1:7070"; # FRP vhostHTTPPort on this host; Host header ($host=test.ainative.eu) drives FRP subdomain routing
         };
       };
     };
