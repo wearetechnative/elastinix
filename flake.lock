@@ -618,11 +618,11 @@
         "uv2nix": "uv2nix"
       },
       "locked": {
-        "lastModified": 1784638359,
-        "narHash": "sha256-PwfI32kXglB7sQFXhSGVjNBH4ROOEHCStYBL2IJNf9U=",
+        "lastModified": 1787569081,
+        "narHash": "sha256-1Z+Oi9MDHUucHAowY2Pe0TNGXrrwEAfoFoj1x8d8LYo=",
         "ref": "refs/heads/main",
-        "rev": "d530ffd73fe5986161f2ce00615a68cc39803a41",
-        "revCount": 54,
+        "rev": "7c9a8f39a556bf40a37443f9ba3d012a6b011c49",
+        "revCount": 58,
         "type": "git",
         "url": "ssh://git@github.com/wearetechnative/optscale-nixified"
       },
@@ -634,17 +634,17 @@
     "optscale_2": {
       "flake": false,
       "locked": {
-        "lastModified": 1782737057,
-        "narHash": "sha256-faunRXbGq1tRbFKPGjJvGOtHricZwP9Q/8GLl92ZeF8=",
-        "owner": "hystax",
+        "lastModified": 1784282935,
+        "narHash": "sha256-ht+JLHCACVsIa+HbMOK4NJYVFwTQwt4BgceBro1XvhI=",
+        "owner": "wearetechnative",
         "repo": "optscale",
-        "rev": "0e9e2bec623dac4b7a69418fe6cf9f61f688e7a4",
+        "rev": "739246a55b6fa10ad19445dbb7295d64fcb3722f",
         "type": "github"
       },
       "original": {
-        "owner": "hystax",
+        "owner": "wearetechnative",
         "repo": "optscale",
-        "rev": "0e9e2bec623dac4b7a69418fe6cf9f61f688e7a4",
+        "rev": "739246a55b6fa10ad19445dbb7295d64fcb3722f",
         "type": "github"
       }
     },
