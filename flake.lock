@@ -637,19 +637,13 @@
         "lastModified": 1784282935,
         "narHash": "sha256-ht+JLHCACVsIa+HbMOK4NJYVFwTQwt4BgceBro1XvhI=",
         "owner": "wearetechnative",
-        "lastModified": 1784282935,
-        "narHash": "sha256-ht+JLHCACVsIa+HbMOK4NJYVFwTQwt4BgceBro1XvhI=",
-        "owner": "wearetechnative",
         "repo": "optscale",
-        "rev": "739246a55b6fa10ad19445dbb7295d64fcb3722f",
         "rev": "739246a55b6fa10ad19445dbb7295d64fcb3722f",
         "type": "github"
       },
       "original": {
         "owner": "wearetechnative",
-        "owner": "wearetechnative",
         "repo": "optscale",
-        "rev": "739246a55b6fa10ad19445dbb7295d64fcb3722f",
         "rev": "739246a55b6fa10ad19445dbb7295d64fcb3722f",
         "type": "github"
       }
