@@ -23,7 +23,7 @@ Services that provide security scanning and compliance functionality.
 
 ### Monitoring Services
 
-- **[Hostinfo](services/hostinfo.md)** - Lightweight HTTP server exposing system inventory JSON (enabled services, NixOS version, optional SBOM) for monitoring and dashboard use
+- **[Hostinfo](services/hostinfo.md)** - Lightweight HTTP server exposing system inventory JSON (enabled services, NixOS version, package and in-use inventories) for monitoring and dashboard use
 
 ### Application Services
 Services that provide application-level functionality.
@@ -33,6 +33,13 @@ Services that provide application-level functionality.
 - **[Chhoto](services/chhoto.md)** - Lightweight self-hosted URL shortener with SQLite storage
 - **[Documenso](services/documenso.md)** - Open-source document signing platform (DocuSign alternative) with PDF signing, BullMQ job processing, and S3 storage
 - **[OptScale](services/optscale.md)** - Full OptScale FinOps appliance (20 services + 6 datastores + React UI) on one instance, with agenix-managed secrets, substrate version pinning, and a TLS-fronted UI
+
+### Plans
+
+Programme-level documents that span more than one service.
+
+- **[Vulnix CVE Automation](vulnix-cve-automation.md)** - Plan for automated triage of vulnix findings per machine, with separate not-affected and accepted-risk registers
+- **[HASP Framework](hasp-framework.md)** - Host Attack Surface Profile: the static per-host fact set that drives triage, exposed as `hasp.json`
 
 ## General Information
 

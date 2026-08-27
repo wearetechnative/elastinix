@@ -12,6 +12,106 @@ let
     (n: v: lib.isAttrs v && (v.enable or false))
     (config.elastinix.programs or {});
 
+  inUseDir = "/var/lib/inuse-sampler";
+
+  inUseSampler = pkgs.writeText "hostinfo-inuse-sampler.py" ''
+    import json
+    import os
+    import re
+    import tempfile
+    from datetime import datetime, timezone
+
+    DOC = "${inUseDir}/inuse.json"
+    INTERVAL_SECONDS = ${toString cfg.inUseSamplerIntervalSeconds}
+    SCHEMA_VERSION = 1
+
+    # /nix/store/<32 chars>-<name>, capturing only <name> and stopping at the
+    # first path separator, so a mapped library resolves to the package name
+    # that owns it. The hash is deliberately excluded: consumers join this
+    # against vulnix output, which is keyed by package name. Two builds of the
+    # same name therefore merge, and if either is in use the name counts as in
+    # use — the conservative direction.
+    STORE = re.compile(r"/nix/store/[a-z0-9]{32}-([^/\s\x00\"';]+)")
+
+    def read(path):
+        try:
+            with open(path, "rb") as fh:
+                return fh.read().decode("utf-8", "replace")
+        except (OSError, ValueError):
+            return ""
+
+    def unit_of(pid):
+        for line in read(f"/proc/{pid}/cgroup").splitlines():
+            m = re.search(r"([^/]+\.service)", line)
+            if m:
+                return m.group(1)
+        return None
+
+    def sample():
+        """Map package name -> set of units observed holding it."""
+        found = {}
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            blob = read(f"/proc/{pid}/maps")
+            try:
+                blob += "\n" + os.path.realpath(f"/proc/{pid}/exe")
+            except OSError:
+                pass
+            blob += "\n" + read(f"/proc/{pid}/cmdline").replace("\0", "\n")
+            names = set(STORE.findall(blob))
+            if not names:
+                continue
+            unit = unit_of(pid)
+            for name in names:
+                entry = found.setdefault(name, set())
+                if unit:
+                    entry.add(unit)
+        return found
+
+    def main():
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        try:
+            with open(DOC) as fh:
+                doc = json.load(fh)
+        except (OSError, ValueError):
+            doc = {}
+
+        doc["schemaVersion"] = SCHEMA_VERSION
+        doc["intervalSeconds"] = INTERVAL_SECONDS
+        doc.setdefault("firstSample", now)
+        doc["lastSample"] = now
+        doc["sampleCount"] = int(doc.get("sampleCount", 0)) + 1
+        observed = doc.setdefault("observed", {})
+
+        current = sample()
+        for name, units in current.items():
+            entry = observed.setdefault(name, {})
+            entry["samples"] = int(entry.get("samples", 0)) + 1
+            entry["lastSeen"] = now
+            entry["units"] = sorted(set(entry.get("units", [])) | units)
+
+        # atomic replace: a crash mid-write must not destroy accumulated history
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(DOC), suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w") as fh:
+                json.dump(doc, fh, indent=1, sort_keys=True)
+            # mkstemp creates 0600 and os.replace preserves it, which would
+            # leave the document unreadable by the hostinfo HTTP server (it
+            # runs as nobody) and serve a 404 despite the file existing.
+            os.chmod(tmp, 0o644)
+            os.replace(tmp, DOC)
+        except BaseException:
+            os.unlink(tmp)
+            raise
+
+        print(f"sample {doc['sampleCount']}: {len(current)} packages in use, "
+              f"{len(observed)} observed cumulatively")
+
+    if __name__ == "__main__":
+        main()
+  '';
+
   # Static template without timestamp — timestamp injected at runtime
   staticTemplate = pkgs.writeText "hostinfo-static-template.json" (builtins.toJSON {
     hostname = config.networking.hostName;
@@ -54,6 +154,24 @@ in {
       default = false;
       description = "Generate a Docker image inventory from the Docker socket and expose it as docker-images.json via the hostinfo server.";
     };
+
+    enableInUseSampler = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Periodically record which Nix store paths are mapped by running
+        processes, accumulating into inuse.json and exposing it via the
+        hostinfo server.
+      '';
+    };
+
+    inUseSamplerIntervalSeconds = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 300;
+      description = ''
+        Seconds between in-use samples.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -67,6 +185,10 @@ in {
       ++ lib.optionals cfg.enableDockerImages [
         "d /var/lib/docker-inventory 0755 root docker -"
         "L+ /var/lib/hostinfo/docker-images.json - - - - /var/lib/docker-inventory/images.json"
+      ]
+      ++ lib.optionals cfg.enableInUseSampler [
+        "d ${inUseDir} 0755 root root -"
+        "L+ /var/lib/hostinfo/inuse.json - - - - ${inUseDir}/inuse.json"
       ];
 
     # Oneshot service: injects buildTime into static template and writes services.json
@@ -159,6 +281,46 @@ in {
         OnCalendar = "daily";
         Persistent = true;
         RandomizedDelaySec = "1h";
+      };
+    };
+
+    # In-use sampler: records which store paths running processes have mapped
+    systemd.services.elastinix-inuse-sampler = lib.mkIf cfg.enableInUseSampler {
+      description = "Sample Nix store paths in use by running processes";
+      after = [ "systemd-tmpfiles-setup.service" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        User = "root";
+        Group = "root";
+        ExecStart = "${pkgs.python3}/bin/python3 ${inUseSampler}";
+        ReadWritePaths = [ inUseDir ];
+
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        NoNewPrivileges = true;
+        PrivateDevices = true;
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
+        RestrictNamespaces = true;
+        LockPersonality = true;
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
+        RemoveIPC = true;
+        RestrictAddressFamilies = [ ];
+      };
+    };
+
+    systemd.timers.elastinix-inuse-sampler = lib.mkIf cfg.enableInUseSampler {
+      description = "Timer for the Nix store in-use sampler";
+      wantedBy = [ "timers.target" ];
+
+      timerConfig = {
+        OnBootSec = "2min";
+        OnUnitActiveSec = "${toString cfg.inUseSamplerIntervalSeconds}s";
+        AccuracySec = "30s";
       };
     };
 

@@ -2,7 +2,25 @@
 
 ## Next version
 
+### Added
+- **In-use code sampling** — vulnerability findings can now be split by whether the affected package's code has actually been observed executing. A CVE against a package says only that the package is present; this answers whether it runs, which is the evidence needed to argue a finding is not exploitable.
+  - **`hostinfo.enableInUseSampler`** (default `false`) — a timer samples `/proc/<pid>/maps`, `/proc/<pid>/exe` and `/proc/<pid>/cmdline` every `inUseSamplerIntervalSeconds` (default 300), accumulating into `inuse.json` served over the hostinfo port. All three sources are required: `maps` + `exe` alone observed 62 store paths on a live host, 71 with `cmdline` included
+  - Records per package the sample count, last-seen time, and the **systemd units** holding it — turning an inference into an observation: `openssl-3.6.0` is loaded by `quiqr-server.service`
+  - The central scan fetches and persists each host's document beside its `output.json`, so findings and their supporting evidence share a directory and a timestamp
+  - **`inuse` label** on `vulnix_vulnerabilities_total` with values `true`/`false`/`unknown`, plus `vulnix_inuse_sample_count` and `vulnix_inuse_last_sample_timestamp` so the strength of a `false` is visible beside it
+  - Absent, unparseable, stale or gapped data resolves to `unknown`, **never** `false` — a dead sampler must not make unobserved code look safe. Staleness is measured against the document's fetch time, not wall-clock now, because the scan runs weekly
+  - The sampler runs as root and deliberately omits `ProtectProc`/`PrivateUsers`: either hides other processes from `/proc`, leaving the sampler blind while still exiting successfully
+  - **Reading it honestly**: the observed set only grows, so `inuse="false"` counts will fall over time as rarely-executed code is caught. At a five-minute cadence "never observed" means "never observed at this cadence" — short-lived processes are not reliably caught
+  - First measurement on compute5: 75 packages observed of 907 in the closure; 72 CVE-instances in use, 204 not in use
+
 ### Fixed
+- **CVE overcounting in vulnerability reports**: reports overstated findings by ~1.8x. On `compute5-prod` the exporter published 471 CVE-instances where the scan found 259 distinct CVEs; after these fixes it reports 276 instances / 248 distinct. On `compute2-prod`, 361/215 becomes 211/206.
+  - **Multi-output deduplication** (`deduplicateOutputs`, default `true`): outputs of one derivation were counted separately, so `openssl-3.6.0`, `-bin` and `-dev` each contributed 37 CVEs. Findings are now grouped by package name with output suffixes stripped, and grouped CVE sets are **unioned** — never replaced, because two builds of the same version can carry different patch coverage (`compute5-prod` has a patched and an unpatched `libssh2-1.11.1`, and picking either alone would hide four real CVEs)
+  - **CPE vendor exclusion** (`cveVendorExclusions`): vulnix matches NVD advisories on the CPE product string alone and ignores the vendor, so every reported `git` CVE was actually a Jenkins Git Plugin or Git for Windows advisory. Also affected `dash` (Plotly), `zlib` (Cloudflare fork, Ruby gem) and `go` (the `ecies` library). Implemented as a disallow list that fails open — gawk's genuine advisories carry CPE vendor `fossies`, so a permit list would have discarded real bugs
+  - **Local vulnix patch** (`patches/vulnix-emit-cpe-vendors.patch`): vulnix discards the CPE vendor it parses, so the scan now emits `cpe_vendors` in its JSON output. Applied via overlay from `vulnerability-scan-central`; deliberately not contributed upstream. Reading an unpatched `output.json` logs a warning and excludes nothing
+  - **`vulnix_distinct_cves_total`**: new gauge counting each CVE once per host. Use it for reporting and audit evidence; `vulnix_vulnerabilities_total` remains the per-affected-package count for remediation planning
+  - Host enumeration now requires a directory, so leftovers from the retired local scan service (`/var/lib/vulnix/output.json`, `cache/`) are no longer treated as hosts
+  - **Note**: `vulnix_vulnerabilities_total` drops ~44% with no change in scan coverage. Re-baseline dashboards and alert thresholds; this is a counting-accuracy fix, not remediation
 - **vulnix-scan bootstrap op t3.small**: service werkte niet op instances met weinig RAM (1.9GB, geen swap) — initiële NVD cache-opbouw werd afgebroken door OOM killer
   - Bootstrap-mechanisme: bij lege cache tijdelijk 1.5GB swapfile aanmaken, NVD database opbouwen (~2 min), swapfile verwijderen
   - Disk-check vooraf: minimaal 2GB vrij vereist; anders overgeslagen met waarschuwing

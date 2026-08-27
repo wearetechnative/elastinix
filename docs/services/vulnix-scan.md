@@ -2,7 +2,7 @@
 
 > **This service has been removed.** The local `elastinix.services.vulnix-scan` module no longer exists.
 >
-> Use **[Vulnix Scan Central](vulnix-scan-central.md)** instead — a central scanner that fetches `packages.json` from multiple hosts via hostinfo and runs vulnix centrally.
+> Use **[Vulnerability Scan Central](vulnerability-scan-central.md)** instead — a central scanner that fetches `packages.json` from multiple hosts via hostinfo and runs vulnix (and trivy) centrally.
 
 ## Migration
 
@@ -16,14 +16,14 @@ Replace local scanning with central scanning:
    };
    ```
 
-2. On the central scanner host, configure `vulnix-scan-central`:
+2. On the central scanner host, configure `vulnerability-scan-central`:
    ```nix
-   elastinix.services.vulnix-scan-central = {
+   elastinix.services.vulnerability-scan-central = {
      enable = true;
      hosts = [
-       { name = "compute1-prod"; url = "http://10.0.1.10:3333"; }
+       { name = "compute1-prod"; url = "http://10.0.1.10:3333"; enableDockerScan = false; }
      ];
    };
    ```
 
-See [vulnix-scan-central.md](vulnix-scan-central.md) for full documentation.
+See [vulnerability-scan-central.md](vulnerability-scan-central.md) for full documentation.
