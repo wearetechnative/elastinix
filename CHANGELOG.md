@@ -2,7 +2,11 @@
 
 ## Next version
 
+### Added
+- **In-use code sampling** (`hostinfo.enableInUseSampler`, default `false`) — a timer samples `/proc/<pid>/maps`, `/proc/<pid>/exe` and `/proc/<pid>/cmdline` to record which packages are actually observed executing and the systemd units holding them, surfaced as an `inuse` label on `vulnix_vulnerabilities_total` where absent, stale or gapped data resolves to `unknown` and never to `false` ([docs](docs/services/hostinfo.md)).
+
 ### Fixed
+- **CVE overcounting in vulnerability reports**: multi-output deduplication (`deduplicateOutputs`) and CPE vendor exclusion (`cveVendorExclusions`, fed by the local `patches/vulnix-emit-cpe-vendors.patch`) drop `vulnix_vulnerabilities_total` by ~44% with no change in scan coverage — a counting-accuracy fix rather than remediation, so re-baseline dashboards and alert thresholds and use the new `vulnix_distinct_cves_total` gauge for audit evidence.
 - **vulnix-scan bootstrap op t3.small**: service werkte niet op instances met weinig RAM (1.9GB, geen swap) — initiële NVD cache-opbouw werd afgebroken door OOM killer
   - Bootstrap-mechanisme: bij lege cache tijdelijk 1.5GB swapfile aanmaken, NVD database opbouwen (~2 min), swapfile verwijderen
   - Disk-check vooraf: minimaal 2GB vrij vereist; anders overgeslagen met waarschuwing

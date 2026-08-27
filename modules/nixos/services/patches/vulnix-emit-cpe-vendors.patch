@@ -1,0 +1,61 @@
+--- a/src/vulnix/output.py
++++ b/src/vulnix/output.py
+@@ -120,6 +120,25 @@
+         )
+ 
+ 
++def cpe_vendors(derivation, vulns):
++    """Return CPE vendors per CVE for nodes matching this derivation's product.
++
++    Vulnix matches NVD advisories on the CPE product string alone; the vendor
++    parsed into each Node is never consulted. Emitting it lets consumers
++    recognise advisories that belong to an unrelated product which happens to
++    share a name with the scanned package.
++    """
++    products = set(derivation.product_candidates())
++    out = {}
++    for v in vulns:
++        vendors = sorted(
++            {n.vendor for n in v.nodes if n.product in products and n.vendor}
++        )
++        if vendors:
++            out[v.cve_id] = vendors
++    return out
++
++
+ def output_json(items, show_whitelisted=False):
+     out = []
+     for i in sorted(items, key=attrgetter("derivation")):
+@@ -142,6 +161,7 @@
+                     for v in (i.report | i.masked)
+                     if v.description
+                 },
++                "cpe_vendors": cpe_vendors(d, i.report | i.masked),
+             }
+         )
+     print(json.dumps(out, indent=1))
+--- a/src/vulnix/tests/output_test.py
++++ b/src/vulnix/tests/output_test.py
+@@ -130,6 +130,7 @@
+             "whitelisted": ["CVE-2018-0004"],
+             "cvssv3_basescore": {},
+             "description": {},
++            "cpe_vendors": {},
+         },
+         {
+             "affected_by": ["CVE-2018-0001", "CVE-2018-0002", "CVE-2018-0003"],
+@@ -142,6 +143,7 @@
+                 "CVE-2018-0003": 9.8,
+             },
+             "description": {},
++            "cpe_vendors": {},
+         },
+     ]
+ 
+@@ -188,5 +190,6 @@
+             "pname": "test",
+             "version": "0.2",
+             "whitelisted": [],
++            "cpe_vendors": {},
+         }
+     ]
