@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 let
   cfg = config.services.documenso;
@@ -6,6 +6,46 @@ let
   inherit (lib)
     mkEnableOption mkOption mkIf mkMerge mkDefault
     types literalExpression optionalString optional;
+
+  # Build-time Playwright browsers tree.
+  #
+  # Documenso's vendored Playwright expects a specific chromium-headless-shell
+  # revision, which rarely matches the revision nixpkgs ships. Rather than
+  # discovering and symlinking at boot (ExecStartPre), we build a read-only
+  # store tree that mirrors pkgs.playwright-driver.browsers and exposes the
+  # shipped chromium-headless-shell under the exact revision name Documenso
+  # looks for. The expected revision is read from Documenso's own
+  # playwright-core/browsers.json, so this self-corrects across future bumps.
+  playwrightBrowsers = pkgs.runCommand "documenso-playwright-browsers"
+    { nativeBuildInputs = [ pkgs.jq ]; } ''
+      mkdir -p "$out"
+
+      # Mirror every entry from the stock nixpkgs playwright browsers.
+      for entry in ${pkgs.playwright-driver.browsers}/*; do
+        ln -s "$entry" "$out/$(basename "$entry")"
+      done
+
+      # Revision Documenso's bundled Playwright expects.
+      EXPECTED=$(jq -r \
+        '.browsers[] | select(.name == "chromium-headless-shell") | .revision' \
+        ${cfg.package}/node_modules/playwright-core/browsers.json)
+      if [ -z "$EXPECTED" ] || [ "$EXPECTED" = "null" ]; then
+        echo "ERROR: could not read chromium-headless-shell revision from Documenso's playwright-core/browsers.json" >&2
+        exit 1
+      fi
+
+      # Revision actually shipped by nixpkgs playwright-driver.
+      ACTUAL=$(ls -d ${pkgs.playwright-driver.browsers}/chromium_headless_shell-* 2>/dev/null | head -n1)
+      if [ -z "$ACTUAL" ]; then
+        echo "ERROR: no chromium_headless_shell-* found in ${pkgs.playwright-driver.browsers}" >&2
+        echo "The nixpkgs playwright-driver does not provide a headless chromium; cannot build the bridge." >&2
+        exit 1
+      fi
+
+      # Expose the shipped browser under the name Documenso looks for.
+      ln -sfn "$ACTUAL" "$out/chromium_headless_shell-$EXPECTED"
+      echo "playwright bridge: $(basename "$ACTUAL") -> chromium_headless_shell-$EXPECTED"
+    '';
 in
 {
   options.services.documenso = {
@@ -13,19 +53,15 @@ in
 
     package = mkOption {
       type = types.package;
-      default = pkgs.documenso.overrideAttrs (prev: {
-        postFixup = (prev.postFixup or "") + ''
-          substituteInPlace $out/apps/remix/build/server/main.js \
-            --replace-fail \
-              "serve({ fetch: handler.fetch, port: 3000 });" \
-              "serve({ fetch: handler.fetch, port: Number(process.env.PORT) || 3000 });"
-        '';
-      });
+      default = pkgs.documenso;
       defaultText = literalExpression "pkgs.documenso";
       description = ''
         Documenso package to use.
-        Defaults to the version in nixpkgs, patched so the `port` option
-        (via $PORT) is honoured instead of the hardcoded 3000.
+        Defaults to `pkgs.documenso`. On hosts enabling this service, that is
+        overlaid to the 2.14.0 build from the `nixpkgs-unstable` input (see the
+        overlay in this module), since the pinned `nixos-26.05` only carries
+        1.12.x. Documenso honours the `PORT` environment variable natively, so
+        no source patching is applied.
       '';
     };
 
@@ -348,6 +384,20 @@ in
   config = mkIf cfg.enable (mkMerge [
     # Common configuration
     {
+      # Documenso 2.14.0 lives only in nixpkgs-unstable; the pinned nixos-26.05
+      # carries 1.12.x and will not backport a major version. Pull ONLY documenso
+      # and the playwright-driver the browser bridge consumes from the scoped
+      # `nixpkgs-unstable` input. Scoped to this host via `enable` (a Documenso
+      # box is a dedicated appliance), so the rest of the platform stays on 26.05.
+      nixpkgs.overlays = [
+        (final: prev:
+          let unstable = inputs.nixpkgs-unstable.legacyPackages.${prev.stdenv.hostPlatform.system};
+          in {
+            documenso = unstable.documenso;
+            playwright-driver = unstable.playwright-driver;
+          })
+      ];
+
       # Assertions
       assertions = [
         {
@@ -512,9 +562,10 @@ in
 
         environment = {
           NODE_ENV = "production";
-          # Use pre-packaged Playwright browsers from nixpkgs with version compatibility layer
-          # ExecStartPre creates symlinks from expected version to actual nixpkgs version
-          PLAYWRIGHT_BROWSERS_PATH = "${cfg.stateDir}/.cache/ms-playwright";
+          # Read-only, build-time browsers tree (see `playwrightBrowsers` above):
+          # the chromium-headless-shell is exposed under the exact revision name
+          # Documenso expects. No runtime symlinking or state-directory cache.
+          PLAYWRIGHT_BROWSERS_PATH = playwrightBrowsers;
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
           PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "1";
         };
@@ -526,39 +577,13 @@ in
           WorkingDirectory = cfg.stateDir;
           EnvironmentFile = [ "${cfg.stateDir}/.env" ] ++ cfg.environmentFiles;
 
-          # Pre-start scripts: browser setup and certificate generation
+          # Pre-start script: certificate generation only.
+          # Playwright browsers are provided as a build-time store path via
+          # PLAYWRIGHT_BROWSERS_PATH (see `playwrightBrowsers`), so no runtime
+          # browser setup step is needed.
           ExecStartPre =
-            # 1. Playwright browser setup (always runs)
-            # Documenso hardcodes Chromium version 1169, but nixpkgs provides newer versions
-            # Create symlink to bridge version mismatch - see issue #13
-            [ (pkgs.writeShellScript "documenso-playwright-setup" ''
-              set -euo pipefail
-
-              NIXPKGS_BROWSERS="${pkgs.playwright-driver.browsers}"
-              STATE_BROWSERS="${cfg.stateDir}/.cache/ms-playwright"
-
-              # Ensure directory exists with proper permissions
-              mkdir -p "$STATE_BROWSERS"
-              chown ${cfg.user}:${cfg.group} "$STATE_BROWSERS"
-
-              # Find actual Chromium version in nixpkgs (e.g., chromium_headless_shell-1194)
-              ACTUAL_VERSION=$(ls "$NIXPKGS_BROWSERS" | grep "^chromium_headless_shell-" | head -n1)
-
-              if [ -z "$ACTUAL_VERSION" ]; then
-                echo "ERROR: No Chromium browser found in ${pkgs.playwright-driver.browsers}" >&2
-                echo "Check that playwright-driver package is available" >&2
-                exit 1
-              fi
-
-              # Create symlink from expected version to actual version
-              # Documenso expects: chromium_headless_shell-1169
-              # nixpkgs provides: chromium_headless_shell-<newer>
-              ln -sfn "$NIXPKGS_BROWSERS/$ACTUAL_VERSION" "$STATE_BROWSERS/chromium_headless_shell-1169"
-
-              echo "Playwright browser setup: $ACTUAL_VERSION -> chromium_headless_shell-1169"
-            '') ]
-            # 2. Certificate auto-generation (conditional on cfg.signing.autoGenerate)
-            ++ optional cfg.signing.autoGenerate (pkgs.writeShellScript "documenso-gen-cert" ''
+            # Certificate auto-generation (conditional on cfg.signing.autoGenerate)
+            optional cfg.signing.autoGenerate (pkgs.writeShellScript "documenso-gen-cert" ''
               set -euo pipefail
 
               if [ ! -f "${cfg.signing.certificateFile}" ]; then
