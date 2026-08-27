@@ -3,6 +3,7 @@
 ## Next version
 
 ### Added
+- **Host Attack Surface Profile** (`elastinix.hasp`) — a static, content-hashed per-host fact document served by hostinfo as `hasp.json`, built from a closed fact registry that fails the build on an unregistered key, with optional live AWS fact collection (`awsFacts`) and socket observation (`hostinfo.enableSocketObservation`) recording each listener's bind address and the users its unit runs as ([docs](docs/services/hasp.md)).
 - **In-use code sampling** (`hostinfo.enableInUseSampler`, default `false`) — a timer samples `/proc/<pid>/maps`, `/proc/<pid>/exe` and `/proc/<pid>/cmdline` to record which packages are actually observed executing and the systemd units holding them, surfaced as an `inuse` label on `vulnix_vulnerabilities_total` where absent, stale or gapped data resolves to `unknown` and never to `false` ([docs](docs/services/hostinfo.md)).
 
 ### Fixed

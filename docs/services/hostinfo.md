@@ -8,6 +8,8 @@ The Hostinfo service (`elastinix.services.hostinfo`) exposes system information 
 - **Extensible**: Any JSON file placed in `/var/lib/hostinfo/` is automatically served
 - **Optional packages**: Exposes an externally-uploaded `packages.json` from `/var/lib/packages/`
 - **Optional in-use sampling**: Records which store paths running processes have mapped and exposes it as `inuse.json`
+- **Optional socket observation**: Records listening sockets with their bind address, and the user each unit runs as, exposing them as `runtime-facts.json`
+- **Optional attack surface profile**: Serves `hasp.json` and `hasp-aws.json` when [`elastinix.hasp`](hasp.md) is enabled
 - **Pure builds**: Static data is embedded at build time; only the timestamp is injected at runtime
 - **Configurable port**: Default `3333`, override as needed
 - **Automatic firewall**: Opens the configured port without manual configuration
@@ -86,6 +88,7 @@ elastinix.services.hostinfo = {
 | `enableInventory` | boolean | `true` | Generate `services.json` via daily timer. Set to `false` to skip inventory generation. |
 | `enablePackages` | boolean | `false` | Symlink `/var/lib/packages/packages.json` as `packages.json`. Source uploaded externally by Terraform. |
 | `enableInUseSampler` | boolean | `false` | Periodically record which store paths running processes have mapped; expose as `inuse.json`. |
+| `enableSocketObservation` | boolean | `false` | Also record listening sockets with bind address, and unit-to-user mapping; expose as `runtime-facts.json`. Requires `enableInUseSampler`. |
 | `inUseSamplerIntervalSeconds` | positive int | `300` | Seconds between samples. Also written into the document so consumers can detect sampling gaps. |
 | `enableDockerImages` | boolean | `false` | Generate Docker image inventory from Docker socket and expose as `docker-images.json` |
 | `enableVulnixReport` | boolean | `false` | Symlink `/var/lib/vulnix/output.json` as `vulnix-report.json`. **Stale:** that path belonged to the removed local `vulnix-scan` service. Central scanning writes per-host results to `/var/lib/vulnix/<host>/output.json`, so this serves whatever leftover file happens to exist — verified serving a four-week-old report in production. Leave disabled. |
@@ -213,6 +216,94 @@ vulnerability scan and nothing else. A boolean would lose that distinction.
   becomes an artefact of the outage. `intervalSeconds` plus the window lets
   consumers detect that; the vulnerability exporter treats a gap as `unknown`.
 
+### `runtime-facts.json` (when `enableSocketObservation = true`)
+
+The same sampler run also records **listening sockets** and **which user each
+unit actually runs as**. Both are collected rather than derived, because neither
+is derivable: nothing in the Nix configuration or the AWS API states which
+address a process bound to.
+
+```json
+{
+  "schemaVersion": 1,
+  "intervalSeconds": 300,
+  "firstSample": "2026-08-25T13:20:13Z",
+  "lastSample": "2026-09-24T10:05:00Z",
+  "sampleCount": 8641,
+  "inuse": { "observed": { "openssl-3.6.0": { "samples": 8641, "units": ["quiqr-server.service"] } } },
+  "sockets": {
+    "observed": {
+      "5432/tcp/loopback": { "samples": 8641, "lastSeen": "2026-09-24T10:05:00Z",
+                             "addresses": ["127.0.0.1"],
+                             "units": ["postgresql.service"], "users": ["postgres"] },
+      "3333/tcp/wildcard": { "samples": 8641, "lastSeen": "2026-09-24T10:05:00Z",
+                             "addresses": ["0.0.0.0"],
+                             "units": ["elastinix-hostinfo-server.service"], "users": ["nobody"] }
+    },
+    "current": [
+      { "port": 5432, "proto": "tcp", "address": "127.0.0.1",
+        "bindClass": "loopback", "unit": "postgresql.service", "user": "postgres" }
+    ]
+  },
+  "units": { "user": { "postgresql.service": ["postgres"],
+                       "quiqr-server.service": ["root"] } }
+}
+```
+
+**Bind address is the point.** A service bound to `127.0.0.1` is unreachable from
+anywhere else whatever the security group says. `postgresql-17.10` is the
+joint-largest package on compute2-prod at 26 CVEs; "5432 is not in the firewall
+list" is a weak claim, while "nothing outside this machine can reach it" is a
+strong one.
+
+`bindClass` is `loopback`, `wildcard` or `specific`, kept next to the raw address
+rather than replacing it. Two classification subtleties, both of which change the
+answer:
+
+- `[::]` is **wildcard**, not IPv6-only: such a socket accepts IPv4 connections
+  too unless `v6only` is set.
+- `::ffff:127.0.0.1` is **loopback**. It is an IPv4-mapped IPv6 address, and
+  reading it as `specific` would forfeit the strongest available claim. Observed
+  live on a real host, from Neo4j.
+
+The scope suffix `ss` reports (`127.0.0.53%lo`) is stripped before
+classification.
+
+#### Negative claims must use `observed`, not `current`
+
+A package observed once proves it executes. A socket observed once proves only
+that it was bound *then*. So `current` is a point-in-time snapshot for reporting,
+and any claim that a port was **never** externally bound must cite the cumulative
+`observed` set — a service that binds an external listener briefly under load
+would be absent from most snapshots.
+
+#### `units.user` is a list, not a string
+
+A unit whose main process runs as root and drops privileges in a child would lose
+the root fact if collapsed to one value. For privilege context, "does any process
+of this unit run as root" is the question that matters.
+
+Joined against `inuse.observed`, this gives the sentence neither document can
+produce alone: *"openssl-3.6.0 is executed by `quiqr-server.service`, which runs
+as root, in a process listening on all interfaces."*
+
+#### `inuse.json` is a projection
+
+`runtime-facts.json` is the accumulating store; `inuse.json` is written each run
+from the same state in its original shape, so existing consumers keep working
+unchanged. On first run after upgrading, state is seeded from an existing
+`inuse.json` — months of accumulated samples are the observation window every
+"never observed" claim depends on, and discarding them would silently weaken the
+evidence rather than fail.
+
+#### Netlink is required
+
+`ss` enumerates sockets via `sock_diag` over netlink, so the sampler unit is
+granted `AF_NETLINK` when socket observation is enabled — and only then. Denying
+it would make `ss` return nothing while still exiting successfully, so the
+sampler would report no listening sockets on a host full of them. Same class of
+failure as hiding `/proc`, below.
+
 #### Hardening constraint
 
 The sampler runs as **root** — reading `/proc/<pid>/maps` for processes owned by
@@ -241,7 +332,7 @@ To add custom JSON to the hostinfo server, drop files into `/var/lib/hostinfo/`.
 | `elastinix-hostinfo-inventory.service` | oneshot | Generates `services.json` with current timestamp (only when `enableInventory = true`) |
 | `elastinix-hostinfo-inventory.timer` | timer | Triggers inventory generation daily (only when `enableInventory = true`) |
 | `elastinix-hostinfo-server.service` | simple | Python HTTP server serving `/var/lib/hostinfo/` |
-| `elastinix-inuse-sampler.service` | oneshot | Samples store paths mapped by running processes (only when `enableInUseSampler = true`) |
+| `elastinix-inuse-sampler.service` | oneshot | Samples store paths mapped by running processes, plus listening sockets and unit users when `enableSocketObservation = true` |
 | `elastinix-inuse-sampler.timer` | timer | Triggers sampling every `inUseSamplerIntervalSeconds`; no `Persistent`, since a missed window is a real gap in observation and must not be papered over |
 
 ## Useful Commands
@@ -293,4 +384,4 @@ No authentication is applied. The endpoint is intended for internal network use.
 - **Service definition**: `modules/nixos/services/service-hostinfo.nix`
 - **HTTP server**: Python `http.server` (stdlib, no external deps)
 - **Inventory generation**: `jq` injects `buildTime` at runtime into a pure Nix-store template (only when `enableInventory = true`)
-- **Symlinks**: `systemd.tmpfiles` `L+` rules for `enablePackages`, `enableDockerImages`, `enableInUseSampler`, and `enableVulnixReport`
+- **Symlinks**: `systemd.tmpfiles` `L+` rules for `enablePackages`, `enableDockerImages`, `enableInUseSampler`, `enableSocketObservation`, and `enableVulnixReport`
