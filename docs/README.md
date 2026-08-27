@@ -20,6 +20,7 @@ Services that provide security scanning and compliance functionality.
 
 - **[Vulnerability Scan Central](services/vulnerability-scan-central.md)** - Combined central vulnerability scanner: vulnix for NixOS packages (all hosts) and trivy for Docker images (per host via `enableDockerScan`)
 - **[Vulnerability Prometheus Exporter](services/vulnerability-prometheus-exporter.md)** - Prometheus exporter exposing per-host vulnerability metrics from vulnix and trivy scan results
+- **[HASP](services/hasp.md)** - Host Attack Surface Profile: a static, content-hashed per-host fact document driving CVE triage, with credential-free drift verification
 
 ### Monitoring Services
 
@@ -39,7 +40,7 @@ Services that provide application-level functionality.
 Programme-level documents that span more than one service.
 
 - **[Vulnix CVE Automation](vulnix-cve-automation.md)** - Plan for automated triage of vulnix findings per machine, with separate not-affected and accepted-risk registers
-- **[HASP Framework](hasp-framework.md)** - Host Attack Surface Profile: the static per-host fact set that drives triage, exposed as `hasp.json`
+- **[HASP Framework](hasp-framework.md)** - Host Attack Surface Profile: the per-host fact set that drives triage, split across `hasp.json`, `hasp-aws.json` and `runtime-facts.json`
 
 ## General Information
 

@@ -386,3 +386,8 @@ When making changes you are allowed to update the date/time in updated_at in the
 Besides updating status and openspec-link, you are NOT ALLOWED to modify the contents of the task file.
 Always use opsx commands when creating openspec proposals or archive proposals
 All openspec documents need to be in english, not matter the language being used in the users conversation.
+
+
+# Comments
+- Do NOT add or create comments
+- IF comment is necessary make it as SHORT as POSSIBLE
