@@ -61,7 +61,8 @@ in
         overlaid to the 2.14.0 build from the `nixpkgs-unstable` input (see the
         overlay in this module), since the pinned `nixos-26.05` only carries
         1.12.x. Documenso honours the `PORT` environment variable natively, so
-        no source patching is applied.
+        no port patching is needed; the overlay only adds a symlink so the
+        license cache file lands in the writable state dir instead of the store.
       '';
     };
 
@@ -393,7 +394,18 @@ in
         (final: prev:
           let unstable = inputs.nixpkgs-unstable.legacyPackages.${prev.stdenv.hostPlatform.system};
           in {
-            documenso = unstable.documenso;
+            # Documenso caches its license lookup to `.documenso-license.json`
+            # at `path.join(process.cwd(), LICENSE_FILE_NAME)`. The bin/documenso
+            # wrapper cd's into `$out/apps/remix` (a read-only Nix store path),
+            # so the write fails with `EROFS: read-only file system`. Redirect
+            # that file to the writable state dir via a store symlink; the target
+            # lives under `stateDir`, which is already in ReadWritePaths.
+            documenso = unstable.documenso.overrideAttrs (old: {
+              postFixup = (old.postFixup or "") + ''
+                ln -sfn ${cfg.stateDir}/.documenso-license.json \
+                  $out/apps/remix/.documenso-license.json
+              '';
+            });
             playwright-driver = unstable.playwright-driver;
           })
       ];
