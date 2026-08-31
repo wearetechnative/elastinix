@@ -2,7 +2,7 @@
 
 The `services.documenso` NixOS module was written against Documenso 1.12.x and is not compatible with Documenso 2.14.0. Verified against the real `documenso-2.14.0` package: as-is the module does not even *build* against 2.14.0, and with that blocker bypassed PDF rendering breaks at runtime. Bumping nixpkgs to a revision carrying 2.14.0 (a major upgrade already needed for the wider platform) is blocked until the module is made compatible.
 
-Epic bean: [.beans/elastinix-wxy7--documenso-nixos-module-compatibel-maken-met-2140.md](../../../.beans/elastinix-wxy7--documenso-nixos-module-compatibel-maken-met-2140.md)
+Epic bean: [.beans/elastinix-wxy7--make-documenso-nixos-module-compatible-with-2140.md](../../../.beans/elastinix-wxy7--make-documenso-nixos-module-compatible-with-2140.md)
 
 ## What Changes
 
