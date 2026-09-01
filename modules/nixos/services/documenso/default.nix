@@ -7,12 +7,21 @@ let
     mkEnableOption mkOption mkIf mkMerge mkDefault
     types literalExpression optionalString optional;
 
+  # Documenso 2.14.0 + its matching playwright-driver come from the
+  # `nixpkgs-unstable` input, sourced per-service (not via a module-global
+  # overlay). The pinned `nixos-26.05` carries only 1.12.x and will not
+  # backport a major version. Both packages are pulled from the SAME input so
+  # the chromium-headless-shell revision Documenso expects and the one the
+  # driver ships stay mutually consistent. The stock packages are used
+  # unmodified, so they are served prebuilt from the binary cache.
+  unstable = inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+
   # Build-time Playwright browsers tree.
   #
   # Documenso's vendored Playwright expects a specific chromium-headless-shell
   # revision, which rarely matches the revision nixpkgs ships. Rather than
   # discovering and symlinking at boot (ExecStartPre), we build a read-only
-  # store tree that mirrors pkgs.playwright-driver.browsers and exposes the
+  # store tree that mirrors unstable.playwright-driver.browsers and exposes the
   # shipped chromium-headless-shell under the exact revision name Documenso
   # looks for. The expected revision is read from Documenso's own
   # playwright-core/browsers.json, so this self-corrects across future bumps.
@@ -21,7 +30,7 @@ let
       mkdir -p "$out"
 
       # Mirror every entry from the stock nixpkgs playwright browsers.
-      for entry in ${pkgs.playwright-driver.browsers}/*; do
+      for entry in ${unstable.playwright-driver.browsers}/*; do
         ln -s "$entry" "$out/$(basename "$entry")"
       done
 
@@ -35,9 +44,9 @@ let
       fi
 
       # Revision actually shipped by nixpkgs playwright-driver.
-      ACTUAL=$(ls -d ${pkgs.playwright-driver.browsers}/chromium_headless_shell-* 2>/dev/null | head -n1)
+      ACTUAL=$(ls -d ${unstable.playwright-driver.browsers}/chromium_headless_shell-* 2>/dev/null | head -n1)
       if [ -z "$ACTUAL" ]; then
-        echo "ERROR: no chromium_headless_shell-* found in ${pkgs.playwright-driver.browsers}" >&2
+        echo "ERROR: no chromium_headless_shell-* found in ${unstable.playwright-driver.browsers}" >&2
         echo "The nixpkgs playwright-driver does not provide a headless chromium; cannot build the bridge." >&2
         exit 1
       fi
@@ -53,16 +62,17 @@ in
 
     package = mkOption {
       type = types.package;
-      default = pkgs.documenso;
-      defaultText = literalExpression "pkgs.documenso";
+      default = unstable.documenso;
+      defaultText = literalExpression "inputs.nixpkgs-unstable.legacyPackages.\${system}.documenso";
       description = ''
         Documenso package to use.
-        Defaults to `pkgs.documenso`. On hosts enabling this service, that is
-        overlaid to the 2.14.0 build from the `nixpkgs-unstable` input (see the
-        overlay in this module), since the pinned `nixos-26.05` only carries
-        1.12.x. Documenso honours the `PORT` environment variable natively, so
-        no port patching is needed; the overlay only adds a symlink so the
-        license cache file lands in the writable state dir instead of the store.
+        Defaults to the stock `documenso` from the `nixpkgs-unstable` input,
+        sourced per-service (not via an overlay), since the pinned
+        `nixos-26.05` only carries 1.12.x. Documenso honours the `PORT`
+        environment variable natively, so no port patching is needed. The
+        package is used unmodified so it is served prebuilt from the binary
+        cache; the boot-time `EROFS` license-cache write failure is expected
+        and harmless (see `docs/services/documenso.md`).
       '';
     };
 
@@ -385,31 +395,6 @@ in
   config = mkIf cfg.enable (mkMerge [
     # Common configuration
     {
-      # Documenso 2.14.0 lives only in nixpkgs-unstable; the pinned nixos-26.05
-      # carries 1.12.x and will not backport a major version. Pull ONLY documenso
-      # and the playwright-driver the browser bridge consumes from the scoped
-      # `nixpkgs-unstable` input. Scoped to this host via `enable` (a Documenso
-      # box is a dedicated appliance), so the rest of the platform stays on 26.05.
-      nixpkgs.overlays = [
-        (final: prev:
-          let unstable = inputs.nixpkgs-unstable.legacyPackages.${prev.stdenv.hostPlatform.system};
-          in {
-            # Documenso caches its license lookup to `.documenso-license.json`
-            # at `path.join(process.cwd(), LICENSE_FILE_NAME)`. The bin/documenso
-            # wrapper cd's into `$out/apps/remix` (a read-only Nix store path),
-            # so the write fails with `EROFS: read-only file system`. Redirect
-            # that file to the writable state dir via a store symlink; the target
-            # lives under `stateDir`, which is already in ReadWritePaths.
-            documenso = unstable.documenso.overrideAttrs (old: {
-              postFixup = (old.postFixup or "") + ''
-                ln -sfn ${cfg.stateDir}/.documenso-license.json \
-                  $out/apps/remix/.documenso-license.json
-              '';
-            });
-            playwright-driver = unstable.playwright-driver;
-          })
-      ];
-
       # Assertions
       assertions = [
         {

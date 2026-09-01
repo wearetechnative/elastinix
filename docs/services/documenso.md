@@ -297,8 +297,11 @@ nix-store -q --references /run/current-system | grep playwright
 **`[License] Failed to save license file: EROFS` on boot** — *expected and
 harmless.* Documenso's bundled `bin/documenso` wrapper `cd`s into its read-only
 store path, so `process.cwd()` is unwritable and it cannot cache
-`.documenso-license.json`. The license check itself still succeeds (community
-edition), so the service runs normally. This log line can be ignored.
+`.documenso-license.json`. The license check itself still succeeds — the same
+boot logs `License check completed successfully` and `Derived Status: NOT_FOUND`
+(community edition) — so the service runs normally. The package is used stock
+(no override) so it comes prebuilt from the binary cache; this log line is the
+accepted trade-off and can be ignored.
 
 **S3 endpoint errors** (`Invalid endpoint`):
 
