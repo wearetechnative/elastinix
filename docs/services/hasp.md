@@ -195,7 +195,9 @@ catch — so a generic probe across the upstream namespace is unsafe.
 
 ## Output
 
-`/var/lib/hostinfo/hasp.json`, a symlink into the store:
+`/var/lib/hostinfo/hasp.json`, a symlink into the store — the one document here
+that cannot be written where it is served, because it is a pure build product
+with no runtime state to place:
 
 ```json
 {
@@ -225,6 +227,12 @@ document. Consumers record their own fetch time instead.
 Written on the machine by `elastinix-hasp-aws-collector.service`, on a timer, from
 the **live AWS API** — not from Terraform state, which records what Terraform last
 believed rather than what is.
+
+Written straight to `/var/lib/hostinfo/hasp-aws.json`, the directory hostinfo
+serves, so no symlink is involved. The collector therefore holds
+`ReadWritePaths=/var/lib/hostinfo`: it renames a temporary file into place, which
+needs write access to the containing directory. A truncating write would let the
+scanner fetch a half-written document and read a missing fact as an absent risk.
 
 ```json
 {
@@ -356,8 +364,8 @@ exactly one address and nothing else. The `api` tier cannot be restricted that w
 — AWS service endpoints are not a fixed set — which is one more reason to prefer
 `metadata` where it suffices.
 
-It runs as root, which it does not need for capability: the state directory has to
-be traversable by the unprivileged HTTP server, and `DynamicUser` puts state under
+It runs as root, which it does not need for capability: the served directory has to
+be readable by the unprivileged HTTP server, and `DynamicUser` puts state under
 `/var/lib/private` at mode 0700, where `nobody` cannot reach it.
 
 **On the `api` tier the host holds account-wide read of the account's network
