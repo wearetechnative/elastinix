@@ -61,7 +61,7 @@
 ## 7. Rollout
 
 - [ ] 7.1 Enable the sampler on the remaining computes — compute2-prod and compute5-prod are done; compute1/3/4/6 still pending
-- [ ] 7.2 Let observations accumulate before presenting `false` as evidence; record the window used
+- [ ] 7.2 Let observations accumulate before presenting `false` as evidence; record the window used — **superseded by bean `elastinix-sw3u`**, which owns how to bound a negative claim; the first attempt at deriving it from timer cadence was withdrawn because every monthly and quarterly unit on the fleet fires daily
 - [ ] 7.3 Review existing dashboards and alert rules for queries that sum the metric without aggregating away `inuse`
 - [x] 7.4 Document the cadence limitation wherever the data is presented: "never observed" means "never observed at this interval", and short-lived processes are not reliably caught
 - [x] 7.5 Document that `inuse="false"` counts will decrease over time as rarely-executed code is caught, and that this is the mechanism working
