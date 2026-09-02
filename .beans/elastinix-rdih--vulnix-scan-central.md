@@ -1,6 +1,6 @@
 ---
 # elastinix-rdih
-title: Centrale vulnix-scan service
+title: Central vulnix scan service
 status: completed
 type: task
 priority: normal
@@ -9,18 +9,21 @@ updated_at: 2026-07-27T00:00:00Z
 parent: elastinix-p9gu
 ---
 
-Nieuwe elastinix service die als centrale scanner draait op een grote host (bijv. nixhost of compute6) en van alle geconfigureerde computes de `packages.json` ophaalt via hostinfo en scant met vulnix.
+New elastinix service running as the central scanner on a large host, fetching
+`packages.json` from every configured compute over hostinfo and scanning it with
+vulnix.
 
-## Wat
+## What
 
-De service `elastinix.services.vulnix-scan-central`:
+The service `elastinix.services.vulnix-scan-central`:
 
-1. Haalt periodiek `packages.json` op van alle geconfigureerde hosts via `http://<host>:3333/packages.json`
-2. Runt `vulnix --from-file packages.json --json` per host
-3. Schrijft resultaten naar `/var/lib/vulnix/<hostname>/output.json`
-4. NVD cache leeft op de scanner host (eenmalig bootstrap ~2GB)
+1. Periodically fetches `packages.json` from every configured host over
+   `http://<host>:3333/packages.json`
+2. Runs `vulnix --from-file packages.json --json` per host
+3. Writes results to `/var/lib/vulnix/<hostname>/output.json`
+4. Keeps the NVD cache on the scanner host, bootstrapped once at roughly 2 GB
 
-## Configuratie
+## Configuration
 
 ```nix
 elastinix.services.vulnix-scan-central = {
@@ -34,10 +37,16 @@ elastinix.services.vulnix-scan-central = {
 };
 ```
 
-## Vereiste op elke gescande host
+## Required on every scanned host
 
-`hostinfo.enablePackages = true` — zodat `packages.json` beschikbaar is via hostinfo.
+`hostinfo.enablePackages = true`, so that `packages.json` is served by hostinfo.
 
-## Afhankelijkheid
+## Dependency
 
-Vereist `elastinix-p9gu` (epic) en de packages.json generator met patches in technative-awsaccounts-workloads.
+Requires elastinix-p9gu (epic) and the packages.json generator with patches in
+technative-awsaccounts-workloads.
+
+## Superseded
+
+This service was later merged with the trivy scanner into a single
+`vulnerability-scan-central` (elastinix-m7qf).

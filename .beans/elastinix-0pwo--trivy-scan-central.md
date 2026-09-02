@@ -1,6 +1,6 @@
 ---
 # elastinix-0pwo
-title: Centrale trivy-scan service voor Docker images
+title: Central trivy scan service for Docker images
 status: completed
 type: task
 priority: normal
@@ -11,19 +11,23 @@ depends_on:
   - elastinix-pg6e
 ---
 
-Nieuwe elastinix service die als centrale scanner draait en van alle geconfigureerde computes de `docker-images.json` ophaalt via hostinfo en elke image scant met trivy.
+New elastinix service running as the central scanner, fetching
+`docker-images.json` from every configured compute over hostinfo and scanning
+each image with trivy.
 
-## Wat
+## What
 
-De service `elastinix.services.trivy-scan-central`:
+The service `elastinix.services.trivy-scan-central`:
 
-1. Haalt periodiek `docker-images.json` op van geconfigureerde hosts via `http://<host>:3333/docker-images.json`
-2. Runt `trivy image --format json <image>` per image
-3. Schrijft resultaten naar `/var/lib/trivy/<hostname>/<image-name>/output.json`
+1. Periodically fetches `docker-images.json` from the configured hosts over
+   `http://<host>:3333/docker-images.json`
+2. Runs `trivy image --format json <image>` per image
+3. Writes results to `/var/lib/trivy/<hostname>/<image-name>/output.json`
 
-Trivy pulled images rechtstreeks van de registry — geen toegang tot de compute zelf nodig.
+Trivy pulls images straight from the registry, so no access to the compute itself
+is needed.
 
-## Configuratie
+## Configuration
 
 ```nix
 elastinix.services.trivy-scan-central = {
@@ -36,11 +40,13 @@ elastinix.services.trivy-scan-central = {
 };
 ```
 
-## Vereiste op elke gescande host
+## Required on every scanned host
 
-`hostinfo.enableDockerImages = true` — zodat `docker-images.json` beschikbaar is via hostinfo (zie elastinix-pg6e).
+`hostinfo.enableDockerImages = true`, so that `docker-images.json` is served by
+hostinfo (see elastinix-pg6e).
 
-## Kritische applicaties (ISO 27001)
+## Superseded
 
-- compute1: `twentyhq/twenty-server`, `twentyhq/twenty-worker`, `gotenberg/gotenberg`
-- compute3: `zammad/zammad`, `elasticsearch`
+Merged with the vulnix scanner into a single `vulnerability-scan-central`
+(elastinix-m7qf), where container scanning became a per-host `enableDockerScan`
+flag rather than a second host list.

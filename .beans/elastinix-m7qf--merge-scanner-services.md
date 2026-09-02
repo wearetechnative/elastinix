@@ -1,29 +1,34 @@
 ---
 # elastinix-m7qf
-title: Samenvoegen vulnix en trivy scanner tot één service
+title: Merge the vulnix and trivy scanners into one service
 status: completed
 type: task
 priority: normal
 created_at: 2026-07-28T00:00:00Z
 updated_at: 2026-07-28T13:00:00Z
-openspec-link: openspec/changes/merge-scanner-services
+openspec-link: openspec/changes/archive/2026-08-25-merge-scanner-services
 parent: elastinix-p9gu
 depends_on:
   - elastinix-rdih
   - elastinix-0pwo
 ---
 
-Vervang de twee losse scanner services (`vulnix-scan-central` en `trivy-scan-central`) door één gecombineerde service `vulnerability-scan-central`. Alle hosts krijgen altijd een vulnix-scan; hosts met Docker krijgen ook een trivy-scan via een per-host `enableDockerScan` vlag.
+Replace the two separate scanner services (`vulnix-scan-central` and
+`trivy-scan-central`) with a single combined `vulnerability-scan-central`. Every
+host always gets a vulnix scan; hosts running Docker also get a trivy scan through
+a per-host `enableDockerScan` flag.
 
-## Wat
+## What
 
-Nieuwe service `elastinix.services.vulnerability-scan-central` die:
+A new service `elastinix.services.vulnerability-scan-central` that:
 
-1. Per geconfigureerde host altijd `packages.json` ophaalt en scant met vulnix
-2. Per host optioneel `docker-images.json` ophaalt en scant met trivy (als `enableDockerScan = true`)
-3. Output-paden blijven hetzelfde: `/var/lib/vulnix/<host>/` en `/var/lib/trivy/<host>/`
+1. Fetches `packages.json` from every host and scans it with vulnix
+2. Optionally fetches `docker-images.json` per host and scans it with trivy, where
+   `enableDockerScan = true`
+3. Keeps the output paths unchanged: `/var/lib/vulnix/<host>/` and
+   `/var/lib/trivy/<host>/`
 
-## Configuratie
+## Configuration
 
 ```nix
 elastinix.services.vulnerability-scan-central = {
@@ -37,16 +42,17 @@ elastinix.services.vulnerability-scan-central = {
 };
 ```
 
-## Waarom samenvoegen
+## Why merge them
 
-- Alle hosts hebben altijd `packages.json` — vulnix is universeel
-- Alleen sommige hosts hebben Docker → `enableDockerScan` per host in plaats van twee aparte lijsten synchroon houden
-- Één `enable`, één `interval`, één plek voor host-definitie
+- Every host always has `packages.json`, so vulnix is universal
+- Only some hosts run Docker, so `enableDockerScan` per host beats keeping two
+  separate host lists in sync
+- One `enable`, one `interval`, one place where hosts are defined
 
-## Te doen
+## To do
 
-- Maak `service-vulnerability-scan-central.nix` als vervanging voor beide losse modules
-- Verwijder `service-vulnix-scan-central.nix` en `service-trivy-scan-central.nix`
-- Update `docs/services/` (nieuwe doc, oude docs naar deprecated)
+- Write `service-vulnerability-scan-central.nix` replacing both separate modules
+- Remove `service-vulnix-scan-central.nix` and `service-trivy-scan-central.nix`
+- Update `docs/services/` with a new document and mark the old ones deprecated
 - Update `docs/README.md`
-- Prometheus exporter hoeft niet te veranderen (leest dezelfde output-paden)
+- The Prometheus exporter needs no change, since it reads the same output paths

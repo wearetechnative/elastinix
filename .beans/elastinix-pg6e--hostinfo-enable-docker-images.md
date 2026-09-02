@@ -1,6 +1,6 @@
 ---
 # elastinix-pg6e
-title: hostinfo — enableDockerImages optie en docker-inventory service
+title: 'hostinfo: enableDockerImages option and docker-inventory service'
 status: completed
 type: task
 priority: normal
@@ -9,17 +9,21 @@ updated_at: 2026-07-27T00:00:00Z
 parent: elastinix-p9gu
 ---
 
-Voeg `enableDockerImages` optie toe aan de hostinfo service zodat de centrale scanner de draaiende Docker images per host kan ophalen via HTTP.
+Add an `enableDockerImages` option to the hostinfo service, so the central scanner
+can fetch the running Docker images per host over HTTP.
 
-## Wat
+## What
 
-Nieuwe `elastinix.services.hostinfo.enableDockerImages` optie die:
+A new `elastinix.services.hostinfo.enableDockerImages` option that:
 
-1. Een systemd service `elastinix-docker-inventory` aanmaakt die de Docker socket bevraagt en de resulterende lijst schrijft naar `/var/lib/docker-inventory/images.json`
-2. Een systemd timer (dagelijks) die de service triggert
-3. Via hostinfo een symlink maakt: `/var/lib/hostinfo/docker-images.json` → `/var/lib/docker-inventory/images.json`
+1. Creates a systemd service `elastinix-docker-inventory` querying the Docker
+   socket and writing the resulting list to
+   `/var/lib/docker-inventory/images.json`
+2. Adds a daily systemd timer triggering that service
+3. Symlinks `/var/lib/hostinfo/docker-images.json` to
+   `/var/lib/docker-inventory/images.json`, so hostinfo serves it
 
-## docker-images.json formaat
+## docker-images.json format
 
 ```json
 [
@@ -28,16 +32,20 @@ Nieuwe `elastinix.services.hostinfo.enableDockerImages` optie die:
 ]
 ```
 
-Gegenereerd via Docker socket API:
+Generated through the Docker socket API:
+
 ```bash
 curl --unix-socket /var/run/docker.sock http://localhost/containers/json \
   | jq '[.[] | {image: .Image, digest: .ImageID}]'
 ```
 
-## Beveiliging
+## Security
 
-De service heeft toegang tot `/var/run/docker.sock` nodig. Dit geeft effectief root-niveau toegang — dit is de standaard Docker trade-off. De service draait als lid van de `docker` group.
+The service needs access to `/var/run/docker.sock`, which grants effectively
+root-level access. That is the standard Docker trade-off; the service runs as a
+member of the `docker` group.
 
-## Gebruik in deze repo
+## Use in this repo
 
-`hostinfo.enableDockerImages = true` op compute1 (Twenty, Gotenberg) en compute3 (Zammad, Elasticsearch).
+`hostinfo.enableDockerImages = true` on compute1 (Twenty, Gotenberg) and compute3
+(Zammad, Elasticsearch).

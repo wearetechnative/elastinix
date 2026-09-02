@@ -1,6 +1,6 @@
 ---
 # elastinix-kx9r
-title: Verwijder lokale vulnix-scan service (vervangen door centrale aanpak)
+title: Remove the local vulnix scan service, replaced by the central approach
 status: completed
 type: task
 priority: normal
@@ -11,15 +11,20 @@ depends_on:
   - elastinix-rdih
 ---
 
-De lokale `elastinix.services.vulnix-scan` module is vervangen door de centrale scanning architectuur (elastinix-rdih). De lokale module draait op elke compute zelf en vereist ~2GB NVD cache — dat is te zwaar voor kleine computes. Na uitrol van de centrale scanner kan de lokale module worden verwijderd.
+The local `elastinix.services.vulnix-scan` module is replaced by the central
+scanning architecture (elastinix-rdih). The local module runs on each compute
+itself and needs a roughly 2 GB NVD cache, which is too heavy for the small
+computes. Once the central scanner is rolled out, the local module can go.
 
-## Wat
+## What
 
-1. Verwijder `modules/nixos/services/service-vulnix-scan.nix`
-2. Verwijder de `vulnix-scan` capability spec (`openspec/specs/vulnix-scan/spec.md`)
-3. Verwijder alle verwijzingen naar `elastinix.services.vulnix-scan` in downstream configuraties (`technative-awsaccounts-workloads`)
-4. Verwijder `vulnix` als flake input als het enkel voor de lokale service gebruikt werd
+1. Remove `modules/nixos/services/service-vulnix-scan.nix`
+2. Remove the `vulnix-scan` capability spec (`openspec/specs/vulnix-scan/spec.md`)
+3. Remove every reference to `elastinix.services.vulnix-scan` in downstream
+   configurations (`technative-awsaccounts-workloads`)
+4. Remove `vulnix` as a flake input if it was only used by the local service
 
-## Volgorde
+## Ordering
 
-Uitvoeren NÁ elastinix-rdih volledig uitgerold is op de scanner host, zodat bestaande hosts geen scanning-gat krijgen.
+Do this only after elastinix-rdih is fully rolled out on the scanner host, so
+existing hosts never have a gap in scanning coverage.
