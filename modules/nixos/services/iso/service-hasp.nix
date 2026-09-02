@@ -4,7 +4,7 @@ let
   cfg = config.elastinix.hasp;
 
   schemaVersion = 2;
-  registryVersion = 1;
+  registryVersion = 2;
 
   hostRegistry = {
     "identity.hostname" = { type = "string"; source = "derived"; };
@@ -13,10 +13,6 @@ let
     "identity.owner" = { type = "string"; source = "declared"; };
     "identity.dataClassification" = { type = "string"; source = "declared"; };
 
-    # tier says which credentials a fact costs. "metadata" facts come from the
-    # instance metadata service and need no IAM at all; "api" facts need
-    # account-wide ec2:Describe*, because those actions cannot be scoped to the
-    # resources a host owns.
     "network.securityGroupIds" = { type = "list"; source = "aws"; tier = "metadata"; };
     "network.subnetId" = { type = "string"; source = "aws"; tier = "metadata"; };
     "network.publicIpAttached" = { type = "bool"; source = "aws"; tier = "metadata"; };
@@ -29,7 +25,9 @@ let
     "network.behindLoadBalancer" = { type = "bool"; source = "aws"; tier = "api"; };
     "network.egressUnrestricted" = { type = "bool"; source = "aws"; tier = "api"; };
 
-    "network.firewallOpenPorts" = { type = "list"; source = "derived"; };
+    "network.firewallEnabled" = { type = "bool"; source = "derived"; };
+    "network.firewallOpenTcpPorts" = { type = "list"; source = "derived"; };
+    "network.firewallOpenUdpPorts" = { type = "list"; source = "derived"; };
     "network.isJumphost" = { type = "bool"; source = "declared"; };
 
     "runtime.dockerEnabled" = { type = "bool"; source = "derived"; };
@@ -37,8 +35,6 @@ let
     "runtime.nixosStateVersion" = { type = "string"; source = "derived"; };
 
     "data.persistentVolumes" = { type = "list"; source = "aws"; tier = "api"; };
-    # data.backupsConfigured was drafted and dropped: nothing we run can
-    # produce it, and a registered fact no collector fills is decoration.
   };
 
   fleetRegistry = {
@@ -50,11 +46,11 @@ let
     "fleet.inUseSamplerEnabled" = { type = "bool"; source = "derived"; };
   };
 
-  awsDir = "/var/lib/hasp";
+  # The AWS document is written straight into the directory hostinfo serves, so
+  # it needs no symlink. hasp.json cannot follow: it is a build product living in
+  # the Nix store, with no runtime state to place anywhere.
+  hostinfoDir = "/var/lib/hostinfo";
 
-  # Emitted into the closure so the collector can enforce rule 3 on its own
-  # output at runtime: the registry stays the single source of key truth even
-  # for facts produced outside evaluation.
   registryManifest = pkgs.writeText "hasp-registry.json"
     (builtins.toJSON (hostRegistry // fleetRegistry));
 
@@ -79,10 +75,11 @@ let
 
   # ── Derived facts ─────────────────────────────────────────────────────────
 
-  firewallPorts = lib.sort factLessThan (lib.unique (
-    (config.networking.firewall.allowedTCPPorts or [ ])
-    ++ (config.networking.firewall.allowedUDPPorts or [ ])
-  ));
+  firewallEnabled = config.networking.firewall.enable or false;
+
+  openPorts = attr:
+    lib.optionals firewallEnabled
+      (lib.sort factLessThan (lib.unique (config.networking.firewall.${attr} or [ ])));
 
   databaseProbes = {
     postgresql = config.services.postgresql.enable or false;
@@ -108,8 +105,20 @@ let
   derivedHostFacts = {
     "identity.hostname" =
       mkFact "derived" "config.networking.hostName" config.networking.hostName;
-    "network.firewallOpenPorts" =
-      mkFact "derived" "config.networking.firewall.allowed{TCP,UDP}Ports" firewallPorts;
+    "network.firewallEnabled" =
+      mkFact "derived" "config.networking.firewall.enable" firewallEnabled;
+    "network.firewallOpenTcpPorts" =
+      mkFact "derived"
+        (if firewallEnabled
+         then "config.networking.firewall.allowedTCPPorts"
+         else "firewall disabled, every TCP port reachable")
+        (openPorts "allowedTCPPorts");
+    "network.firewallOpenUdpPorts" =
+      mkFact "derived"
+        (if firewallEnabled
+         then "config.networking.firewall.allowedUDPPorts"
+         else "firewall disabled, every UDP port reachable")
+        (openPorts "allowedUDPPorts");
     "runtime.dockerEnabled" =
       mkFact "derived" "config.virtualisation.docker.enable"
         (config.virtualisation.docker.enable or false);
@@ -158,17 +167,10 @@ let
 
   # ── Assembly ──────────────────────────────────────────────────────────────
 
-  # AWS facts are deliberately absent here. They are collected on the machine
-  # by a timer and published in hasp-aws.json, because they change without a
-  # rebuild — folding them into a hashed document would either freeze a stale
-  # value or rehash on every collection.
   hostFacts = derivedHostFacts // declaredHostFacts;
 
   valuesOf = facts: lib.mapAttrs (_: f: f.value) facts;
 
-  # Truncated to 64 bits: this is a change-detection token, not a security
-  # digest, and it is read by humans in dashboards and alerts. Correctness of
-  # invalidation does not depend on it — verdicts compare fact values directly.
   hashOf = facts:
     builtins.substring 0 16
       (builtins.hashString "sha256" (builtins.toJSON (valuesOf facts)));
@@ -186,14 +188,8 @@ let
     fleet = fleetFacts;
   };
 
-  # No generation timestamp: a pure store path has no build clock, and a
-  # fabricated one would be the only untrustworthy field in the document.
   haspJson = pkgs.writeText "hasp.json" (builtins.toJSON document);
 
-  # boto3 only on the api tier, so a metadata-tier host adds nothing to its
-  # closure. It handles instance-profile credentials, retries and pagination;
-  # hand-rolling SigV4 for six calls is exactly the kind of thing that breaks
-  # subtly.
   collectorPython =
     if cfg.awsFacts == "api"
     then pkgs.python3.withPackages (ps: [ ps.boto3 ])
@@ -208,7 +204,7 @@ let
     import urllib.request
     from datetime import datetime, timezone
 
-    DOC = "${awsDir}/hasp-aws.json"
+    DOC = "${hostinfoDir}/hasp-aws.json"
     MANIFEST = "${registryManifest}"
     TIER = "${cfg.awsFacts}"
     INTERVAL_SECONDS = ${toString cfg.awsFactsIntervalSeconds}
@@ -554,11 +550,6 @@ let
   '';
 
   # ── Validation ────────────────────────────────────────────────────────────
-  #
-  # Applied to both fact sets against their own registry. The fleet section is
-  # checked on the same terms as the host section: its facts are internal today,
-  # but rule 3 exists to catch the edit that adds a fact and forgets to register
-  # it, and an unchecked section is exactly where that lands unnoticed.
 
   registered = registry: facts: lib.filterAttrs (k: _: registry ? ${k}) facts;
 
@@ -753,20 +744,9 @@ in
     elastinix.hasp.documentFile = haspJson;
 
     systemd.tmpfiles.rules = [
-      "L+ /var/lib/hostinfo/hasp.json - - - - ${haspJson}"
-    ] ++ lib.optionals (cfg.awsFacts != "none") [
-      "d ${awsDir} 0755 root root -"
-      "L+ /var/lib/hostinfo/hasp-aws.json - - - - ${awsDir}/hasp-aws.json"
+      "L+ ${hostinfoDir}/hasp.json - - - - ${haspJson}"
     ];
 
-    # Collects the facts and reports when they change. There is no separate
-    # drift check: a collector that re-reads reality every interval *is* the
-    # drift detection, and the useful event is "the exposure of this machine
-    # changed without a rebuild", which it reports on exit code 1.
-    #
-    # It never reconciles anything: on any collection failure it keeps the
-    # previous document rather than writing a partial one, because a missing
-    # fact reads as an absent risk.
     systemd.services.elastinix-hasp-aws-collector =
       lib.mkIf (cfg.awsFacts != "none") {
         description = "Collect AWS infrastructure facts for the HASP profile";
@@ -781,7 +761,7 @@ in
           User = "root";
           Group = "root";
           ExecStart = "${collectorPython}/bin/python3 ${awsCollector}";
-          ReadWritePaths = [ awsDir ];
+          ReadWritePaths = [ hostinfoDir ];
 
           PrivateTmp = true;
           ProtectSystem = "strict";
@@ -798,13 +778,8 @@ in
           RemoveIPC = true;
           ProtectProc = "invisible";
 
-          # AF_NETLINK is needed even for a literal address: glibc's
-          # getaddrinfo probes available interfaces over netlink first.
           RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_NETLINK" ];
         } // lib.optionalAttrs (cfg.awsFacts == "metadata") {
-          # The metadata tier talks to exactly one address and nothing else.
-          # The api tier cannot be restricted this way: it needs public AWS
-          # service endpoints, which are not a fixed set.
           IPAddressDeny = "any";
           IPAddressAllow = "169.254.169.254/32";
         };

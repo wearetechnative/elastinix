@@ -12,7 +12,10 @@ let
     (n: v: lib.isAttrs v && (v.enable or false))
     (config.elastinix.programs or {});
 
-  inUseDir = "/var/lib/inuse-sampler";
+  # The HTTP-served directory is also where state lives: a writer puts its
+  # document where it is served, so nothing has to be symlinked into place. Only
+  # documents this host does not own stay symlinks -- see the tmpfiles rules.
+  hostinfoDir = "/var/lib/hostinfo";
 
   inUseSampler = pkgs.writeText "hostinfo-runtime-sampler.py" ''
     import json
@@ -23,10 +26,12 @@ let
     import tempfile
     from datetime import datetime, timezone
 
-    STATE = "${inUseDir}/runtime-facts.json"
-    INUSE = "${inUseDir}/inuse.json"
+    DAILY_DIR = "${hostinfoDir}/observations"
+    HASP = "${hostinfoDir}/hasp.json"
+    HASP_AWS = "${hostinfoDir}/hasp-aws.json"
     INTERVAL_SECONDS = ${toString cfg.inUseSamplerIntervalSeconds}
-    SCHEMA_VERSION = 1
+    GAP_INTERVALS = ${toString cfg.inUseSamplerGapIntervals}
+    SCHEMA_VERSION = 2
     OBSERVE_SOCKETS = ${if cfg.enableSocketObservation then "True" else "False"}
     SS = "${pkgs.iproute2}/bin/ss"
 
@@ -86,6 +91,26 @@ let
         return addr
 
 
+    def ephemeral_range():
+        """The kernel's own client port range. Read, never assumed."""
+        text = read("/proc/sys/net/ipv4/ip_local_port_range").split()
+        try:
+            return int(text[0]), int(text[1])
+        except (IndexError, ValueError):
+            return 32768, 60999
+
+
+    def is_client_port(proto, port, low, high):
+        """An outbound UDP conversation is not a listening service.
+
+        ss reports UDP sockets with no state, so a socket timesyncd bound to
+        receive one NTP reply looks identical to a service. Left unclassified,
+        each sample adds a new phantom listener and the cumulative set grows
+        without bound. TCP is exempt: LISTEN state is unambiguous.
+        """
+        return proto == "udp" and low <= port <= high
+
+
     def bind_class(addr):
         """loopback / wildcard / specific.
 
@@ -143,7 +168,9 @@ let
         out = subprocess.run(
             [SS, "-lntupH"], check=True, capture_output=True, text=True
         ).stdout
+        low, high = ephemeral_range()
         sockets = []
+        clients = 0
         for line in out.splitlines():
             fields = line.split()
             if len(fields) < 5:
@@ -159,6 +186,9 @@ let
             for pid in PID_RE.findall(line):
                 unit = unit or unit_of(pid)
                 user = user or user_of(pid)
+            if is_client_port(proto, int(port), low, high):
+                clients += 1
+                continue
             sockets.append({
                 "port": int(port),
                 "proto": proto,
@@ -167,43 +197,131 @@ let
                 "unit": unit,
                 "user": user,
             })
-        return sockets
+        return sockets, clients
 
 
-    def seed_from_inuse():
-        """Carry accumulated history across the move to runtime-facts.json.
+    def uptime_seconds():
+        """How long this boot has been running, or None when unreadable."""
+        try:
+            with open("/proc/uptime") as fh:
+                return float(fh.read().split()[0])
+        except (OSError, ValueError, IndexError):
+            return None
 
-        The in-use document can hold months of samples. Starting from zero would
-        discard the observation window that every "never observed" claim depends on,
-        silently weakening the evidence rather than failing.
+
+    def account_gap(previous, now):
+        """(observed, unobserved, downtime) seconds this sample accounts for.
+
+        A gap longer than one sample means a sample that should have been taken was
+        not. Whether that is the host's fault or the sampler's is decided by uptime:
+        shorter than the gap means the machine rebooted, so the missing time is
+        downtime and no observation was owed. Longer means the machine was running
+        while nothing sampled it, which is the only failure this can detect and the
+        one it must not hide.
+        """
+        if not previous:
+            return INTERVAL_SECONDS, 0, 0
+        try:
+            gap = (datetime.strptime(now, "%Y-%m-%dT%H:%M:%SZ")
+                   - datetime.strptime(previous, "%Y-%m-%dT%H:%M:%SZ")).total_seconds()
+        except ValueError:
+            return INTERVAL_SECONDS, 0, 0
+        if gap <= 0:
+            return 0, 0, 0
+        if gap <= INTERVAL_SECONDS * GAP_INTERVALS:
+            return int(gap), 0, 0
+        missing = int(gap) - INTERVAL_SECONDS
+        up = uptime_seconds()
+        if up is not None and up < gap:
+            return INTERVAL_SECONDS, 0, missing
+        return INTERVAL_SECONDS, missing, 0
+
+
+    def record_path(date):
+        return os.path.join(DAILY_DIR, date + ".json")
+
+
+    def seal_previous(today):
+        """Mark every record older than today as sealed, once.
+
+        Sealing is otherwise implicit -- a record is only ever written to on its own
+        day, because its filename is the date. The flag exists so a consumer can tell
+        a finished day from the one in progress without consulting a clock.
         """
         try:
-            with open(INUSE) as fh:
-                old = json.load(fh)
-        except (OSError, ValueError):
-            return {}
-        doc = {"inuse": {"observed": old.get("observed", {})}}
-        for key in ("firstSample", "lastSample", "sampleCount"):
-            if key in old:
-                doc[key] = old[key]
-        return doc
+            names = os.listdir(DAILY_DIR)
+        except OSError:
+            return
+        for name in names:
+            if not name.endswith(".json") or name == "index.json":
+                continue
+            date = name[:-len(".json")]
+            if date >= today:
+                continue
+            path = os.path.join(DAILY_DIR, name)
+            try:
+                with open(path) as fh:
+                    doc = json.load(fh)
+            except (OSError, ValueError):
+                continue
+            if doc.get("sealed"):
+                continue
+            doc["sealed"] = True
+            doc["complete"] = doc.get("unobservedSeconds", 0) == 0
+            write_json(path, doc)
 
 
-    def load_state(now):
+    def load_record(now, today):
+        """Today's record, started fresh when the day has rolled over."""
         try:
-            with open(STATE) as fh:
+            with open(record_path(today)) as fh:
                 doc = json.load(fh)
         except (OSError, ValueError):
-            doc = seed_from_inuse()
+            doc = {}
+        doc["schemaVersion"] = SCHEMA_VERSION
+        doc["date"] = today
         doc["intervalSeconds"] = INTERVAL_SECONDS
+        doc["sealed"] = False
         doc.setdefault("firstSample", now)
         doc.setdefault("sampleCount", 0)
+        doc.setdefault("observedSeconds", 0)
+        doc.setdefault("unobservedSeconds", 0)
+        doc.setdefault("downtimeSeconds", 0)
         doc.setdefault("inuse", {}).setdefault("observed", {})
         sockets = doc.setdefault("sockets", {})
         sockets.setdefault("observed", {})
         sockets.setdefault("current", [])
         doc.setdefault("units", {}).setdefault("user", {})
         return doc
+
+
+    def write_index(today):
+        """Which days exist and which one is still open.
+
+        The hostinfo server is a static file server and its directory listing is
+        HTML, so a consumer would have to scrape it. An index answers the only
+        question a consumer has -- which sealed days can I fetch -- in one request,
+        and it is an index rather than evidence, so it may be rewritten freely.
+        """
+        try:
+            names = sorted(n[:-len(".json")] for n in os.listdir(DAILY_DIR)
+                           if n.endswith(".json") and n != "index.json")
+        except OSError:
+            names = []
+        write_json(os.path.join(DAILY_DIR, "index.json"), {
+            "schemaVersion": SCHEMA_VERSION,
+            "sealed": [d for d in names if d < today],
+            "current": today,
+        })
+
+
+    def read_json(path):
+        try:
+            with open(path) as fh:
+                doc = json.load(fh)
+            return doc if isinstance(doc, dict) else None
+        except (OSError, ValueError):
+            return None
 
 
     def write_json(path, payload):
@@ -222,31 +340,98 @@ let
             raise
 
 
-    def project_inuse(doc):
-        """The original document shape, so existing consumers keep working."""
-        return {
-            "schemaVersion": 1,
-            "intervalSeconds": doc["intervalSeconds"],
-            "firstSample": doc["firstSample"],
-            "lastSample": doc["lastSample"],
-            "sampleCount": doc["sampleCount"],
-            "observed": doc["inuse"]["observed"],
-        }
+    # The accumulating documents this replaced. tmpfiles no longer creates the
+    # symlinks, but it does not remove them either -- its remove pass runs only at
+    # boot, so on a host with weeks of uptime the hostinfo server would keep
+    # serving a frozen inuse.json with a plausible lastSample and a sample count
+    # that never moves again. Removed here so it happens within one interval.
+    LEGACY = [
+        "/var/lib/inuse-sampler/inuse.json",
+        "/var/lib/inuse-sampler/runtime-facts.json",
+        "${hostinfoDir}/inuse.json",
+        "${hostinfoDir}/runtime-facts.json",
+    ]
+    # Where the daily records used to live, before state moved into the served
+    # directory. Not removed and not migrated -- only reported, because silently
+    # relocating evidence is worse than a loud complaint.
+    MOVED_FROM = "/var/lib/inuse-sampler/daily"
+
+
+    def drop_legacy():
+        for path in LEGACY:
+            try:
+                os.remove(path)
+                print(f"removed stale {path}")
+            except FileNotFoundError:
+                pass
+            except OSError as e:
+                print(f"could not remove {path}: {e}")
+
+
+    def warn_unmoved():
+        """Complain if observation is not actually stored where it is served.
+
+        Two distinct mistakes, both silent and both costly:
+
+        A stale symlink. Observation used to live at MOVED_FROM and be symlinked
+        into the served directory. tmpfiles will not replace a symlink with a
+        directory and its remove pass runs only at boot, so on a host with weeks
+        of uptime the records keep living at the old path -- where an ordinary
+        cleanup deletes them and the symlink is left dangling.
+
+        Records left behind. If the symlink is gone but the old directory still
+        holds records, the series has started over, which puts inuse="unknown" on
+        every finding until a day seals again.
+        """
+        if os.path.islink(DAILY_DIR):
+            print(f"WARNING: {DAILY_DIR} is still a symlink to "
+                  f"{os.path.realpath(DAILY_DIR)}. Records are not stored where "
+                  "they are served, so deleting the old directory destroys them. "
+                  f"Replace the symlink with a real directory and move the records "
+                  "into it.")
+            return
+        try:
+            # index.json is regenerated every run, so it is not evidence and
+            # must not keep the warning alive after the records have been moved.
+            left = [n for n in os.listdir(MOVED_FROM)
+                    if n.endswith(".json") and n != "index.json"]
+        except OSError:
+            return
+        if not left or os.path.realpath(MOVED_FROM) == os.path.realpath(DAILY_DIR):
+            return
+        print(f"WARNING: {len(left)} record(s) still in {MOVED_FROM}; observation "
+              f"now lives in {DAILY_DIR}. Move them, or the period a negative claim "
+              "rests on starts over.")
 
 
     def main():
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        doc = load_state(now)
+        stamp = datetime.now(timezone.utc)
+        now = stamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+        today = stamp.strftime("%Y-%m-%d")
 
-        doc["schemaVersion"] = SCHEMA_VERSION
+        os.makedirs(DAILY_DIR, exist_ok=True)
+        drop_legacy()
+        warn_unmoved()
+        seal_previous(today)
+        doc = load_record(now, today)
+
+        # Accounted before lastSample is advanced, so the gap is measured against
+        # the previous sample rather than against this one.
+        observed, unobserved, downtime = account_gap(doc.get("lastSample"), now)
+        doc["observedSeconds"] = int(doc["observedSeconds"]) + observed
+        doc["unobservedSeconds"] = int(doc["unobservedSeconds"]) + unobserved
+        doc["downtimeSeconds"] = int(doc["downtimeSeconds"]) + downtime
         doc["lastSample"] = now
-        doc["sampleCount"] = int(doc.get("sampleCount", 0)) + 1
+        doc["sampleCount"] = int(doc["sampleCount"]) + 1
+        # Strict: any time the host was running and nothing sampled it leaves the day
+        # incomplete. Downtime does not, because no observation was owed.
+        doc["complete"] = doc["unobservedSeconds"] == 0
 
         packages, unit_users = sample_processes()
 
-        observed = doc["inuse"]["observed"]
+        observed_pkgs = doc["inuse"]["observed"]
         for name, units in packages.items():
-            entry = observed.setdefault(name, {})
+            entry = observed_pkgs.setdefault(name, {})
             entry["samples"] = int(entry.get("samples", 0)) + 1
             entry["lastSeen"] = now
             entry["units"] = sorted(set(entry.get("units", [])) | units)
@@ -257,12 +442,21 @@ let
 
         sockets = []
         if OBSERVE_SOCKETS:
-            sockets = sample_sockets()
+            sockets, clients = sample_sockets()
+            low, high = ephemeral_range()
+            doc["sockets"]["clientPortRange"] = [low, high]
+            doc["sockets"]["clientSocketsLastSample"] = clients
             sock_observed = doc["sockets"]["observed"]
+            # One increment per sample, not per socket: a listener bound on both
+            # 0.0.0.0 and :: is two sockets under one key, and counting each would
+            # report more samples than were ever taken.
+            counted = set()
             for sock in sockets:
                 key = "%d/%s/%s" % (sock["port"], sock["proto"], sock["bindClass"])
                 entry = sock_observed.setdefault(key, {})
-                entry["samples"] = int(entry.get("samples", 0)) + 1
+                if key not in counted:
+                    entry["samples"] = int(entry.get("samples", 0)) + 1
+                    counted.add(key)
                 entry["lastSeen"] = now
                 entry["addresses"] = sorted(
                     set(entry.get("addresses", [])) | {sock["address"]})
@@ -272,21 +466,42 @@ let
                 entry["users"] = sorted(
                     set(entry.get("users", []))
                     | ({sock["user"]} if sock["user"] else set()))
-            # Point-in-time, replaced each run. Negative claims must use the
-            # cumulative set above: a listener bound briefly under load would be
-            # absent here, and granting unreachability on that basis is exactly the
-            # silent wrongness this document exists to avoid.
+            # Point-in-time, replaced each run. Negative claims must use the set
+            # above, unioned across the days of the period: a listener bound briefly
+            # under load would be absent here, and granting unreachability on that
+            # basis is exactly the silent wrongness this document exists to avoid.
             doc["sockets"]["current"] = sorted(
                 sockets, key=lambda s: (s["port"], s["proto"], s["address"]))
 
-        write_json(STATE, doc)
-        write_json(INUSE, project_inuse(doc))
+        # The facts that were in force today, named rather than recomputed. hasp.json
+        # is a pure build product and its hash is the invalidation signal, so it is
+        # carried through untouched.
+        hasp = read_json(HASP)
+        doc["haspHash"] = hasp.get("haspHash") if hasp else None
+        aws = read_json(HASP_AWS)
+        if aws:
+            changed = sorted(set(doc.get("awsChangedKeys") or [])
+                             | set(aws.get("changedKeys") or []))
+            doc["aws"] = {
+                "tier": aws.get("tier"),
+                "lastCollected": aws.get("lastCollected"),
+                "facts": aws.get("facts") or {},
+            }
+            doc["awsChangedKeys"] = changed
+        else:
+            doc.setdefault("aws", None)
+            doc.setdefault("awsChangedKeys", [])
+
+        write_json(record_path(today), doc)
+        write_index(today)
 
         print(
-            "sample %d: %d packages in use, %d observed cumulatively, "
-            "%d listening sockets, %d units mapped"
-            % (doc["sampleCount"], len(packages), len(observed),
-               len(sockets), len(users_map)))
+            "%s sample %d: %d packages in use, %d observed today, %d sockets, "
+            "%d units, observed %.1f h, unobserved %d s, downtime %d s, %s"
+            % (today, doc["sampleCount"], len(packages), len(observed_pkgs),
+               len(sockets), len(users_map), doc["observedSeconds"] / 3600.0,
+               doc["unobservedSeconds"], doc["downtimeSeconds"],
+               "complete" if doc["complete"] else "INCOMPLETE"))
 
 
     if __name__ == "__main__":
@@ -327,7 +542,15 @@ in {
     enablePackages = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Expose /var/lib/packages/packages.json as packages.json via the hostinfo server. The source file is expected to be uploaded externally (e.g. by Terraform).";
+      description = ''
+        Expose /var/lib/packages/packages.json as packages.json via the hostinfo
+        server. The source file is written externally (e.g. by Terraform).
+
+        This one stays a symlink deliberately. Every other document is written by
+        a service in this module, which can simply write where it is served; this
+        one is produced by a system outside NixOS entirely, so the link is the
+        interface between where that system uploads and where we serve from.
+      '';
     };
 
     enableDockerImages = lib.mkOption {
@@ -341,8 +564,9 @@ in {
       default = false;
       description = ''
         Periodically record which Nix store paths are mapped by running
-        processes, accumulating into inuse.json and exposing it via the
-        hostinfo server.
+        processes into a daily record, exposed under observations/ by the
+        hostinfo server. A day is sealed when it rolls over and never
+        modified again.
       '';
     };
 
@@ -351,12 +575,32 @@ in {
       default = false;
       description = ''
         Also record listening sockets, their bind address, and the user each
-        observed unit runs as, exposing them as runtime-facts.json.
+        observed unit runs as, into the same daily record.
 
         Bind address is the point: a service bound to loopback is unreachable
         from anywhere else whatever the security group says, and neither the Nix
         configuration nor the AWS API can tell you which address a process bound
         to. Requires enableInUseSampler, since it is the same sampler run.
+      '';
+    };
+
+    inUseSamplerGapIntervals = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 2;
+      description = ''
+        How many sampler intervals a gap may span before it counts as a sample that
+        should have been taken and was not.
+
+        Observation is recorded per day. A gap within this many intervals is credited
+        as observed; a longer one means a sample was missed, and the host's own
+        uptime decides whose fault that was. Uptime shorter than the gap means the
+        machine rebooted, so the missing time is downtime and no observation was
+        owed. Uptime longer means the machine was running while nothing sampled it,
+        which leaves the day incomplete.
+
+        Two intervals leaves room for the timer's own accuracy without hiding a
+        genuinely missed sample. Raising it hides missed samples; lowering it to one
+        would report ordinary jitter as unobserved time.
       '';
     };
 
@@ -383,21 +627,21 @@ in {
     ];
 
     systemd.tmpfiles.rules = [
-      "d /var/lib/hostinfo 0755 root root -"
-    ] ++ lib.optional cfg.enableVulnixReport
-        "L+ /var/lib/hostinfo/vulnix-report.json - - - - /var/lib/vulnix/output.json"
+      "d ${hostinfoDir} 0755 root root -"
+    ]
+      # The two documents this module does not write. The central scanner owns
+      # /var/lib/vulnix, and packages.json is uploaded by Terraform, so both stay
+      # links rather than being served from where their owner happens to put them.
+      ++ lib.optional cfg.enableVulnixReport
+        "L+ ${hostinfoDir}/vulnix-report.json - - - - /var/lib/vulnix/output.json"
       ++ lib.optional cfg.enablePackages
-        "L+ /var/lib/hostinfo/packages.json - - - - /var/lib/packages/packages.json"
-      ++ lib.optionals cfg.enableDockerImages [
-        "d /var/lib/docker-inventory 0755 root docker -"
-        "L+ /var/lib/hostinfo/docker-images.json - - - - /var/lib/docker-inventory/images.json"
-      ]
+        "L+ ${hostinfoDir}/packages.json - - - - /var/lib/packages/packages.json"
       ++ lib.optionals cfg.enableInUseSampler [
-        "d ${inUseDir} 0755 root root -"
-        "L+ /var/lib/hostinfo/inuse.json - - - - ${inUseDir}/inuse.json"
-      ]
-      ++ lib.optional cfg.enableSocketObservation
-        "L+ /var/lib/hostinfo/runtime-facts.json - - - - ${inUseDir}/runtime-facts.json";
+        # Served as a directory rather than named files: a consumer lists it and
+        # fetches the days it does not have, so nothing here has to know which
+        # dates exist.
+        "d ${hostinfoDir}/observations 0755 root root -"
+      ];
 
     # Oneshot service: injects buildTime into static template and writes services.json
     systemd.services.elastinix-hostinfo-inventory = lib.mkIf cfg.enableInventory {
@@ -456,7 +700,7 @@ in {
         Type = "oneshot";
         User = "root";
         Group = "docker";
-        ReadWritePaths = [ "/var/lib/docker-inventory" ];
+        ReadWritePaths = [ hostinfoDir ];
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
@@ -473,11 +717,17 @@ in {
       };
 
       script = ''
+        # Written via a temporary file: the destination is served over HTTP, so a
+        # truncating redirect would let a consumer fetch an empty inventory
+        # mid-write and read it as "no images".
+        TMP=$(${pkgs.coreutils}/bin/mktemp ${hostinfoDir}/.docker-images.XXXXXX)
         ${pkgs.curl}/bin/curl --silent --unix-socket /var/run/docker.sock \
           http://localhost/images/json \
           | ${pkgs.jq}/bin/jq '[.[] | select(.RepoTags != null) | .RepoTags[] | select(. != "<none>:<none>") | {image: (split(":")[0]), tag: (split(":")[1] // "latest")}] | unique' \
-          > /var/lib/docker-inventory/images.json
-        echo "Generated /var/lib/docker-inventory/images.json"
+          > "$TMP"
+        ${pkgs.coreutils}/bin/chmod 644 "$TMP"
+        ${pkgs.coreutils}/bin/mv "$TMP" ${hostinfoDir}/docker-images.json
+        echo "Generated ${hostinfoDir}/docker-images.json"
       '';
     };
 
@@ -502,7 +752,7 @@ in {
         User = "root";
         Group = "root";
         ExecStart = "${pkgs.python3}/bin/python3 ${inUseSampler}";
-        ReadWritePaths = [ inUseDir ];
+        ReadWritePaths = [ "${hostinfoDir}/observations" ];
 
         PrivateTmp = true;
         ProtectSystem = "strict";
@@ -517,9 +767,6 @@ in {
         RestrictRealtime = true;
         RestrictSUIDSGID = true;
         RemoveIPC = true;
-        # ss enumerates sockets via sock_diag over netlink. Denying AF_NETLINK
-        # would make it return nothing while still exiting successfully, so the
-        # sampler would report no listening sockets on a host full of them.
         RestrictAddressFamilies =
           lib.optional cfg.enableSocketObservation "AF_NETLINK";
       };
