@@ -6,7 +6,7 @@ type: task
 priority: normal
 created_at: 2026-07-28T00:00:00Z
 updated_at: 2026-07-28T13:00:00Z
-openspec-link: openspec/changes/merge-scanner-services
+openspec-link: openspec/changes/archive/2026-08-25-merge-scanner-services
 parent: elastinix-p9gu
 depends_on:
   - elastinix-rdih
