@@ -18,7 +18,7 @@ Services that provide infrastructure-level functionality.
 ### Security Services
 Services that provide security scanning and compliance functionality.
 
-- **[Vulnerability Scan Central](services/vulnerability-scan-central.md)** - Combined central vulnerability scanner: vulnix for NixOS packages (all hosts) and trivy for Docker images (per host via `enableDockerScan`)
+- **[Vulnerability Scan Central](services/vulnerability-scan-central.md)** - Combined central vulnerability scanner: vulnix for NixOS packages (all hosts) and trivy for Docker images (per host via `enableDockerScan`), normalized into a schema-versioned `evidence.json` bundle with optional tamper-evident S3 upload
 - **[Vulnerability Prometheus Exporter](services/vulnerability-prometheus-exporter.md)** - Prometheus exporter exposing per-host vulnerability metrics from vulnix and trivy scan results
 - **[HASP](services/hasp.md)** - Host Attack Surface Profile: a static, content-hashed per-host fact document driving CVE triage, with credential-free drift verification
 
