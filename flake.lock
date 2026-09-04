@@ -221,11 +221,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1779279240,
-        "narHash": "sha256-GAcbJu7bU8XJp3dfsVmrVFYNvCEd16dV+kg/BP1Fgto=",
+        "lastModified": 1788517385,
+        "narHash": "sha256-4AArtChWsWZg853ioXiXen8G2nzukX/Q2Aaq1tdCWT0=",
         "owner": "wearetechnative",
         "repo": "monitoring",
-        "rev": "5b78d1c295931f478a86e81b80d28cf467bb0ae7",
+        "rev": "0d472456e56bd2182839e4eef49ee07c70a56483",
         "type": "github"
       },
       "original": {
