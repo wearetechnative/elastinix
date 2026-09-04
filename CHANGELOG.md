@@ -13,6 +13,13 @@
 - **vulnix-scan packages.json**: service genereert packages.json niet meer zelf via `nix-store -qR`; leest `/var/lib/sbom/packages.json` dat door de deploy-wrapper aangeleverd wordt bij elke deployment
 
 ### Added
+- **Grafana/Prometheus Cognito authentication**: `elastinix.services.grafana-prometheus.oauth2Proxy` puts Prometheus and Alertmanager behind an OIDC identity provider (AWS Cognito) via oauth2-proxy + nginx `auth_request`
+  - Single sign-on across `prometheus.<domain>`, `alertmanager.<domain>` and the Grafana session
+  - Group-based authorization via the OIDC groups claim (`groupsClaim`, `allowedGroups`)
+  - OIDC client secret and cookie secret read from files via systemd credentials (`clientSecretFile`, `cookieSecretFile`)
+  - Metrics endpoints bound to `127.0.0.1` and raw ports `9090 9100 9115 9109` dropped from the firewall (delivered in the `wearetechnative/monitoring` module)
+  - New documentation at `docs/services/grafana-prometheus.md`
+  - Requires bumping the `grafana-prometheus` flake input once the monitoring change is merged
 - **Jira Ticket Create service**: Scheduled Jira ticket creation per client and check type
   - Define reusable check types once (schedule, title template, description, issue type, due date offset)
   - Apply check types to multiple clients; generates one systemd timer+service per client×check combination
