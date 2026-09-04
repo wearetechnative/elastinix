@@ -1,11 +1,12 @@
 ---
 # elastinix-sfmm
 title: port-prometheus-alertmanager-cognito-auth-to-nixos-26-05
-status: in-progress
+status: completed
 type: epic
 priority: high
 created_at: 2026-09-04T12:06:49Z
-updated_at: 2026-09-04T13:01:21Z
+updated_at: 2026-09-04T13:15:00Z
+openspec-link: openspec/changes/archive/2026-09-04-grafana-prometheus-cognito-auth
 ---
 
 Land the Prometheus/Alertmanager Cognito (oauth2-proxy) authentication on the
@@ -47,3 +48,7 @@ Keep the two-file secret design (`clientSecretFile` + `cookieSecretFile` +
 
 Validate modules against the release branch's own nixpkgs (the consumer's
 version), not the registry (`nix eval nixpkgs#path` = unstable).
+
+## Summary of Changes
+
+Ported the Prometheus/Alertmanager Cognito (oauth2-proxy) feature to the elastinix nixos-26.05 branch (the branch 26.05 computes consume). Branch feature/prometheus-alertmanager-cognito-auth-2605 off origin/nixos-26.05; cherry-picked wrapper+docs (7117f24); wired grafana-prometheus input to monitoring 0d47245 two-file design (9435bbd). Verified against the branch's own 26.05 nixpkgs (enabled + disabled, exit 0). PR #33 opened (base nixos-26.05), PR #32 (base nixos-25.11) closed. keyFile WIP reverted in monitoring. 26.05-only. Resolves monitoring-qf95.
