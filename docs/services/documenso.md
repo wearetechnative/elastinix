@@ -274,21 +274,34 @@ ls -la /var/lib/documenso/cert.p12  # Should be 0400, owner: documenso
 
 **Playwright browser errors** (document completion fails):
 
-`Executable doesn't exist at .../chromium_headless_shell-1169/chrome-linux/headless_shell`
+`Executable doesn't exist at .../chromium_headless_shell-<rev>/chrome-linux/headless_shell`
 
-This means the Playwright browser version compatibility symlink failed. Check:
+The module bridges the Chromium revision mismatch between Documenso's vendored
+Playwright and nixpkgs at **build time**: a store-only browsers tree mirrors
+`pkgs.playwright-driver.browsers` and exposes the shipped chromium-headless-shell
+under the exact revision Documenso expects (read from Documenso's own
+`playwright-core/browsers.json`). `PLAYWRIGHT_BROWSERS_PATH` points directly at
+that store path — there is no runtime symlink or `~/.cache/ms-playwright`
+directory anymore. If the driver ships no headless chromium at all, the build
+fails loudly (before deploy), not at runtime. Inspect it with:
 ```bash
-# Verify symlink exists
-ls -la /var/lib/documenso/.cache/ms-playwright/chromium_headless_shell-1169
+# The read-only browsers tree the service uses
+systemctl show documenso | grep PLAYWRIGHT_BROWSERS_PATH
+ls -la "$(systemctl show documenso -p Environment --value | tr ' ' '\n' \
+  | sed -n 's/^PLAYWRIGHT_BROWSERS_PATH=//p')"
 
-# Check service logs for setup errors
-journalctl -u documenso | grep "Playwright browser setup"
-
-# Verify playwright-driver is available
+# Verify playwright-driver is available in the closure
 nix-store -q --references /run/current-system | grep playwright
 ```
 
-The module automatically creates a symlink from Documenso's expected version (1169) to the actual nixpkgs version. This is handled at service startup via ExecStartPre. See [issue #13](https://github.com/wearetechnative/elastinix/issues/13) for details.
+**`[License] Failed to save license file: EROFS` on boot** — *expected and
+harmless.* Documenso's bundled `bin/documenso` wrapper `cd`s into its read-only
+store path, so `process.cwd()` is unwritable and it cannot cache
+`.documenso-license.json`. The license check itself still succeeds — the same
+boot logs `License check completed successfully` and `Derived Status: NOT_FOUND`
+(community edition) — so the service runs normally. The package is used stock
+(no override) so it comes prebuilt from the binary cache; this log line is the
+accepted trade-off and can be ignored.
 
 **S3 endpoint errors** (`Invalid endpoint`):
 
