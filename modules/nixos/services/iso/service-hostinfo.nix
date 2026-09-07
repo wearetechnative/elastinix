@@ -3,7 +3,6 @@
 let
   cfg = config.elastinix.services.hostinfo;
 
-  # Detect all enabled elastinix services and programs at build time (pure)
   elastinixServices = lib.filterAttrs
     (n: v: lib.isAttrs v && (v.enable or false))
     (config.elastinix.services or {});
@@ -12,9 +11,6 @@ let
     (n: v: lib.isAttrs v && (v.enable or false))
     (config.elastinix.programs or {});
 
-  # The HTTP-served directory is also where state lives: a writer puts its
-  # document where it is served, so nothing has to be symlinked into place. Only
-  # documents this host does not own stay symlinks -- see the tmpfiles rules.
   hostinfoDir = "/var/lib/hostinfo";
 
   inUseSampler = pkgs.writeText "hostinfo-runtime-sampler.py"
@@ -54,15 +50,7 @@ in {
     enablePackages = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = ''
-        Expose /var/lib/packages/packages.json as packages.json via the hostinfo
-        server. The source file is written externally (e.g. by Terraform).
-
-        This one stays a symlink deliberately. Every other document is written by
-        a service in this module, which can simply write where it is served; this
-        one is produced by a system outside NixOS entirely, so the link is the
-        interface between where that system uploads and where we serve from.
-      '';
+      description = "Expose /var/lib/packages/packages.json as packages.json. Stays a symlink: the source is uploaded from outside NixOS.";
     };
 
     enableDockerImages = lib.mkOption {
@@ -74,54 +62,25 @@ in {
     enableInUseSampler = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = ''
-        Periodically record which Nix store paths are mapped by running
-        processes into a daily record, exposed under observations/ by the
-        hostinfo server. A day is sealed when it rolls over and never
-        modified again.
-      '';
+      description = "Record which Nix store paths running processes map, into a daily record served under observations/ and sealed when the day rolls over.";
     };
 
     enableSocketObservation = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = ''
-        Also record listening sockets, their bind address, and the user each
-        observed unit runs as, into the same daily record.
-
-        Bind address is the point: a service bound to loopback is unreachable
-        from anywhere else whatever the security group says, and neither the Nix
-        configuration nor the AWS API can tell you which address a process bound
-        to. Requires enableInUseSampler, since it is the same sampler run.
-      '';
+      description = "Also record listening sockets, their bind address and each unit's observed user into the same daily record. Requires enableInUseSampler.";
     };
 
     inUseSamplerGapIntervals = lib.mkOption {
       type = lib.types.ints.positive;
       default = 2;
-      description = ''
-        How many sampler intervals a gap may span before it counts as a sample that
-        should have been taken and was not.
-
-        Observation is recorded per day. A gap within this many intervals is credited
-        as observed; a longer one means a sample was missed, and the host's own
-        uptime decides whose fault that was. Uptime shorter than the gap means the
-        machine rebooted, so the missing time is downtime and no observation was
-        owed. Uptime longer means the machine was running while nothing sampled it,
-        which leaves the day incomplete.
-
-        Two intervals leaves room for the timer's own accuracy without hiding a
-        genuinely missed sample. Raising it hides missed samples; lowering it to one
-        would report ordinary jitter as unobserved time.
-      '';
+      description = "Sampler intervals a gap may span before it counts as a missed sample; the host's own uptime then decides whether it was downtime or a stalled sampler.";
     };
 
     inUseSamplerIntervalSeconds = lib.mkOption {
       type = lib.types.ints.positive;
       default = 300;
-      description = ''
-        Seconds between in-use samples.
-      '';
+      description = "Seconds between in-use samples.";
     };
   };
 
