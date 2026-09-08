@@ -3,7 +3,6 @@
 let
   cfg = config.elastinix.services.hostinfo;
 
-  # Detect all enabled elastinix services and programs at build time (pure)
   elastinixServices = lib.filterAttrs
     (n: v: lib.isAttrs v && (v.enable or false))
     (config.elastinix.services or {});
@@ -11,6 +10,11 @@ let
   elastinixPrograms = lib.filterAttrs
     (n: v: lib.isAttrs v && (v.enable or false))
     (config.elastinix.programs or {});
+
+  hostinfoDir = "/var/lib/hostinfo";
+
+  inUseSampler = pkgs.writeText "hostinfo-runtime-sampler.py"
+    (builtins.readFile ./hostinfo-runtime-sampler.py);
 
   # Static template without timestamp — timestamp injected at runtime
   staticTemplate = pkgs.writeText "hostinfo-static-template.json" (builtins.toJSON {
@@ -46,7 +50,7 @@ in {
     enablePackages = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Expose /var/lib/packages/packages.json as packages.json via the hostinfo server. The source file is expected to be uploaded externally (e.g. by Terraform).";
+      description = "Expose /var/lib/packages/packages.json as packages.json. Stays a symlink: the source is uploaded from outside NixOS.";
     };
 
     enableDockerImages = lib.mkOption {
@@ -54,19 +58,60 @@ in {
       default = false;
       description = "Generate a Docker image inventory from the Docker socket and expose it as docker-images.json via the hostinfo server.";
     };
+
+    enableInUseSampler = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Record which Nix store paths running processes map, into a daily record served under observations/ and sealed when the day rolls over.";
+    };
+
+    enableSocketObservation = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Also record listening sockets, their bind address and each unit's observed user into the same daily record. Requires enableInUseSampler.";
+    };
+
+    inUseSamplerGapIntervals = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 2;
+      description = "Sampler intervals a gap may span before it counts as a missed sample; the host's own uptime then decides whether it was downtime or a stalled sampler.";
+    };
+
+    inUseSamplerIntervalSeconds = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 300;
+      description = "Seconds between in-use samples.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
 
+    assertions = [
+      {
+        assertion = cfg.enableSocketObservation -> cfg.enableInUseSampler;
+        message = ''
+          elastinix.services.hostinfo.enableSocketObservation requires
+          enableInUseSampler: socket observation is collected by the same
+          sampler run.
+        '';
+      }
+    ];
+
     systemd.tmpfiles.rules = [
-      "d /var/lib/hostinfo 0755 root root -"
-    ] ++ lib.optional cfg.enableVulnixReport
-        "L+ /var/lib/hostinfo/vulnix-report.json - - - - /var/lib/vulnix/output.json"
+      "d ${hostinfoDir} 0755 root root -"
+    ]
+      # The two documents this module does not write. The central scanner owns
+      # /var/lib/vulnix, and packages.json is uploaded by Terraform, so both stay
+      # links rather than being served from where their owner happens to put them.
+      ++ lib.optional cfg.enableVulnixReport
+        "L+ ${hostinfoDir}/vulnix-report.json - - - - /var/lib/vulnix/output.json"
       ++ lib.optional cfg.enablePackages
-        "L+ /var/lib/hostinfo/packages.json - - - - /var/lib/packages/packages.json"
-      ++ lib.optionals cfg.enableDockerImages [
-        "d /var/lib/docker-inventory 0755 root docker -"
-        "L+ /var/lib/hostinfo/docker-images.json - - - - /var/lib/docker-inventory/images.json"
+        "L+ ${hostinfoDir}/packages.json - - - - /var/lib/packages/packages.json"
+      ++ lib.optionals cfg.enableInUseSampler [
+        # Served as a directory rather than named files: a consumer lists it and
+        # fetches the days it does not have, so nothing here has to know which
+        # dates exist.
+        "d ${hostinfoDir}/observations 0755 root root -"
       ];
 
     # Oneshot service: injects buildTime into static template and writes services.json
@@ -126,7 +171,7 @@ in {
         Type = "oneshot";
         User = "root";
         Group = "docker";
-        ReadWritePaths = [ "/var/lib/docker-inventory" ];
+        ReadWritePaths = [ hostinfoDir ];
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
@@ -143,11 +188,17 @@ in {
       };
 
       script = ''
+        # Written via a temporary file: the destination is served over HTTP, so a
+        # truncating redirect would let a consumer fetch an empty inventory
+        # mid-write and read it as "no images".
+        TMP=$(${pkgs.coreutils}/bin/mktemp ${hostinfoDir}/.docker-images.XXXXXX)
         ${pkgs.curl}/bin/curl --silent --unix-socket /var/run/docker.sock \
           http://localhost/images/json \
           | ${pkgs.jq}/bin/jq '[.[] | select(.RepoTags != null) | .RepoTags[] | select(. != "<none>:<none>") | {image: (split(":")[0]), tag: (split(":")[1] // "latest")}] | unique' \
-          > /var/lib/docker-inventory/images.json
-        echo "Generated /var/lib/docker-inventory/images.json"
+          > "$TMP"
+        ${pkgs.coreutils}/bin/chmod 644 "$TMP"
+        ${pkgs.coreutils}/bin/mv "$TMP" ${hostinfoDir}/docker-images.json
+        echo "Generated ${hostinfoDir}/docker-images.json"
       '';
     };
 
@@ -159,6 +210,55 @@ in {
         OnCalendar = "daily";
         Persistent = true;
         RandomizedDelaySec = "1h";
+      };
+    };
+
+    # In-use sampler: records which store paths running processes have mapped
+    systemd.services.elastinix-inuse-sampler = lib.mkIf cfg.enableInUseSampler {
+      description = "Sample Nix store paths, listening sockets and unit users";
+      after = [ "systemd-tmpfiles-setup.service" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        User = "root";
+        Group = "root";
+        ExecStart = lib.concatStringsSep " " [
+          "${pkgs.python3}/bin/python3"
+          "${inUseSampler}"
+          "--hostinfo-dir ${hostinfoDir}"
+          "--interval-seconds ${toString cfg.inUseSamplerIntervalSeconds}"
+          "--gap-intervals ${toString cfg.inUseSamplerGapIntervals}"
+          "--observe-sockets ${if cfg.enableSocketObservation then "1" else "0"}"
+          "--ss ${pkgs.iproute2}/bin/ss"
+        ];
+        ReadWritePaths = [ "${hostinfoDir}/observations" ];
+
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        NoNewPrivileges = true;
+        PrivateDevices = true;
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
+        RestrictNamespaces = true;
+        LockPersonality = true;
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
+        RemoveIPC = true;
+        RestrictAddressFamilies =
+          lib.optional cfg.enableSocketObservation "AF_NETLINK";
+      };
+    };
+
+    systemd.timers.elastinix-inuse-sampler = lib.mkIf cfg.enableInUseSampler {
+      description = "Timer for the Nix store in-use sampler";
+      wantedBy = [ "timers.target" ];
+
+      timerConfig = {
+        OnBootSec = "2min";
+        OnUnitActiveSec = "${toString cfg.inUseSamplerIntervalSeconds}s";
+        AccuracySec = "30s";
       };
     };
 
