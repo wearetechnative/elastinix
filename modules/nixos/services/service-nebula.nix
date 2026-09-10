@@ -30,6 +30,21 @@
       cert = config.elastinix.services.nebula.certPath;
       key = config.elastinix.services.nebula.keyPath;
       ca = config.elastinix.services.nebula.caCertPath;
+      firewall.inbound = [
+        {
+          host = "any";
+          port = "any";
+          proto = "any";
+        }
+      ];
+
+      firewall.outbound = [
+        {
+          host = "any";
+          port = "any";
+          proto = "any";
+        }
+      ];
     };
 
     networking.firewall = {
