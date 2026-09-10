@@ -1,8 +1,8 @@
 { config, lib, pkgs, ... }:
 
 {
-  options.elastinix.services.nebula-lighthouse = {
-    enable = lib.mkEnableOption "Nebula Lighthouse";
+  options.elastinix.services.nebula = {
+    enable = lib.mkEnableOption "Nebula";
     keyPath = lib.mkOption {
       type = lib.types.path;
       description = "path to key";
