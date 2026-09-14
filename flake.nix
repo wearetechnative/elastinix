@@ -34,7 +34,7 @@
 
     # OptScale FinOps appliance (nixosModules.optscale-appliance + overlays.default).
     # Private repo — fetched over SSH (like pontifex), not the github: fetcher.
-    optscale.url = "git+ssh://git@github.com/wearetechnative/optscale-nixified";
+    optscale.url = "git+ssh://git@github.com/wearetechnative/optscale-nixified?ref=fix_events";
     optscale.inputs.nixpkgs.follows = "nixpkgs";
 
     flake-parts.url = "github:hercules-ci/flake-parts";
