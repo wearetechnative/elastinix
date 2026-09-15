@@ -1,14 +1,14 @@
 ---
 # elastinix-22iq
 title: 'badgersbay-module: fastfetch als verplicht rapporttype'
-status: todo
+status: completed
 type: task
 priority: high
 tags:
     - badgersbay
     - nixos
 created_at: 2026-09-15T19:30:23Z
-updated_at: 2026-09-15T19:30:23Z
+updated_at: 2026-09-15T19:31:49Z
 parent: elastinix-l16a
 ---
 

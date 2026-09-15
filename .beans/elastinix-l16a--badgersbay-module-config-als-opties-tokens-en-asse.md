@@ -40,6 +40,17 @@ Wie de auditmaanden wil wijzigen moet `configFile` in zijn geheel overschrijven
 en daarmee de rest van de generatie kwijtraken. Er is geen `mkOption` voor iets
 binnen het blok.
 
+Dat is geen theorie. `technative-awsaccounts-workloads`, compute2, doet precies
+dat:
+
+    configFile = config.age.secrets.badgersbay-config.path;
+
+Gevolg: toen de moduledefault van `neofetch` naar `fastfetch` ging
+(elastinix-22iq), bereikte die wijziging de productiehost niet. Het echte
+configuratiebestand zit in een agenix-secret dat apart bijgewerkt moest worden.
+Een module die alleen een heel bestand als optie aanbiedt, kan zijn eigen
+defaults niet meer uitrollen zodra iemand iets wil afwijken.
+
 **Die default is inmiddels onjuist.** `mandatory: [neofetch, lynis]` klopt niet
 meer: badgersbay stapt over op fastfetch (change `use-fastfetch-system-info`).
 Een host die vandaag met de module-default uitrolt, markeert elk Linux-systeem
