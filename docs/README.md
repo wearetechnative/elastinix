@@ -23,6 +23,7 @@ Services that provide security scanning and compliance functionality.
 
 ### Monitoring Services
 
+- **[Grafana / Prometheus](services/grafana-prometheus.md)** - Grafana, Prometheus, Alertmanager and exporters behind nginx, with optional OIDC/Cognito authentication (oauth2-proxy) for Prometheus and Alertmanager and localhost-bound metrics endpoints
 - **[Hostinfo](services/hostinfo.md)** - Lightweight HTTP server exposing system inventory JSON (enabled services, NixOS version, optional SBOM) for monitoring and dashboard use
 
 ### Application Services
