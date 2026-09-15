@@ -221,11 +221,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1779279240,
-        "narHash": "sha256-GAcbJu7bU8XJp3dfsVmrVFYNvCEd16dV+kg/BP1Fgto=",
+        "lastModified": 1788517385,
+        "narHash": "sha256-4AArtChWsWZg853ioXiXen8G2nzukX/Q2Aaq1tdCWT0=",
         "owner": "wearetechnative",
         "repo": "monitoring",
-        "rev": "5b78d1c295931f478a86e81b80d28cf467bb0ae7",
+        "rev": "0d472456e56bd2182839e4eef49ee07c70a56483",
         "type": "github"
       },
       "original": {
@@ -634,11 +634,11 @@
         "uv2nix": "uv2nix"
       },
       "locked": {
-        "lastModified": 1789038882,
-        "narHash": "sha256-RHI/jCRm/9ik79BgBslRtZeVuwL7QSMv1wKe1tgrgxk=",
+        "lastModified": 1789396067,
+        "narHash": "sha256-hRInDPcxX0v4EA7NyucJ/2MidNFZ8gURDcc1vr5TJDU=",
         "ref": "refs/heads/main",
-        "rev": "72a55d681ec8ecc2d87d0b442254876b662e145a",
-        "revCount": 65,
+        "rev": "3288f656dab75f2fc666224e07bc540c155f0123",
+        "revCount": 67,
         "type": "git",
         "url": "ssh://git@github.com/wearetechnative/optscale-nixified"
       },
