@@ -1,7 +1,7 @@
 ---
 # elastinix-l16a
 title: 'badgersbay module: settings as options, tokens and asset register through agenix'
-status: todo
+status: completed
 type: epic
 priority: high
 tags:
@@ -9,7 +9,7 @@ tags:
     - nixos
     - agenix
 created_at: 2026-09-15T16:24:06Z
-updated_at: 2026-09-15T16:24:06Z
+updated_at: 2026-09-16T16:55:15Z
 ---
 
 `service-badgersbay.nix` half-manages the badgersbay configuration. The module
@@ -77,3 +77,55 @@ activation from an agenix file, never through the store.
 - badgersbay `use-fastfetch-system-info` - determines the correct default (done)
 - badgersbay `asset-register-identity` - introduces `assets.csv` (done)
 - badgersbay `register-administration` - delivers the register through agenix
+
+
+## Done
+
+Implemented across `bfe27f6` (the asset register, child `elastinix-9rd2`) and
+this change: `settings` as a structured option rendered to YAML, assertions
+that fail at evaluation, and the documentation. OpenSpec change
+`2026-09-16-badgersbay-settings-option` archived, `badgersbay-service` spec
+synced with three new requirements and one modified.
+
+## Verified by evaluating, not by reading
+
+The defaults render exactly what the heredoc they replace produced, plus two
+keys the server already defaults to itself (`grace_weeks: 4`,
+`per_class: {}` - `honeybadger_server.py:1389` and `:1394`), so the generated
+file is behaviourally identical rather than byte-identical.
+
+Each refusal was made to fire, one at a time:
+
+| Configuration | Result |
+|---|---|
+| `configFile` only, as compute2 sets it | no assertion fires |
+| `settings` only | no assertion fires |
+| both | refused |
+| `settings.networkport` diverging from `port` | refused |
+| `settings.compliance.asset_register` | refused |
+| a token file written into the store | refused |
+| an `age.secretsDir` path with no `age.secrets` entry | refused |
+| a declared secret root-owned at `0400` | refused |
+| the same secret group-readable for the service group | no assertion fires |
+
+The first row is the one that mattered most. compute2 sets `configFile`
+wholesale and never touches `settings`; an assertion firing there would have
+broken a production deploy on the next evaluation, and `highestPrio` had to
+distinguish a host's definition from the option's own default for that to hold.
+
+## Limits, recorded rather than glossed over
+
+These assertions read the configuration, not the machine. The two agenix checks
+need that module imported and are skipped without it. The readability check
+judges numeric modes only - agenix hands `mode` to `chmod`, which also takes
+symbolic forms - and leaves a numeric non-root `owner` alone rather than
+guessing which user it names. A file that exists but holds the wrong thing is
+invisible here. `docs/services/badgersbay.md` says so under **What fails at
+evaluation**.
+
+## Note for whoever deploys
+
+compute2 locks this repo through a `path:` input, so this commit invalidates
+`stack/ec2_compute2/flake.lock`. Re-lock with `--refresh` before deploying, or
+deploy from the previous elastinix commit - nothing here is required for the
+asset register or the vulnerable-package column.

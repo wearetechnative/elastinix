@@ -8,7 +8,7 @@ The Badgersbay service (`elastinix.services.badgersbay`) is a centralized securi
 
 Badgersbay enables centralized security monitoring by providing a persistent service that:
 
-- **Collects security reports**: Receives vulnerability scans (Lynis, Trivy, Vulnix) and system info (Neofetch) from multiple hosts
+- **Collects security reports**: Receives vulnerability scans (Lynis, Trivy, Vulnix) and system info (Fastfetch) from multiple hosts
 - **Tracks compliance**: Monitors which systems have submitted required reports during audit periods
 - **Web dashboard**: Provides a password-protected dashboard to view compliance status
 - **API authentication**: Uses Bearer token authentication for secure report submission
@@ -18,7 +18,7 @@ Badgersbay enables centralized security monitoring by providing a persistent ser
 ## Features
 
 - **Authentication required**: API token authentication for report submission, password authentication for dashboard access
-- **Multiple report types**: Supports Neofetch, Lynis, Trivy, and Vulnix reports
+- **Multiple report types**: Supports Fastfetch, Lynis, Trivy, and Vulnix reports
 - **Compliance tracking**: Monitors which systems have submitted required reports
 - **Audit periods**: Configurable audit months (e.g., March and September)
 - **Web dashboard**: View compliance status for all systems
@@ -156,8 +156,16 @@ elastinix.services.badgersbay = {
   dashboardPasswordFile = config.age.secrets.badgersbay-password.path;
   user = "badgersbay";   # Optional, this is the default
   group = "badgersbay";  # Optional, this is the default
+
+  settings.compliance = {
+    audit_months = [ 2 8 ];
+    grace_weeks = 6;
+  };
 };
 ```
+
+Everything not mentioned keeps the module's default, and keeps following it
+when the module changes. See [The configuration file](#the-configuration-file).
 
 ## Configuration Options
 
@@ -168,8 +176,15 @@ elastinix.services.badgersbay = {
 | `storagePath` | string | `"/data/badgersbay"` | Path where reports are stored |
 | `tokenFile` | path | - | **Required**. Path to YAML file with API tokens (use agenix) |
 | `dashboardPasswordFile` | path | - | **Required**. Path to file with dashboard password (use agenix) |
+| `assetRegisterFile` | null or path | `null` | Path to the asset register CSV (use agenix) |
+| `settings` | attribute set | see below | The server configuration, rendered to YAML |
+| `configFile` | path | rendered from `settings` | Escape hatch: a configuration file to use instead |
 | `user` | string | `"badgersbay"` | User to run the service as |
 | `group` | string | `"badgersbay"` | Group to run the service as |
+
+`settings` and `configFile` are two answers to the same question, so setting
+both is an evaluation error. See [The configuration
+file](#the-configuration-file).
 
 ## Storage Directory
 
@@ -303,7 +318,7 @@ Returns:
   "statistics": {
     "total_report_directories": 42,
     "unique_hosts": 10,
-    "reports_by_type": {"lynis": 40, "neofetch": 42}
+    "reports_by_type": {"lynis": 40, "fastfetch": 42}
   }
 }
 ```
@@ -324,7 +339,7 @@ curl -X POST http://localhost:9117/ \
   -H "Authorization: Bearer your_token" \
   -H "X-Hostname: test" \
   -H "X-Username: test" \
-  -H "X-Report-Type: neofetch" \
+  -H "X-Report-Type: fastfetch" \
   -d '{"os": "NixOS"}'
 
 # Test dashboard (requires password)
@@ -559,32 +574,125 @@ The service accepts the following report types:
 
 | Type | Purpose | Required |
 |------|---------|----------|
-| **Neofetch** | System metadata (hostname, OS, kernel) | Mandatory |
+| **Fastfetch** | System metadata (hostname, OS, kernel) | Mandatory |
 | **Lynis** | System hardening audit | Mandatory |
 | **Trivy** | Container/OS vulnerability scanner | One of Trivy or Vulnix |
 | **Vulnix** | NixOS vulnerability scanner | One of Trivy or Vulnix |
 
 A system is marked "Complete" in the dashboard when it has submitted:
-- Neofetch (system identity)
+- Fastfetch (system identity)
 - Lynis (hardening audit)
 - Trivy OR Vulnix (vulnerability scan)
 
-## Compliance Tracking
+## The Configuration File
 
-The service tracks compliance based on audit periods defined in the configuration:
+The server reads a YAML configuration file. The module renders it from
+`settings`, so a host changes one value rather than replacing the file:
 
-```yaml
-compliance:
-  enabled: true
-  audit_months: [3, 9]  # March and September
-  required_reports:
-    mandatory:
-      - neofetch
-      - lynis
-    one_of: []
+```nix
+elastinix.services.badgersbay.settings.compliance = {
+  audit_months = [ 2 8 ];
+  required_reports.one_of = [ "trivy" "vulnix" ];
+};
 ```
 
-Systems must submit all required reports during each audit month to be compliant.
+Everything else keeps its default - and keeps following the module when that
+default changes. That is the whole point of the option: the required report
+type moved from `neofetch` to `fastfetch` once already, and the one host that
+had replaced the configuration file never received it. Every system on it was
+recorded as incomplete until its secret was reissued by hand.
+
+### Keys
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `networkport` | port | follows `port` | Port the server listens on |
+| `storage_location` | string | `"<storagePath>/reports"` | Where submissions are written |
+| `compliance.enabled` | boolean | `true` | Track audit rounds at all |
+| `compliance.audit_months` | list of 1-12 | `[ 3 9 ]` | Months in which a round opens |
+| `compliance.grace_weeks` | unsigned integer | `4` | Weeks past the audit month a submission still counts |
+| `compliance.required_reports.mandatory` | list of string | `[ "fastfetch" "lynis" ]` | Report types every system must submit |
+| `compliance.required_reports.one_of` | list of string | `[ ]` | Report types of which at least one must arrive |
+| `compliance.required_reports.per_class` | class -> requirement -> types | `{ }` | Per-platform-class requirements |
+
+Keys the table does not list are passed through unchanged, so a configuration
+key badgersbay gains can be set here before this module knows about it.
+
+`per_class` names a requirement after what it is rather than after the tool
+that satisfies it, because those differ per platform and change over time:
+
+```nix
+settings.compliance.required_reports.per_class.windows = {
+  sysinfo = [ "fastfetch" ];
+  hardening = [ "hardeningkitty" ];
+};
+```
+
+Systems must submit all required reports during each audit round to be
+compliant.
+
+### No secrets live here
+
+The rendered file is a nix store path, and the store is world-readable on every
+machine that has it. That is acceptable only because nothing in `settings` is
+secret. The API tokens, the dashboard password and the asset register are
+delivered as agenix secrets and the module receives their paths, never their
+contents - which is why there is no `tokens = [ ... ]` option and never will
+be.
+
+For the same reason `compliance.asset_register` is not settable here: the
+service passes `--asset-register`, which overrides the configuration file, so a
+value set in `settings` would be silently discarded. Use `assetRegisterFile`.
+
+### configFile: the escape hatch
+
+`configFile` names a configuration file to use instead of the rendered one. It
+replaces that file whole - the module's defaults stop reaching this host, which
+is exactly the failure described above - so it is a last resort rather than a
+way to change a value.
+
+Setting `configFile` and `settings` together is an evaluation error. One of the
+two would have to be discarded without a word, and being told to choose is
+better than finding out months later which one lost.
+
+**Migrating off an agenix configuration secret.** The configuration carries no
+secrets, so it does not need to be one. Read the values out of the secret, put
+them in `settings`, drop `configFile`, and the host follows the module again:
+
+```nix
+# before
+configFile = config.age.secrets.badgersbay-config.path;
+
+# after
+settings.compliance = {
+  audit_months = [ 3 9 ];
+  grace_weeks = 4;
+};
+```
+
+### What fails at evaluation
+
+The module refuses a configuration it can see is wrong, rather than letting the
+service fail at start where the reason is a log line on a host nobody is
+watching:
+
+| Refused | Why |
+|---|---|
+| `configFile` and `settings` both set | One would be discarded silently |
+| `settings.networkport` differing from `port` | The firewall and the nginx proxy follow `port`, so the server would listen where neither reaches it |
+| `settings.compliance.asset_register` set | `--asset-register` overrides it; use `assetRegisterFile` |
+| A secret option naming a store path | The store is world-readable; this includes a path literal, which is copied there the moment the unit interpolates it |
+| A secret path under `age.secretsDir` with no matching `age.secrets` entry | Nothing would write the file |
+| An agenix secret the service user cannot read | agenix defaults to root-owned `0400`, so this is the usual case rather than an exotic one |
+
+**Their limits.** These checks read the configuration, not the machine. The
+last two need the agenix module imported and are skipped entirely without it,
+because the module works with plain paths too. The readability check judges
+numeric modes only - agenix passes `mode` to `chmod`, which also takes symbolic
+forms - and leaves a numeric non-root `owner` alone rather than guessing which
+user it names. A file that exists but holds the wrong thing, an unreadable path
+outside `age.secretsDir`, a token that the server rejects: none of those are
+visible here, and the service still has to start for you to find out.
 
 ## Implementation Details
 
