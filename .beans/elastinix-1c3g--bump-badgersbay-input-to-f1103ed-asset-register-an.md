@@ -7,7 +7,7 @@ priority: high
 tags:
     - badgersbay
 created_at: 2026-09-16T09:48:19Z
-updated_at: 2026-09-16T09:48:19Z
+updated_at: 2026-09-16T15:42:05Z
 ---
 
 `flake.lock` pinned badgersbay at `cd3db88` (2026-09-15). The module now passes
@@ -37,3 +37,17 @@ grafana-prometheus and optscale are untouched.
 
 This branch is also three commits ahead of `origin/nixos-26.05` and nothing
 behind, so consumers locking against it do not inherit an older base.
+
+
+## Bumped again: f1103ed -> 47e6cb6
+
+badgersbay PR #9 added the **Vulnerable pkgs** column and raised
+`INVENTORY_SCHEMA_VERSION` to 2, so the pin set above was one release behind
+within the hour.
+
+Re-locked the same way, with `--refresh`. The diff is again three lines in the
+badgersbay node alone - `lastModified`, `narHash`, `rev`. nixpkgs,
+grafana-prometheus and optscale untouched, nothing moved backwards.
+
+The count this renders is emitted by honeybadger from `23f7d8e`, merged as its
+PR #17. Server and client generations line up.

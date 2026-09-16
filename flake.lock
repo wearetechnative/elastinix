@@ -50,11 +50,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789551316,
-        "narHash": "sha256-pEtEmJsQQLZSZjt3EMSmhaeS3zfyFlJgeNBksEvz92E=",
+        "lastModified": 1789562634,
+        "narHash": "sha256-ZmAXXjcuUovwAvswWw8xa9SZI1j8oa+seZozUOI4PD4=",
         "owner": "wearetechnative",
         "repo": "badgersbay",
-        "rev": "f1103ed967042240d086da92bd2a4fde4aa42bec",
+        "rev": "47e6cb61e5ddc04e7acf86947bf7575af2936f2a",
         "type": "github"
       },
       "original": {
