@@ -76,7 +76,7 @@ in
           audit_months: [3, 9]
           required_reports:
             mandatory:
-              - neofetch
+              - fastfetch
               - lynis
             one_of: []
       '';
