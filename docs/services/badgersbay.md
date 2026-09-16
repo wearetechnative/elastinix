@@ -96,8 +96,54 @@ elastinix.services.badgersbay = {
   storagePath = "/data/badgersbay";                                # Optional, this is the default
   tokenFile = config.age.secrets.badgersbay-tokens.path;           # Required
   dashboardPasswordFile = config.age.secrets.badgersbay-password.path; # Required
+  assetRegisterFile = config.age.secrets.badgersbay-assets.path;   # Optional
 };
 ```
+
+### Asset Register
+
+The asset register is the list of systems expected to report, exported from the
+`Active Assets` sheet of the ISO compliance spreadsheet. It is the denominator
+badgersbay measures coverage against: without it the dashboard can show what
+arrived but never which systems are missing, and both its views say so.
+
+```csv
+asset_id,serial,owner,model,class,status,owner_since,valid_from,valid_to,departure_reason
+TARI-00023,PF50L2MR,Wouter van der Toorren,LENOVO 21K9CTO1WW,linux,active,2024-01-01,2024-01-01,,
+TARI-00045,FRANDGCPA5530200H9,Jeroen Penders,"Laptop Framework 13\" (AMD Ryzen 7040)",linux,active,2024-01-01,2024-01-01,,
+```
+
+`asset_id` is the durable identity, as the ISO register holds it. `serial` is
+the hardware serial an incoming submission is matched on; one asset may have
+several over its life, each as its own row with its own validity window, so a
+replaced device keeps one continuous history.
+
+The file pairs employee names with hardware serials, so encrypt it as you do
+the tokens and the password:
+
+```bash
+agenix -e badgersbay-assets.age
+```
+
+and add it to `secrets.nix` beside the others:
+
+```nix
+"badgersbay-assets.age".publicKeys = users ++ systems;
+```
+
+The option is optional. A host that does not set it runs without a register,
+as it did before the option existed.
+
+**Badgersbay refuses to start on a register it cannot trust** - a duplicate
+active serial, an unknown platform class, an unparseable date, or two rows
+claiming one serial for overlapping periods. A compliance figure built on an
+ambiguous register cannot be trusted either, so this fails loudly at deploy
+time rather than quietly at read time.
+
+An asset that disappears from a later register is reported on the dashboard
+rather than silently dropped: a filtered or truncated export raises the
+coverage rate, which is the one direction a compliance figure must never move
+by accident.
 
 ### Custom Configuration
 

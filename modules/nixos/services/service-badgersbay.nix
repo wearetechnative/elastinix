@@ -40,6 +40,36 @@ in
       example = "config.age.secrets.badgersbay-tokens.path";
     };
 
+    assetRegisterFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = ''
+        Path to the asset register: the CSV of systems expected to report,
+        exported from the `Active Assets` sheet of the ISO compliance
+        spreadsheet.
+
+        This is the denominator badgersbay measures coverage against. Without
+        it the dashboard can show what arrived but never which systems are
+        missing, and both its views say so.
+
+        Format:
+        ```csv
+        asset_id,serial,owner,model,class,status,owner_since,valid_from,valid_to,departure_reason
+        TARI-00023,PF50L2MR,Wouter van der Toorren,LENOVO 21K9CTO1WW,linux,active,2024-01-01,2024-01-01,,
+        ```
+
+        The file pairs employee names with hardware serials, so use agenix to
+        encrypt it, as for the tokens and the dashboard password.
+
+        Badgersbay refuses to start on a register it cannot trust - a duplicate
+        active serial, an unknown platform class, an unparseable date - because
+        a compliance figure built on one cannot be trusted either.
+
+        Optional. A host that does not set it runs without a register.
+      '';
+      example = "config.age.secrets.badgersbay-assets.path";
+    };
+
     dashboardPasswordFile = lib.mkOption {
       type = lib.types.path;
       description = ''
@@ -112,11 +142,17 @@ in
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
 
+      # The register is passed as an argument rather than written into the
+      # generated configuration, so a host that overrides configFile with its
+      # own secret - as compute2 does - does not have to have that secret
+      # reissued to gain a register.
       script = ''
         ${badgersbayPackage}/bin/honeybadger-server \
           --config ${cfg.configFile} \
           --token-file ${cfg.tokenFile} \
-          --dashboard-password-file ${cfg.dashboardPasswordFile}
+          --dashboard-password-file ${cfg.dashboardPasswordFile} \
+          ${lib.optionalString (cfg.assetRegisterFile != null)
+            "--asset-register ${cfg.assetRegisterFile}"}
       '';
 
       serviceConfig = {
