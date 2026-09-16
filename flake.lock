@@ -634,11 +634,11 @@
         "uv2nix": "uv2nix"
       },
       "locked": {
-        "lastModified": 1789396067,
-        "narHash": "sha256-hRInDPcxX0v4EA7NyucJ/2MidNFZ8gURDcc1vr5TJDU=",
+        "lastModified": 1789568702,
+        "narHash": "sha256-iaEyvp0d5nKdt0DWREyvO21+gCnacZWvIXoEW+5BfcU=",
         "ref": "refs/heads/main",
-        "rev": "3288f656dab75f2fc666224e07bc540c155f0123",
-        "revCount": 67,
+        "rev": "ee070def7907c693fe56ab38392e95ad9398c728",
+        "revCount": 69,
         "type": "git",
         "url": "ssh://git@github.com/wearetechnative/optscale-nixified"
       },
