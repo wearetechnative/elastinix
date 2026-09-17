@@ -1,14 +1,15 @@
 ---
 # elastinix-po09
 title: 'badgersbay: an hourly timer points at a long-running service'
-status: todo
+status: completed
 type: bug
 priority: normal
 tags:
     - badgersbay
     - systemd
 created_at: 2026-09-17T13:49:14Z
-updated_at: 2026-09-17T13:49:14Z
+updated_at: 2026-09-17T14:06:34Z
+openspec-link: openspec/changes/archive/2026-09-17-badgersbay-drop-hourly-timer
 ---
 
 The module declares both:

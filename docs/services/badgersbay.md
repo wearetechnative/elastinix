@@ -234,6 +234,32 @@ The service only has write access to the configured `storagePath`. All other dir
 
 The service is named `badgersbay.service` and runs as a daemon (Type=simple).
 
+There is no `badgersbay.timer`, and adding one would not do what it looks like
+it does. A timer *starts* its unit, and starting a service that is already
+active is a no-op: it does not restart the process, reload it or signal it. So a
+timer cannot be used to make badgersbay pick up a changed configuration or a
+rotated token - that is what the unit's `restartTriggers` are for, and they act
+at deploy time rather than on the next tick. The module carried such a timer at
+`OnCalendar=hourly` until 2026-09-17; it never had any effect, and it was
+removed.
+
+If badgersbay ever gains periodic work, give it its own `Type=oneshot` unit and
+point a timer at that, rather than at the daemon.
+
+A consequence worth knowing: because nothing starts the service on a schedule, a
+badgersbay that fails enough times to exhaust systemd's start limit stays
+`failed` until a deploy or a manual `systemctl start`. That is deliberate - the
+failures this service has are not transient ones that waiting fixes - so make
+sure something notices. `elastinix.services.systemd-monitoring` will, for any
+service the host lists:
+
+```nix
+elastinix.services.systemd-monitoring = {
+  enable = true;
+  services = [ "badgersbay" ];
+};
+```
+
 ### Useful Commands
 
 ```bash

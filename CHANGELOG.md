@@ -8,6 +8,8 @@
 - **Evidence bundle export** (`vulnerability-scan-central`) — each scan run is normalized into one schema-versioned `evidence.json`, optionally uploaded write-only to versioned S3 so the history is tamper-evident, letting an ISO 27001 report be generated from a single immutable snapshot without live access to hosts or AWS ([docs](docs/services/vulnerability-scan-central.md)).
 
 ### Changed
+- **Badgersbay no longer declares an hourly timer**: `systemd.timers.badgersbay` fired `OnCalendar=hourly` at a `Type=simple` daemon that is already running, where starting an active service is a no-op — it was a workaround for the configuration never being re-read (now handled by `restartTriggers`) and it never once had that effect
+  - One behaviour is removed with it: a badgersbay that exhausted systemd's start limit was started again by the next hourly firing, and now stays `failed` until a deploy or a manual start. Deliberate — this service's failures are not the kind that waiting fixes — so list it in `elastinix.services.systemd-monitoring.services` if nothing else watches it ([docs](docs/services/badgersbay.md))
 - **Observation moved to sealed daily records** written where they are served (`/var/lib/hostinfo/observations/`), replacing the forever-growing in-use document so a negative claim is bounded by the monthly reporting period rather than by whatever had elapsed since the last deploy; the scan timer now defaults to `daily`, the existing cumulative evidence is discarded so every host reports `inUse: "unknown"` for one day, and migration on a deployed host is manual and order-critical ([docs](docs/services/hostinfo.md)).
 
 ### Fixed

@@ -517,14 +517,6 @@ in
         ReadWritePaths = [ cfg.storagePath ];
       };
     };
-    
-    systemd.timers.badgersbay = {
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = "hourly"; 
-        Persistent = true;
-      };
-    };
 
     services.nginx.virtualHosts."badgersbay.${environment_domain}" = {
       enableACME = true;
