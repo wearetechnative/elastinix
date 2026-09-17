@@ -7,7 +7,7 @@ priority: high
 tags:
     - badgersbay
 created_at: 2026-09-16T09:48:19Z
-updated_at: 2026-09-16T15:42:05Z
+updated_at: 2026-09-17T14:12:56Z
 ---
 
 `flake.lock` pinned badgersbay at `cd3db88` (2026-09-15). The module now passes
@@ -51,3 +51,19 @@ grafana-prometheus and optscale untouched, nothing moved backwards.
 
 The count this renders is emitted by honeybadger from `23f7d8e`, merged as its
 PR #17. Server and client generations line up.
+
+
+## Bumped again: 47e6cb6 -> 3c15254
+
+badgersbay `3c15254` makes `/health` count what the server reads. It walked one
+of two storage layouts chosen by a configuration flag, and the serial-keyed tree
+the server actually writes was in neither, so it reported zero submissions on a
+server that was receiving them - visible only since the pre-serial archive was
+moved aside and stopped supplying the numbers.
+
+No merge of `nixos-26.05` was needed for this. That base has moved ahead on
+optscale, but compute2 consumes this branch rather than the base, so nothing
+falls back - optscale simply stays where it is. The `dfpw` trap is about
+`--override-input` against a trailing branch, which is not the situation here.
+
+The diff is three lines in the badgersbay node alone.
