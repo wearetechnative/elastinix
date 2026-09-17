@@ -266,6 +266,57 @@ The service is configured to automatically restart on failure:
 
 If the badgersbay process crashes or exits unexpectedly, systemd will automatically restart it after 10 seconds.
 
+## Restart on a changed file
+
+The server reads its configuration, its API tokens, its dashboard password and
+its asset register once, at startup. A deploy that changes one of them therefore
+only takes effect if the service is restarted, so the module declares
+`restartTriggers` covering all four.
+
+Without them a changed secret lands on disk and never reaches the running
+process: a rotated token where the service keeps accepting the old one and
+rejecting the new one, or a reissued asset register that produces a compliance
+figure quietly measured against the previous one. Nothing reports it. The
+closure is new, the unit file is new, and the symptom looks like a deploy that
+did not happen.
+
+**How a change is detected.** It depends on where the file comes from:
+
+| The file                        | What the trigger watches                     |
+|---------------------------------|----------------------------------------------|
+| Rendered from `settings`        | Its store path, which changes with content   |
+| An agenix secret                | The `.age` source it is decrypted from       |
+| Anything else                   | Its path only - see the limit below          |
+
+An agenix secret arrives at a stable path: `/run/agenix/badgersbay-tokens` is the
+same string before and after the rewrite, and the decrypted content cannot be
+read at evaluation - nor should it be, since reading it would put the secret in
+the world-readable store. What does change is the ciphertext, so the trigger is
+the `.age` file the `age.secrets` entry names.
+
+The restart happens after the new content is in place.
+`switch-to-configuration` stops the units it must restart, runs the activation
+scripts that decrypt the secrets, and only then starts them.
+
+**Re-encrypting is enough.** Age ciphertext differs on every encryption, so
+running `agenix -e` on one of these secrets restarts badgersbay even if you
+change nothing in the editor - adding a host key does it too. Deliberate: a
+restart nobody needed costs a few seconds during a deploy that was already
+restarting things, while a restart that did not happen is the failure above.
+
+**A restart is a real restart.** Submissions in flight fail and the submitting
+host retries on its next run, and the dashboard is briefly unavailable. A
+reissued register that the server rejects - a duplicate active serial, an unknown
+platform class, an unparseable date - now takes the service down at deploy time
+rather than at the next unrelated restart. That is the refusal arriving at the
+deploy that caused it, and `systemctl status badgersbay` says so.
+
+**The limit.** A secret file that is neither in the nix store nor produced by an
+`age.secrets` entry - one placed on the host by hand, say - has nothing about it
+that is readable at evaluation, so only its path is in the trigger list and a
+change to its content does not restart the service. Deliver such a file through
+agenix, or restart the service yourself after changing it.
+
 ## Authentication
 
 ### API Authentication (Report Submission)

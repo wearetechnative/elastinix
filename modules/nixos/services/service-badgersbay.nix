@@ -32,6 +32,12 @@ let
       value = cfg.assetRegisterFile;
     };
 
+  # Every file the server reads at startup. Deliberately not `secretFiles`: the
+  # configuration is not a secret and the assertions below have nothing to say
+  # about it, but it is the file that caused the incident, because compute2
+  # delivers it through agenix like the rest.
+  runtimeFiles = [ { option = "configFile"; value = cfg.configFile; } ] ++ secretFiles;
+
   # An option's `default` is injected as a definition at `mkOptionDefault`
   # priority, so `isDefined` is true even for an option nobody touched. A
   # priority below that is the only honest signal that a host set it.
@@ -47,6 +53,27 @@ let
 
   declaredSecret = value:
     lib.findFirst (secret: secret.path == toString value) null ageSecrets;
+
+  # What has to change in the unit for a changed file to reach the process.
+  #
+  # The server reads each file once, at startup, so a deploy only lands if
+  # systemd restarts the service - and systemd only restarts it if the unit
+  # changed. A generated configuration is a store path: it changes with its
+  # content, and the script already carries it. An agenix path does not. It is
+  # the same /run/agenix/... string before and after the rewrite, and the
+  # decrypted content cannot be read at evaluation - nor should it be, since
+  # reading it would put a secret in the store the assertions above keep it out
+  # of.
+  #
+  # What does change is the ciphertext. `age.secrets.<name>.file` is the .age
+  # source: a store path, already public, and a different path after every
+  # `agenix -e`. Interpolated rather than `toString`d, because `toString` on a
+  # path literal yields the source path - a constant, which would trigger
+  # nothing.
+  fileTriggers = file:
+    let declared = declaredSecret file.value; in
+    [ "${file.value}" ]
+    ++ lib.optional (declared != null) "${declared.file}";
 
   # Only numeric modes can be judged; agenix hands `mode` to chmod, which also
   # accepts symbolic forms, and a form we cannot read is not a form we should
@@ -442,6 +469,13 @@ in
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
+
+      # Without these the service keeps serving what it read the last time it
+      # started: a rotated token that is still the old token, a register that is
+      # still the old register, and no log line saying so. Only the generated
+      # configuration changes the unit on its own, because it is a store path;
+      # every file agenix delivers arrives at a stable one.
+      restartTriggers = lib.concatMap fileTriggers runtimeFiles;
 
       # The register is passed as an argument rather than written into the
       # generated configuration, so a host that overrides configFile with its

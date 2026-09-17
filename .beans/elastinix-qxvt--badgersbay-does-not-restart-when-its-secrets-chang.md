@@ -1,14 +1,15 @@
 ---
 # elastinix-qxvt
 title: badgersbay does not restart when its secrets change
-status: todo
+status: completed
 type: bug
 priority: high
 tags:
     - badgersbay
     - agenix
 created_at: 2026-09-17T13:22:32Z
-updated_at: 2026-09-17T13:22:32Z
+updated_at: 2026-09-17T13:48:59Z
+openspec-link: openspec/changes/archive/2026-09-17-badgersbay-restart-on-secret-change
 ---
 
 The module declares no `restartTriggers` on the files it passes to the server.
