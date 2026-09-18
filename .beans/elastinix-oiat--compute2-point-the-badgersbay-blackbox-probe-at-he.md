@@ -1,13 +1,14 @@
 ---
 # elastinix-oiat
 title: 'compute2: point the badgersbay blackbox probe at /health'
-status: todo
+status: in-progress
 type: task
+priority: normal
 tags:
     - badgersbay
     - monitoring
 created_at: 2026-09-18T08:59:42Z
-updated_at: 2026-09-18T08:59:42Z
+updated_at: 2026-09-18T14:19:34Z
 ---
 
 The other half of elastinix-wckg. Elastinix now declares health checks against
