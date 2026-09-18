@@ -234,6 +234,32 @@ The service only has write access to the configured `storagePath`. All other dir
 
 The service is named `badgersbay.service` and runs as a daemon (Type=simple).
 
+There is no `badgersbay.timer`, and adding one would not do what it looks like
+it does. A timer *starts* its unit, and starting a service that is already
+active is a no-op: it does not restart the process, reload it or signal it. So a
+timer cannot be used to make badgersbay pick up a changed configuration or a
+rotated token - that is what the unit's `restartTriggers` are for, and they act
+at deploy time rather than on the next tick. The module carried such a timer at
+`OnCalendar=hourly` until 2026-09-17; it never had any effect, and it was
+removed.
+
+If badgersbay ever gains periodic work, give it its own `Type=oneshot` unit and
+point a timer at that, rather than at the daemon.
+
+A consequence worth knowing: because nothing starts the service on a schedule, a
+badgersbay that fails enough times to exhaust systemd's start limit stays
+`failed` until a deploy or a manual `systemctl start`. That is deliberate - the
+failures this service has are not transient ones that waiting fixes - so make
+sure something notices. `elastinix.services.systemd-monitoring` will, for any
+service the host lists:
+
+```nix
+elastinix.services.systemd-monitoring = {
+  enable = true;
+  services = [ "badgersbay" ];
+};
+```
+
 ### Useful Commands
 
 ```bash
@@ -265,6 +291,57 @@ The service is configured to automatically restart on failure:
 - **Service type**: Simple (long-running daemon)
 
 If the badgersbay process crashes or exits unexpectedly, systemd will automatically restart it after 10 seconds.
+
+## Restart on a changed file
+
+The server reads its configuration, its API tokens, its dashboard password and
+its asset register once, at startup. A deploy that changes one of them therefore
+only takes effect if the service is restarted, so the module declares
+`restartTriggers` covering all four.
+
+Without them a changed secret lands on disk and never reaches the running
+process: a rotated token where the service keeps accepting the old one and
+rejecting the new one, or a reissued asset register that produces a compliance
+figure quietly measured against the previous one. Nothing reports it. The
+closure is new, the unit file is new, and the symptom looks like a deploy that
+did not happen.
+
+**How a change is detected.** It depends on where the file comes from:
+
+| The file                        | What the trigger watches                     |
+|---------------------------------|----------------------------------------------|
+| Rendered from `settings`        | Its store path, which changes with content   |
+| An agenix secret                | The `.age` source it is decrypted from       |
+| Anything else                   | Its path only - see the limit below          |
+
+An agenix secret arrives at a stable path: `/run/agenix/badgersbay-tokens` is the
+same string before and after the rewrite, and the decrypted content cannot be
+read at evaluation - nor should it be, since reading it would put the secret in
+the world-readable store. What does change is the ciphertext, so the trigger is
+the `.age` file the `age.secrets` entry names.
+
+The restart happens after the new content is in place.
+`switch-to-configuration` stops the units it must restart, runs the activation
+scripts that decrypt the secrets, and only then starts them.
+
+**Re-encrypting is enough.** Age ciphertext differs on every encryption, so
+running `agenix -e` on one of these secrets restarts badgersbay even if you
+change nothing in the editor - adding a host key does it too. Deliberate: a
+restart nobody needed costs a few seconds during a deploy that was already
+restarting things, while a restart that did not happen is the failure above.
+
+**A restart is a real restart.** Submissions in flight fail and the submitting
+host retries on its next run, and the dashboard is briefly unavailable. A
+reissued register that the server rejects - a duplicate active serial, an unknown
+platform class, an unparseable date - now takes the service down at deploy time
+rather than at the next unrelated restart. That is the refusal arriving at the
+deploy that caused it, and `systemctl status badgersbay` says so.
+
+**The limit.** A secret file that is neither in the nix store nor produced by an
+`age.secrets` entry - one placed on the host by hand, say - has nothing about it
+that is readable at evaluation, so only its path is in the trigger list and a
+change to its content does not restart the service. Deliver such a file through
+agenix, or restart the service yourself after changing it.
 
 ## Authentication
 
@@ -319,9 +396,33 @@ Returns:
     "total_report_directories": 42,
     "unique_hosts": 10,
     "reports_by_type": {"lynis": 40, "fastfetch": 42}
+  },
+  "storage": {
+    "location": "/data/badgersbay/reports",
+    "accessible": true
   }
 }
 ```
+
+**A monitoring probe targets `/health`, never `/`.** `/` is the dashboard and is
+behind basic auth, so an unauthenticated request to it answers 401 whether the
+server is healthy, whether its storage location has gone, or whether the
+compliance cache is empty. A probe pointed there reports the same failure in
+every state, including the healthy one, and writes a log line each time it does.
+`/health` needs no credentials and answers 200.
+
+**A 200 from `/health` is not the whole story.** The server keeps serving when
+the directory it writes submissions to disappears, and still answers 200 -
+`storage.accessible` is what turns false. A check that reads only the status
+code calls that healthy, which is why the module's own check reads the body (see
+[Monitoring](#monitoring) below).
+
+For the monitoring stack, the probe target is an entry in the customer's
+`probesFile` - the file behind
+`elastinix.services.grafana-prometheus.customers.*.probesFile`, which Prometheus
+reads via `file_sd_configs` and hands to the blackbox exporter at the global
+30-second scrape interval. A bare `https://badgersbay.<domain>` entry probes `/`;
+the entry to use is `https://badgersbay.<domain>/health`.
 
 ## Network Access
 
@@ -707,27 +808,68 @@ visible here, and the service still has to start for you to find out.
 
 ### Health Checks
 
-Consider implementing health checks for the service:
+The module declares two health checks through
+[`nixos-healthchecks`](https://github.com/mrvandalo/nixos-healthchecks), which
+`lib/os_config_live.nix` and `lib/os_config_vm.nix` import on every host. They
+are definitions, not units: enabling badgersbay adds no process, no timer and
+nothing that runs on its own.
+
+| Check                                     | Asks                                | Fails when                                      |
+|-------------------------------------------|-------------------------------------|-------------------------------------------------|
+| `healthchecks.http.badgersbay`            | `GET http://127.0.0.1:<port>/health` | no 200, or the body does not name `honeybadger-server` |
+| `healthchecks.localCommands.badgersbay-storage` | the same response, parsed      | `storage.accessible` is not true                |
+
+They are two rather than one because the answers differ: the first failing means
+restart the service, the second means find out what happened to the storage
+directory. Both follow `elastinix.services.badgersbay.port`, and both address the
+loopback rather than the nginx vhost - nginx, DNS and the certificate have their
+own failures and their own probes.
+
+The second check exists because the first cannot cover it. `/health` answers 200
+with `storage.accessible` false, so a status code alone would report a server
+that has lost its storage as healthy. It is a separate script rather than
+`expectedContent` on the HTTP check: `expectedContent` is interpolated into
+generated Python unescaped, and `"accessible": true` contains the quotes
+`json.dumps` writes, which makes the generated check a syntax error at build
+time. The script parses the JSON instead, and names the storage location when it
+fails - on a host that supplies its own `configFile`, the module does not know
+what that path is.
+
+#### Running them
+
+The checks are collected by the `nixos-healthchecks` flake module, which builds
+its runners from `self.nixosConfigurations`. This repository exposes none - it
+exports `lib.os_config_live`, which host flakes call - so they are run from the
+host flake that defines the machine:
 
 ```bash
-# Example systemd timer for health check
-systemd.timers.badgersbay-health = {
-  wantedBy = [ "timers.target" ];
-  timerConfig = {
-    OnCalendar = "minutely";
-    Unit = "badgersbay-health.service";
-  };
-};
+# All machines the host flake defines
+nix run .#healthchecks
 
-systemd.services.badgersbay-health = {
-  script = ''
-    ${pkgs.curl}/bin/curl -f http://localhost:9117/health || {
-      echo "Badgersbay health check failed"
-      exit 1
-    }
-  '';
-};
+# One machine
+nix run .#healthchecks-<machine>
+
+# Prometheus line format, for a textfile collector
+nix build .#healthchecks-prometheus && ./result/bin/nixos-healthchecks-prometheus
 ```
+
+By hand, the same two questions are:
+
+```bash
+curl -fsS http://localhost:9117/health | jq -e '.storage.accessible == true'
+```
+
+#### Why there is no health timer
+
+This section used to suggest writing a `badgersbay-health` timer. There is
+deliberately none. The complaint that produced these checks was a poller that
+asked `/` every thirty seconds without credentials, collected a 401 each time and
+learned nothing from it; answering it with a second poller on every badgersbay
+host - duplicating what Prometheus already does - trades one kind of noise for
+another. A badgersbay that ends up in `failed` is reported by
+`elastinix.services.systemd-monitoring` for hosts that list it, and the probe
+that runs every thirty seconds belongs in the monitoring stack, pointed at
+`/health`.
 
 ### Log Rotation
 

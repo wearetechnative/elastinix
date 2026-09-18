@@ -139,3 +139,149 @@ the failure to the service start.
 - **THEN** the secret is still not known to exist: agenix decrypts at
   activation, and the filesystem of the build host says nothing about the
   target
+
+### Requirement: Carry a changed input into the running process
+
+The server reads its configuration, its API tokens, its dashboard password and
+its asset register once, at startup. The module SHALL declare
+`restartTriggers` on the unit such that a deploy which changes any of those
+files restarts the service, so that what is on disk is what the process is
+serving.
+
+For a file delivered by agenix the path is stable and the decrypted content is
+not readable at evaluation, so the trigger SHALL also include the `age.secrets`
+entry that produces the path - the encrypted source, whose store path follows
+the ciphertext.
+
+#### Scenario: A rotated token
+- **WHEN** an agenix secret behind `tokenFile` is re-encrypted with a new token
+  and deployed
+- **THEN** badgersbay is restarted and accepts the new token, rather than
+  continuing to accept the old one and reject the new one - two behaviours that
+  both look like the system working
+
+#### Scenario: A configuration delivered as a secret
+- **WHEN** `configFile` names an agenix path, as compute2 sets it, and the
+  secret's content changes
+- **THEN** badgersbay is restarted, because the path the unit interpolates is
+  the same string before and after the rewrite and cannot be the trigger by
+  itself
+
+#### Scenario: A configuration rendered from settings
+- **WHEN** `configFile` is the file rendered from `settings` and a value changes
+- **THEN** badgersbay is restarted, as the generated file is a store path that
+  changes with its content
+
+#### Scenario: A replaced asset register
+- **WHEN** the register is reissued because people joined, left or swapped
+  machines
+- **THEN** badgersbay is restarted and the compliance figure is measured against
+  the new register
+
+#### Scenario: Restarted after the secret is written
+- **WHEN** the restart is triggered by an agenix secret
+- **THEN** the new content is in place before the service starts:
+  `switch-to-configuration` stops the units it must restart, runs the activation
+  scripts that decrypt the secrets, and only then starts them
+
+#### Scenario: A register the server rejects, on a restart
+- **WHEN** a reissued register contains a duplicate active serial, an unknown
+  platform class or an unparseable date
+- **THEN** the restart fails and the service stays down, which is the same
+  refusal it makes at first start and is visible in the unit state - rather than
+  a running service quietly measuring against the previous register
+
+#### Scenario: Re-encrypted without an edit
+- **WHEN** a secret is re-encrypted without its plaintext changing, for example
+  to add a host key
+- **THEN** badgersbay is restarted anyway, because age ciphertext differs on
+  every encryption. A restart nobody needed costs seconds; a restart that did
+  not happen is what this requirement exists for
+
+#### Scenario: Nothing changed
+- **WHEN** a deploy changes none of the four files
+- **THEN** the unit is unchanged and the service is not restarted
+
+#### Scenario: What the triggers do not cover
+- **WHEN** a secret option names a file that is neither in the nix store nor
+  produced by an `age.secrets` entry - a file placed on the host by hand
+- **THEN** only its path can be a trigger, and a change to its content does not
+  restart the service. Nothing readable at evaluation tracks that file, and the
+  module does not claim otherwise
+
+### Requirement: Run as a daemon, not a periodic job
+
+The module SHALL configure badgersbay as a single long-running service and SHALL
+NOT declare a timer that starts it on a schedule. The server serves HTTP and has
+no batch mode; a changed file reaches it through the unit's `restartTriggers`,
+not through a periodic restart.
+
+Should badgersbay ever gain periodic work, it SHALL be given its own
+`Type = "oneshot"` unit and its own timer rather than a timer pointed at the
+daemon.
+
+#### Scenario: The units the module declares
+- **WHEN** the service is enabled
+- **THEN** `badgersbay.service` is declared and no `badgersbay.timer` exists
+
+#### Scenario: A changed file
+- **WHEN** the configuration, a token, the dashboard password or the asset
+  register changes
+- **THEN** the restart comes from `restartTriggers` at deploy time, not from
+  waiting for a scheduled restart
+
+#### Scenario: A timer pointed at a running daemon
+- **WHEN** a timer fires at a `Type = "simple"` unit that is already active
+- **THEN** nothing happens, because a timer starts its unit and starting an
+  active service is a no-op - which is why such a timer cannot serve as a
+  configuration reload and must not be added as one
+
+#### Scenario: A service that has exhausted its restart limit
+- **WHEN** badgersbay fails repeatedly and systemd stops retrying, for example
+  on an asset register the server refuses
+- **THEN** the unit stays `failed` and visible to whatever watches units, rather
+  than being started again on a schedule and failing again for the same reason
+
+### Requirement: Declare a health check that measures something
+
+The module SHALL declare a health check for the service, against the
+unauthenticated `/health` endpoint on the loopback interface at the configured
+port, expecting a 200 response.
+
+The check SHALL read the response body and SHALL fail when the server reports
+its storage location as inaccessible. A status code alone is not sufficient:
+the server answers 200 with `storage.accessible` false when the directory it
+writes submissions to has gone, and a check that only reads the code would
+call that healthy.
+
+The module SHALL NOT direct a check at the dashboard. The dashboard is behind
+basic auth, so an unauthenticated request to it answers 401 in every state the
+service can be in, and a check that cannot distinguish healthy from broken is
+not a check.
+
+#### Scenario: A healthy server
+- **WHEN** the service is running and its storage location exists
+- **THEN** the declared checks pass: `/health` answers 200 and reports
+  `storage.accessible` true
+
+#### Scenario: Storage gone
+- **WHEN** the storage location is missing or unreadable
+- **THEN** `/health` still answers 200, and the check fails anyway, on the
+  `storage.accessible` value it carries
+
+#### Scenario: Server not answering
+- **WHEN** the service is down, crash-looping, or not listening on the
+  configured port
+- **THEN** the checks fail on the request rather than reporting a state they
+  could not observe
+
+#### Scenario: The endpoint a probe is pointed at
+- **WHEN** a monitoring probe is configured for this service, in this
+  repository or in a host configuration
+- **THEN** it targets `/health`, which needs no credentials, and never `/`,
+  which answers 401 without them regardless of the service's state
+
+#### Scenario: The port the check follows
+- **WHEN** `port` is set to something other than the default
+- **THEN** the checks address that port, as the firewall rule and the nginx
+  proxy do
