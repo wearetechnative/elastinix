@@ -7,7 +7,7 @@ priority: high
 tags:
     - badgersbay
 created_at: 2026-09-16T09:48:19Z
-updated_at: 2026-09-18T06:48:30Z
+updated_at: 2026-09-18T09:41:09Z
 ---
 
 `flake.lock` pinned badgersbay at `cd3db88` (2026-09-15). The module now passes
@@ -80,5 +80,15 @@ identifiable:
 - `0a290d8` serves the evidence behind an unmatched submission. Those records
   were stored deliberately and then had no URL, so the one file needed to settle
   why a machine matched no asset was the one nobody could open.
+
+Three lines in the badgersbay node, nothing else moved.
+
+
+## Bumped again: 0a290d8 -> 87f30c4
+
+Brings the round selector (`461cef9`), which makes earlier scan rounds reachable
+from the dashboard. `87f30c4` is a beans-only commit on top of it; pinned rather
+than `461cef9` so the lock names the tip of `main` instead of a commit in the
+middle of it.
 
 Three lines in the badgersbay node, nothing else moved.
