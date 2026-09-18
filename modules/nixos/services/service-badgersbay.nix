@@ -8,6 +8,49 @@ let
 
   yamlFormat = pkgs.formats.yaml { };
 
+  # The one endpoint that answers without credentials, on the loopback and on
+  # the port the firewall and the nginx proxy follow. Everything else the server
+  # serves sits behind basic auth and answers 401 to a check, in every state the
+  # service can be in - which is what made the dashboard useless to probe.
+  healthUrl = "http://127.0.0.1:${toString cfg.port}/health";
+
+  # `/health` answers 200 with `storage.accessible` false when the directory the
+  # server writes submissions to has gone, so the status code cannot carry this
+  # and `healthchecks.http.expectedContent` cannot either: it is interpolated
+  # into generated Python unescaped, and the string to match - `"accessible":
+  # true` - contains the quotes json.dumps puts there. Parsing the response is
+  # both the way around that and the more honest check, since it reads a boolean
+  # rather than trusting the formatting to stay the way it is today.
+  storageCheck = pkgs.writers.writePython3 "verify-badgersbay-storage" { } ''
+    import json
+    import sys
+    import urllib.request
+
+    URL = "${healthUrl}"
+
+    try:
+        with urllib.request.urlopen(URL, timeout=10) as response:
+            health = json.load(response)
+    # URLError and HTTPError are OSError, JSONDecodeError is ValueError: a
+    # refused connection, a timeout, a non-200 and a body that is not JSON all
+    # mean the same thing here - nothing was observed.
+    except (OSError, ValueError) as error:
+        print(f"badgersbay: {URL} answered no health JSON: {error}")
+        sys.exit(1)
+
+    storage = health.get("storage", {})
+
+    if storage.get("accessible") is not True:
+        # Named, because the next question is always which path it looked at,
+        # and on a host that supplies its own configFile the module does not
+        # know it.
+        location = storage.get("location", "an unreported location")
+        print(f"badgersbay: storage {location} is not accessible")
+        sys.exit(1)
+
+    sys.exit(0)
+  '';
+
   # The configuration the module generates. It is a world-readable store path,
   # which is exactly why nothing secret is allowed into `settings`: the tokens,
   # the dashboard password and the asset register arrive as file paths from
@@ -527,5 +570,24 @@ in
         };
       };
     };
+
+    # What healthy means for this service, stated here rather than left to each
+    # host to invent - which is how a monitoring probe came to be pointed at the
+    # dashboard, where an unauthenticated request answers 401 whether the server
+    # is fine, its storage is gone or it is not running at all.
+    #
+    # Two checks rather than one, because the two failures ask for different
+    # things: restart the service, versus find out what happened to the storage
+    # directory. The framework prints a title per check, so this is what makes
+    # the output say which.
+    healthchecks.http.badgersbay = {
+      url = healthUrl;
+      responseCode = 200;
+      # Identity only, and quote-free because the value is interpolated into
+      # generated Python. What the response says is the storage check's job.
+      expectedContent = "honeybadger-server";
+    };
+
+    healthchecks.localCommands.badgersbay-storage = storageCheck;
   };
 }
