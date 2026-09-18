@@ -1,7 +1,7 @@
 ---
 # elastinix-l16a
-title: 'badgersbay-module: config als opties, tokens en assetregister via agenix'
-status: todo
+title: 'badgersbay module: settings as options, tokens and asset register through agenix'
+status: completed
 type: epic
 priority: high
 tags:
@@ -9,89 +9,123 @@ tags:
     - nixos
     - agenix
 created_at: 2026-09-15T16:24:06Z
-updated_at: 2026-09-15T16:24:06Z
+updated_at: 2026-09-16T16:55:15Z
 ---
 
-`service-badgersbay.nix` beheert de badgersbay-configuratie nu half. De module
-moet de vorm bezitten; agenix bezit de waarden.
+`service-badgersbay.nix` half-manages the badgersbay configuration. The module
+should own the shape; agenix should own the values.
 
-## Huidige situatie
+## Current state
 
-    configFile            types.path, default = writeText met een
-                          hardgecodeerde heredoc
-    tokenFile             types.path, wijst naar een agenix-secret
-    dashboardPasswordFile types.path, wijst naar een agenix-secret
+    configFile            types.path, default = writeText with a hardcoded
+                          heredoc
+    tokenFile             types.path, points at an agenix secret
+    dashboardPasswordFile types.path, points at an agenix secret
 
-Drie problemen.
+Three problems.
 
-**De configuratie is een string, geen opties.** Het compliance-blok staat
-letterlijk in de module:
+**The configuration is a string, not options.** The compliance block sits
+literally in the module, so changing the audit months means overriding
+`configFile` in full and losing the rest of the generation. There is no
+`mkOption` for anything inside the block.
 
-    compliance:
-      enabled: true
-      audit_months: [3, 9]
-      required_reports:
-        mandatory:
-          - neofetch
-          - lynis
-        one_of: []
-
-Wie de auditmaanden wil wijzigen moet `configFile` in zijn geheel overschrijven
-en daarmee de rest van de generatie kwijtraken. Er is geen `mkOption` voor iets
-binnen het blok.
-
-Dat is geen theorie. `technative-awsaccounts-workloads`, compute2, doet precies
-dat:
+That is not theory. `technative-awsaccounts-workloads`, compute2, does exactly
+that:
 
     configFile = config.age.secrets.badgersbay-config.path;
 
-Gevolg: toen de moduledefault van `neofetch` naar `fastfetch` ging
-(elastinix-22iq), bereikte die wijziging de productiehost niet. Het echte
-configuratiebestand zit in een agenix-secret dat apart bijgewerkt moest worden.
-Een module die alleen een heel bestand als optie aanbiedt, kan zijn eigen
-defaults niet meer uitrollen zodra iemand iets wil afwijken.
+Consequence: when the module default moved from `neofetch` to `fastfetch`
+(elastinix-22iq), that change did not reach the production host. The real
+configuration lives in an agenix secret that had to be updated separately. A
+module that only exposes the whole config file as one option cannot roll out its
+own defaults once anyone needs to deviate.
 
-**Die default is inmiddels onjuist.** `mandatory: [neofetch, lynis]` klopt niet
-meer: badgersbay stapt over op fastfetch (change `use-fastfetch-system-info`).
-Een host die vandaag met de module-default uitrolt, markeert elk Linux-systeem
-permanent als incompleet. Dit is de dringendste regel in dit epic.
-
-**Er komt een derde bestand bij.** `asset-register-identity` voegt `assets.csv`
-toe: het asset-register, geëxporteerd uit de ISO-rapportagesheet. Het bevat
-volledige namen gekoppeld aan hardware-serienummers, dus het hoort op het
-agenix-spoor, niet in de repo.
+**A third file is coming.** badgersbay `asset-register-identity` adds
+`assets.csv`, the asset register exported from the ISO reporting sheet. It pairs
+full names with hardware serials, so it belongs on the agenix track, not in the
+repository.
 
 ## Scope
 
-1. `settings` als gestructureerde optie, gerenderd naar YAML, in plaats van een
-   heredoc. Minimaal `compliance.enabled`, `audit_months`, `grace_weeks`,
-   `required_reports`, en de per-platformklasse-eisen die badgersbay krijgt.
-2. Default naar `fastfetch` in plaats van `neofetch`.
-3. `assetRegisterFile` toevoegen naast `tokenFile` en
-   `dashboardPasswordFile`, met hetzelfde agenix-patroon.
-4. Assertions: ontbrekende of onleesbare secretbestanden falen bij evaluatie,
-   niet pas bij het starten van de service.
-5. `docs/services/badgersbay.md` bijwerken.
+1. `settings` as a structured option rendered to YAML, instead of a heredoc. At
+   minimum `compliance.enabled`, `audit_months`, `grace_weeks`,
+   `required_reports` and the per-platform-class requirements badgersbay gained.
+2. Add `assetRegisterFile` alongside `tokenFile` and `dashboardPasswordFile`,
+   using the same agenix pattern.
+3. Assertions: missing or unreadable secret files fail at evaluation, not when
+   the service starts.
+4. Update `docs/services/badgersbay.md`.
 
-## Grens: geheimen gaan niet in de nix-store
+## Boundary: secrets do not go in the nix store
 
-`pkgs.writeText` schrijft naar de nix-store, en die is wereldleesbaar. Tokens
-en het dashboardwachtwoord mogen daar dus nooit als waarde in terechtkomen —
-ook niet via een `tokens = [ ... ]`-optie die vriendelijk oogt.
+`pkgs.writeText` writes to the nix store, which is world-readable. Tokens and
+the dashboard password must never end up there as values - not even through a
+friendly-looking `tokens = [ ... ]` option.
 
-De verdeling die dit epic hanteert:
+The split this epic holds to:
 
-    module bezit    de structuur: welke sleutels, welke vorm, welke defaults
-    agenix bezit    de waarden: tokens, wachtwoord, assetregister
+    the module owns    the structure: which keys, what shape, which defaults
+    agenix owns        the values: tokens, password, asset register
 
-Dus `settings` wordt wél een echte optie, want daar staan geen geheimen in.
-`tokenFile`, `dashboardPasswordFile` en het nieuwe `assetRegisterFile` blijven
-paden. Wil de module ooit de inhoud van een secret samenstellen, dan gebeurt
-dat bij activatie uit een agenix-bestand, nooit via de store.
+So `settings` does become a real option, because no secrets live in it.
+`tokenFile`, `dashboardPasswordFile` and the new `assetRegisterFile` stay paths.
+If the module ever needs to compose the contents of a secret, that happens at
+activation from an agenix file, never through the store.
 
-## Afhankelijkheden
+## Dependencies
 
-- badgersbay `use-fastfetch-system-info` — bepaalt de juiste default
-- badgersbay `asset-register-identity` — introduceert `assets.csv`
-- badgersbay `register-administration` — bevat de open keuze tussen agenix en
-  dashboard-upload voor het register; dit epic gaat uit van agenix
+- badgersbay `use-fastfetch-system-info` - determines the correct default (done)
+- badgersbay `asset-register-identity` - introduces `assets.csv` (done)
+- badgersbay `register-administration` - delivers the register through agenix
+
+
+## Done
+
+Implemented across `bfe27f6` (the asset register, child `elastinix-9rd2`) and
+this change: `settings` as a structured option rendered to YAML, assertions
+that fail at evaluation, and the documentation. OpenSpec change
+`2026-09-16-badgersbay-settings-option` archived, `badgersbay-service` spec
+synced with three new requirements and one modified.
+
+## Verified by evaluating, not by reading
+
+The defaults render exactly what the heredoc they replace produced, plus two
+keys the server already defaults to itself (`grace_weeks: 4`,
+`per_class: {}` - `honeybadger_server.py:1389` and `:1394`), so the generated
+file is behaviourally identical rather than byte-identical.
+
+Each refusal was made to fire, one at a time:
+
+| Configuration | Result |
+|---|---|
+| `configFile` only, as compute2 sets it | no assertion fires |
+| `settings` only | no assertion fires |
+| both | refused |
+| `settings.networkport` diverging from `port` | refused |
+| `settings.compliance.asset_register` | refused |
+| a token file written into the store | refused |
+| an `age.secretsDir` path with no `age.secrets` entry | refused |
+| a declared secret root-owned at `0400` | refused |
+| the same secret group-readable for the service group | no assertion fires |
+
+The first row is the one that mattered most. compute2 sets `configFile`
+wholesale and never touches `settings`; an assertion firing there would have
+broken a production deploy on the next evaluation, and `highestPrio` had to
+distinguish a host's definition from the option's own default for that to hold.
+
+## Limits, recorded rather than glossed over
+
+These assertions read the configuration, not the machine. The two agenix checks
+need that module imported and are skipped without it. The readability check
+judges numeric modes only - agenix hands `mode` to `chmod`, which also takes
+symbolic forms - and leaves a numeric non-root `owner` alone rather than
+guessing which user it names. A file that exists but holds the wrong thing is
+invisible here. `docs/services/badgersbay.md` says so under **What fails at
+evaluation**.
+
+## Note for whoever deploys
+
+compute2 locks this repo through a `path:` input, so this commit invalidates
+`stack/ec2_compute2/flake.lock`. Re-lock with `--refresh` before deploying, or
+deploy from the previous elastinix commit - nothing here is required for the
+asset register or the vulnerable-package column.
