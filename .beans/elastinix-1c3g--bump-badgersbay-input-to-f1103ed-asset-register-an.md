@@ -32,8 +32,8 @@ appears unchanged.
 Overriding or re-locking an input replaces that flake's whole lock, and a branch
 trailing its base has silently moved sibling inputs backwards here before
 (recorded in `technative-awsaccounts-workloads-dfpw`). The diff is three lines in
-one node: `lastModified`, `narHash`, `rev` of badgersbay. nixpkgs,
-grafana-prometheus and optscale are untouched.
+one node: `lastModified`, `narHash`, `rev` of badgersbay. Every sibling input
+is untouched.
 
 This branch is also three commits ahead of `origin/nixos-26.05` and nothing
 behind, so consumers locking against it do not inherit an older base.
@@ -46,8 +46,8 @@ badgersbay PR #9 added the **Vulnerable pkgs** column and raised
 within the hour.
 
 Re-locked the same way, with `--refresh`. The diff is again three lines in the
-badgersbay node alone - `lastModified`, `narHash`, `rev`. nixpkgs,
-grafana-prometheus and optscale untouched, nothing moved backwards.
+badgersbay node alone - `lastModified`, `narHash`, `rev`. Every sibling input
+untouched, nothing moved backwards.
 
 The count this renders is emitted by honeybadger from `23f7d8e`, merged as its
 PR #17. Server and client generations line up.
@@ -61,9 +61,9 @@ the server actually writes was in neither, so it reported zero submissions on a
 server that was receiving them - visible only since the pre-serial archive was
 moved aside and stopped supplying the numbers.
 
-No merge of `nixos-26.05` was needed for this. That base has moved ahead on
-optscale, but compute2 consumes this branch rather than the base, so nothing
-falls back - optscale simply stays where it is. The `dfpw` trap is about
+No merge of `nixos-26.05` was needed for this. That base has moved ahead on a
+sibling input, but compute2 consumes this branch rather than the base, so
+nothing falls back - it simply stays where it is. The `dfpw` trap is about
 `--override-input` against a trailing branch, which is not the situation here.
 
 The diff is three lines in the badgersbay node alone.
