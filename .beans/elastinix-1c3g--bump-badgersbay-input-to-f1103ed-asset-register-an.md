@@ -7,7 +7,7 @@ priority: high
 tags:
     - badgersbay
 created_at: 2026-09-16T09:48:19Z
-updated_at: 2026-09-17T14:12:56Z
+updated_at: 2026-09-18T06:48:30Z
 ---
 
 `flake.lock` pinned badgersbay at `cd3db88` (2026-09-15). The module now passes
@@ -67,3 +67,18 @@ falls back - optscale simply stays where it is. The `dfpw` trap is about
 `--override-input` against a trailing branch, which is not the situation here.
 
 The diff is three lines in the badgersbay node alone.
+
+
+## Bumped again: 3c15254 -> 0a290d8
+
+Two changes since the last bump, both about evidence being reachable and
+identifiable:
+
+- `1dc0eac` names every download for its asset and round, not only the archive.
+  Reports arrived as `lynis-report.json` - the same name on every asset in the
+  fleet.
+- `0a290d8` serves the evidence behind an unmatched submission. Those records
+  were stored deliberately and then had no URL, so the one file needed to settle
+  why a machine matched no asset was the one nobody could open.
+
+Three lines in the badgersbay node, nothing else moved.
