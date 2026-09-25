@@ -1,7 +1,7 @@
 ---
 # elastinix-ulbs
 title: 'atticd: configure garbage collection and a retention period'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-09-25T13:41:30Z

@@ -20,6 +20,8 @@ The Attic service (`elastinix.services.attic`) wraps the NixOS `services.atticd`
 | `environment_file` | string         | —       | Absolute path to the environment file (agenix secret) for atticd            |
 | `s3_bucket`        | string         | —       | S3 bucket name prefix; `-${infra_environment}` is appended                   |
 | `database_url`     | null or string | `null`  | `null`: URL from `ATTIC_SERVER_DATABASE_URL`; string: rendered into the TOML |
+| `garbage_collection.interval` | string | `"12 hours"` | How often the collector runs; `"0"` disables it entirely |
+| `garbage_collection.default_retention_period` | null or string | `"90 days"` | Retention for caches that set none of their own; `null` renders `"0"` |
 
 ### Environment file
 
@@ -81,6 +83,60 @@ elastinix.services.attic.database_url = "sqlite:///var/lib/atticd/server.db?mode
 
 This puts the database in atticd's state directory (`/var/lib/private/atticd`, on the root volume on EC2), which is lost when the instance is replaced. Only use it for throwaway caches, or give that directory its own persistent, backed-up volume. This setting reproduces the module's behaviour before `database_url` existed, so it is also the rollback.
 
+## Garbage collection
+
+The collector runs inside atticd in `--mode monolithic`. Every pass does three
+things, in order:
+
+1. **Time-based collection** — deletes objects from caches that have a non-zero
+   retention period.
+2. **Orphan NARs** — deletes NARs that no object references, whose state is
+   `Valid` and whose `holders_count` is 0.
+3. **Orphan chunks** — deletes chunks that no NAR references, from the S3 bucket
+   as well as the database.
+
+Steps 2 and 3 are unconditional: they run whether or not retention is
+configured. Only step 1 depends on it. Attic's own default retention is zero, so
+without this module's default nothing would ever expire on age, and because an
+object row keeps its NAR referenced forever, nothing would become an orphan
+either. That is why the module defaults to 90 days rather than to attic's zero.
+
+### What "90 days" actually means
+
+Deletion requires **both** timestamps to precede the cutoff:
+
+```sql
+created_at < cutoff
+AND (last_accessed_at IS NULL OR last_accessed_at < cutoff)
+```
+
+So it is old **and** unused, never merely old. A path created two years ago but
+downloaded yesterday stays. A path created last week stays even if nobody has
+ever fetched it.
+
+"Used" means the NAR was **downloaded**. `last_accessed_at` is bumped in the NAR
+handler only, not in the `.narinfo` handler, so a host that already holds a path
+and merely checks for it does not keep the cached copy alive. That is the right
+signal: if every host already has it, the cached copy is redundant.
+
+### Per-cache retention
+
+A cache can override the default for itself, which is attic's own mechanism and
+needs no module support:
+
+```bash
+attic cache configure <name> --retention-period "2 years"
+```
+
+A cache row with its own period ignores the module default entirely.
+
+### Deleting a single path
+
+There is no such operation. `attic cache` offers create, configure, destroy and
+info, and the API is no finer. Removing one store path means deleting its row
+from the `object` table, after which the next pass reaps the NAR and then its
+chunks. Retention exists so that this is never the routine answer.
+
 ## Verification
 
 On the host, after a deploy:
@@ -106,6 +162,12 @@ A NixOS VM test runs atticd against PostgreSQL with the URL only in the environm
 
 ```bash
 nix build .#checks.x86_64-linux.attic-database -L
+```
+
+A second, evaluation-only check asserts what the module renders into the `[garbage-collection]` section: the defaults, an overridden interval, and `default_retention_period = null` rendering `"0"`. It boots nothing, because every one of those is settled at evaluation time:
+
+```bash
+nix build .#checks.x86_64-linux.attic-garbage-collection -L
 ```
 
 ## Troubleshooting
