@@ -49,19 +49,34 @@ state its retention instead of inheriting an absent default:
 
 ## Notes
 
-Confirm before shipping whether attic's collector removes **orphaned chunks**
-when retention is disabled, or only as part of expiring NARs. That determines
-whether deleting a store path from the cache today frees its S3 objects at all,
-which is the other half of this problem.
+Resolved by reading attic's `server/src/gc.rs` (2026-09-25). The collector's
+behaviour is not what the absent config suggested:
 
-Evidence from 2026-09-25: a 64 MiB test closure pushed that day sits in the cache
-as nar id 591 with **`holders_count = 0`** and 1024 chunks. It is already
-unheld — nothing references it — and it was not collected. So the blockage is not
-reference counting; the collector simply does no work while retention is absent.
-Deleting rows by hand therefore buys nothing: the path is already in the state
-the collector is supposed to act on. Configuring retention is the only thing that
-reclaims anything.
+- `interval` defaults to **43200 s (12 hours)**, not zero, so the collector *is*
+  running in `--mode monolithic`. Only `interval = 0` disables it.
+- `default-retention-period` defaults to **zero**, which disables **time-based**
+  collection only. The comment in `config.rs` says so outright: "Zero (default)
+  means time-based garbage-collection is disabled by default. You can enable it
+  on a per-cache basis."
+- `run_garbage_collection_once` then always runs `run_reap_orphan_nars` and
+  `run_reap_orphan_chunks`, retention or not. Orphans are reaped every pass, and
+  the chunk reaper deletes from the storage backend, not just the database.
 
-Attic offers no per-path delete either. `attic cache` has create, configure,
-destroy and info, and nothing else. Retention is the only granular lever there
-is, which makes this bean the sole route to ever shrinking the bucket.
+So the bucket is not frozen: anything unreferenced already disappears within 12
+hours. What is missing is purely the **age** dimension — a closure nobody pulls
+any more is referenced forever by its object row, so it is never an orphan and
+never leaves.
+
+That also corrects an earlier note in this bean: the 64 MiB test closure was not
+"already unheld and ignored by the collector". `run_reap_orphan_nars` requires
+three things together — no object references the NAR, state Valid, and
+`holders_count = 0`. Its `holders_count` is 0 and its state is Valid, but object
+id 613 still points at it, so it is correctly not an orphan. `holders_count` is
+an upload-time counter (`upload_path.rs` sets it to 1 while a NAR is being
+uploaded), not a reference count of objects. Deleting the object row is all that
+is needed; the next pass then removes the NAR and its chunks from S3.
+
+This does not remove the need for retention, it sharpens it: retention is the
+only mechanism that ever drops a path that is still indexed but no longer wanted.
+Attic offers no per-path delete in its API or client either, so without retention
+the only way to shrink the cache is direct database surgery.
