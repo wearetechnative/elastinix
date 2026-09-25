@@ -1,11 +1,11 @@
 ---
 # elastinix-dewz
 title: point compute3 non-production atticd at PostgreSQL and verify
-status: todo
+status: completed
 type: task
 priority: high
 created_at: 2026-09-24T12:29:47Z
-updated_at: 2026-09-24T13:12:32Z
+updated_at: 2026-09-25T06:49:46Z
 parent: elastinix-mmic
 blocked_by:
     - elastinix-1itf
@@ -60,3 +60,24 @@ something to repair in place.
 (elastinix-eyrj), so there is no longer any live data to migrate over. Attic will build its
 schema from scratch on first connect. The collation note above is likewise obsolete for
 `attic`; the fresh databases are at version 2.42.
+
+
+## Verified 2026-09-25 — done
+
+compute3-nonprod deployed with the module change (`stack/ec2_compute3` still on the local
+`path:` input, lock refreshed to the post-`ab15d7b` tree).
+
+- Generated `checked-attic-server.toml` now has an empty `[database]` section, so attic takes
+  the URL from the environment file.
+- atticd ran 12 migrations against PostgreSQL and created `cache`, `chunk`, `chunkref`, `nar`,
+  `object`, `seaql_migrations` in the previously empty database.
+- `ls /proc/<pid>/fd` shows no `server.db`; `ss -tnp` shows `ESTAB 10.0.1.151:60708 →
+  10.0.13.78:5432` owned by atticd.
+- End to end: created cache `tn-probe` (HTTP 200) via
+  `POST /_api/v1/cache-config/<name>` with body `{"keypair":"Generate","is_public":false,
+  "store_dir":"/nix/store","priority":41,"upstream_cache_key_names":["cache.nixos.org-1"]}`,
+  read back its public key `tn-probe:xDphzanr…`, confirmed the keypair row in PostgreSQL,
+  restarted atticd and read it again (200), then deleted it (200). Zero caches remain.
+
+Note for the runbooks: cache creation is `POST /_api/v1/cache-config/<name>`, not
+`/_api/v1/caches/<name>`, and `atticadm make-token` needs `-f <checked-attic-server.toml>`.
