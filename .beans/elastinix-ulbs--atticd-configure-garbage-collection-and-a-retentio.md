@@ -53,3 +53,15 @@ Confirm before shipping whether attic's collector removes **orphaned chunks**
 when retention is disabled, or only as part of expiring NARs. That determines
 whether deleting a store path from the cache today frees its S3 objects at all,
 which is the other half of this problem.
+
+Evidence from 2026-09-25: a 64 MiB test closure pushed that day sits in the cache
+as nar id 591 with **`holders_count = 0`** and 1024 chunks. It is already
+unheld — nothing references it — and it was not collected. So the blockage is not
+reference counting; the collector simply does no work while retention is absent.
+Deleting rows by hand therefore buys nothing: the path is already in the state
+the collector is supposed to act on. Configuring retention is the only thing that
+reclaims anything.
+
+Attic offers no per-path delete either. `attic cache` has create, configure,
+destroy and info, and nothing else. Retention is the only granular lever there
+is, which makes this bean the sole route to ever shrinking the bucket.
