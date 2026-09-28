@@ -52,8 +52,14 @@
 
       systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
 
-      perSystem = _: {
+      perSystem = { pkgs, lib, ... }: {
         devshells.default = {};
+
+        # NixOS VM tests only build on Linux.
+        checks = lib.optionalAttrs pkgs.stdenv.isLinux {
+          attic-database = import ./tests/attic-database.nix { inherit pkgs lib; };
+          attic-garbage-collection = import ./tests/attic-garbage-collection.nix { inherit pkgs lib; };
+        };
       };
 
       flake = {

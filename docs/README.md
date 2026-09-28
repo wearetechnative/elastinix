@@ -13,6 +13,7 @@ Services that integrate with external systems and APIs.
 ### Infrastructure Services
 Services that provide infrastructure-level functionality.
 
+- **[Attic](services/attic.md)** - Attic binary cache with S3 chunk storage and its database (cache signing keys) taken from the agenix environment file, never from the Nix store
 - **[Postfix AWS SES Relay](services/postfix-relay-aws.md)** - Centralized mail relay for AWS SES with SASL authentication, network security, and sender address rewriting
 
 ### Security Services
