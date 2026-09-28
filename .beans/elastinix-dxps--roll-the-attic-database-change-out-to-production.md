@@ -1,11 +1,11 @@
 ---
 # elastinix-dxps
 title: roll the attic database change out to production
-status: todo
+status: completed
 type: task
 priority: high
 created_at: 2026-09-24T12:29:59Z
-updated_at: 2026-09-24T12:43:29Z
+updated_at: 2026-09-28T16:16:47Z
 parent: elastinix-mmic
 blocked_by:
     - elastinix-dewz
@@ -44,3 +44,16 @@ in the correctly named bucket, serving nobody.
 
 Consequence for ordering: this bean now also depends on unblocking the production compute3
 deploy. Shipping the database fix alone will not help production until a deploy can land there.
+
+## Outcome (2026-09-25)
+
+Rolled out. The blocker was never state corruption but a workflow edge: the
+stack's `.terraform` stays bound to whichever environment was last `init`-ed, so
+`terraform init -reconfigure --backend-config=.../prod.tfbackend` was all it took.
+
+Verified on compute3-prod after the deploy: `[database]` is empty in the
+generated configuration, no `server.db` is open by the atticd process, attic
+created its four tables in PostgreSQL, and the bucket name is the corrected
+`compute3-persistant-storage-technative-workloads-prod` rather than the
+doubly-suffixed one that never existed. The shared `tn-infra` cache has run on
+that database since, now holding well over a thousand objects.

@@ -1,11 +1,11 @@
 ---
 # elastinix-eyrj
 title: decide the fate of the orphaned caches in the attic database
-status: in-progress
+status: completed
 type: task
 priority: normal
 created_at: 2026-09-24T12:29:59Z
-updated_at: 2026-09-24T13:23:51Z
+updated_at: 2026-09-28T16:16:47Z
 parent: elastinix-mmic
 blocked_by:
     - elastinix-dewz
@@ -137,3 +137,18 @@ data lives in either bucket. The delete filter matched `*.chunk` exclusively.
 runs exited 0 with no errors. Remaining work on this bean is the ledger side —
 `stack/ec2_compute3/attic-tokens.md` must record both environments' caches as gone
 (`attic-shared-cache-and-substituters` task 1.5).
+
+## Outcome (2026-09-24/25)
+
+Decided by the owner: discard them. All four pre-convention caches are gone --
+`main` and `technative` on non-production, `technativecache` and `wouterscache`
+on production. Both metadata databases were dropped and recreated, every
+`.chunk` object was deleted from both buckets (275,574 and 120,428 respectively),
+and a pre-drop `pg_dump` was left on each compute3 at
+`/root/attic-predrop-2026-09-24.sql.gz`.
+
+The reasoning that made it easy: Attic issues stateless JWTs and the ledger was
+empty, so nobody could say who held access to those caches. Keeping them would
+have meant carrying an unknown access surface forward into the shared cache.
+They are recorded in `stack/ec2_compute3/attic-tokens.md` as a dated purge rather
+than as dormant rows, so the ledger never implies access that no longer exists.
