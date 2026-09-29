@@ -22,6 +22,7 @@ The Attic service (`elastinix.services.attic`) wraps the NixOS `services.atticd`
 | `database_url`     | null or string | `null`  | `null`: URL from `ATTIC_SERVER_DATABASE_URL`; string: rendered into the TOML |
 | `garbage_collection.interval` | string | `"12 hours"` | How often the collector runs; `"0"` disables it entirely |
 | `garbage_collection.default_retention_period` | null or string | `"90 days"` | Retention for caches that set none of their own; `null` renders `"0"` |
+| `log_filter` | null or string | `"attic_server=info"` | `RUST_LOG` directive; `null` sets nothing |
 
 ### Environment file
 
@@ -100,6 +101,25 @@ configured. Only step 1 depends on it. Attic's own default retention is zero, so
 without this module's default nothing would ever expire on age, and because an
 object row keeps its NAR referenced forever, nothing would become an orphan
 either. That is why the module defaults to 90 days rather than to attic's zero.
+
+### Seeing that it runs
+
+atticd builds its log subscriber with `EnvFilter::from_default_env()`, so without
+`RUST_LOG` everything below `error` is discarded. Its startup lines --
+`Running migrations...`, `Starting API server...`, `Listening on ...` -- are
+`eprintln!` and appear regardless, which makes the service look more talkative
+than it is. The garbage collector reports through `tracing::info!` only:
+
+    Found N caches subject to time-based garbage collection
+    Deleted N orphan NARs
+    Deleted N orphan chunks
+
+With no filter set, none of that is ever written and there is no way to tell
+whether anything is collected. The module therefore defaults `log_filter` to
+`attic_server=info`. Set it to `null` to return to silence.
+
+The collector runs once at startup and then on its interval, so the first pass
+appears in the journal within seconds of a deploy, not twelve hours later.
 
 ### What "90 days" actually means
 

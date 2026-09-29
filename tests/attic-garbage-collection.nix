@@ -30,11 +30,18 @@ let
           system.stateVersion = lib.trivial.release;
         }
       ];
-    }).config.services.atticd.settings.garbage-collection;
+    }).config;
 
-  defaults = evalWith { };
-  customInterval = evalWith { garbage_collection.interval = "1 hour"; };
-  noRetention = evalWith { garbage_collection.default_retention_period = null; };
+  gcOf = c: c.services.atticd.settings.garbage-collection;
+  logOf = c: c.systemd.services.atticd.environment.RUST_LOG or null;
+
+  defaults = gcOf (evalWith { });
+  customInterval = gcOf (evalWith { garbage_collection.interval = "1 hour"; });
+  noRetention = gcOf (evalWith { garbage_collection.default_retention_period = null; });
+
+  logDefault = logOf (evalWith { });
+  logCustom = logOf (evalWith { log_filter = "attic_server=debug"; });
+  logOff = logOf (evalWith { log_filter = null; });
 
   checks = [
     {
@@ -54,6 +61,23 @@ let
       ok = noRetention.default-retention-period == "0"
         && noRetention.interval == "12 hours";
       got = builtins.toJSON noRetention;
+    }
+    {
+      name = "the collector is not silent by default";
+      # Without RUST_LOG atticd keeps only `error`, and the collector reports
+      # every pass at `info`, so an unset filter means it runs unobserved.
+      ok = logDefault == "attic_server=info";
+      got = builtins.toJSON logDefault;
+    }
+    {
+      name = "log filter is overridable";
+      ok = logCustom == "attic_server=debug";
+      got = builtins.toJSON logCustom;
+    }
+    {
+      name = "null log filter sets nothing";
+      ok = logOff == null;
+      got = builtins.toJSON logOff;
     }
   ];
 
