@@ -63,11 +63,32 @@ made the service look healthy are `eprintln!` and bypass tracing entirely.
   collector runs and reports; it does not prove that a cache is subject to
   retention. That is what task 4.2 establishes.
 
-- [ ] 4.2 Deploy compute3 production and confirm the same; record in the
-  workloads ledger (`stack/ec2_compute3/attic-tokens.md`) that `tn-infra` now
-  inherits a 90-day retention, replacing the note that says nothing expires.
+- [x] 4.2 Deploy compute3 production and confirm the same; record in the workloads
+  ledger (`stack/ec2_compute3/attic-tokens.md`) that `tn-infra` now inherits a
+  90-day retention, replacing the note that says nothing expires. Confirmed
+  2026-09-29:
+
+      Found 1 caches subject to time-based garbage collection
+      Deleted 0 objects from tn-infra (ID 1)
+      Deleted 0 orphan NARs
+      Deleted 47 orphan chunks
+
+  The `1` is the point: `tn-infra` has `retention_period = NULL`, so it is covered
+  only because the module default reaches it. Zero objects deleted is correct --
+  the cache was created four days earlier.
+
+  **Two things outside this module stood between the retention and a freed byte,
+  and neither was visible until the collector could finally report.** The compute3
+  instance role had no `s3:DeleteObject`, so every chunk deletion logged
+  AccessDenied. And the bucket is versioned with no lifecycle rule, so a delete
+  only writes a marker: attic accounted for 598 MB of live chunks while the bucket
+  billed 3.66 GB, the difference being the residue of the 2026-09-24/25 purge that
+  was believed to have freed the space. Fixed in the workloads repository
+  (`ec2_iam_profile.tf`, `s3.tf`), with the delete right scoped to `*.chunk`
+  because the bucket also carries a `zammad/` prefix. After the fix the collector
+  removed all 47 orphans and the bucket and database agree again at 20,863.
 
 ## 5. Validation
 
-- [ ] 5.1 Run `openspec validate attic-garbage-collection --strict` and resolve
-  any findings.
+- [x] 5.1 Run `openspec validate attic-garbage-collection --strict` and resolve
+  any findings. Reports `is valid`; nothing to resolve.
