@@ -4,6 +4,7 @@ title: 'atticd: configure garbage collection and a retention period'
 status: completed
 type: feature
 priority: normal
+openspec-link: openspec/changes/archive/2026-09-29-attic-garbage-collection
 created_at: 2026-09-25T13:41:30Z
 updated_at: 2026-09-29T12:34:59Z
 ---
