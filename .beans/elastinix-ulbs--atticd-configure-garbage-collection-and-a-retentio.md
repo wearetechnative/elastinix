@@ -80,3 +80,39 @@ This does not remove the need for retention, it sharpens it: retention is the
 only mechanism that ever drops a path that is still indexed but no longer wanted.
 Attic offers no per-path delete in its API or client either, so without retention
 the only way to shrink the cache is direct database surgery.
+
+## The collector was invisible (2026-09-29)
+
+Found while verifying the rollout. `[garbage-collection]` was live on both
+compute3 hosts with the 90-day retention, atticd had been restarted hours
+earlier, and the journal showed **nothing** from the collector.
+
+It was running the whole time. `main.rs` spawns `run_garbage_collection` in
+`--mode monolithic`, and that function runs a pass immediately before it first
+sleeps -- so a pass happened seconds after each deploy. What was missing was any
+way to see it:
+
+- `init_logging` builds the subscriber with `EnvFilter::from_default_env()`, so
+  with `RUST_LOG` unset everything below `error` is discarded. Verified on
+  compute3-prod: no `RUST_LOG` in the process environment.
+- The collector reports exclusively through `tracing::info!` -- "Found N caches
+  subject to time-based garbage collection", "Deleted N orphan NARs", "Deleted N
+  orphan chunks".
+- The startup lines that made the service look healthy -- `Running migrations...`,
+  `Starting API server...`, `Listening on ...` -- are `eprintln!` and bypass
+  tracing entirely. That is why the unit looked more talkative than its log level
+  allowed.
+
+So the acceptance in this bean, "the atticd journal shows the collector running
+on its interval", was unreachable as written. The module now defaults
+`log_filter` to `attic_server=info`, set on the systemd unit rather than in the
+environment file: it is not a secret and it belongs where it can be read. `null`
+restores atticd's own silence.
+
+This is the same failure this bean exists to fix, one level up: the cache grew
+unobserved, and the cleaning was unobserved too.
+
+Note for when the first pass is finally read: expect zero deletions and that is
+correct. Retention is 90 days, `tn-infra` was created 2026-09-25, and there are
+no orphans.
+

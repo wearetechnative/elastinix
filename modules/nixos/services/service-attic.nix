@@ -28,6 +28,23 @@ in
       '';
     };
 
+    log_filter = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = "attic_server=info";
+      example = "attic_server=debug";
+      description = ''
+        `RUST_LOG` directive for atticd, or `null` to set nothing.
+
+        atticd builds its subscriber with `EnvFilter::from_default_env()`, so
+        without `RUST_LOG` everything below `error` is discarded. Its startup
+        lines are `eprintln!` and appear regardless, which makes the service look
+        healthier than the log level actually allows: the garbage collector
+        reports every pass through `tracing::info!`, so with no filter set it
+        runs completely silently and there is no way to tell whether anything is
+        ever collected.
+      '';
+    };
+
     garbage_collection = {
       interval = lib.mkOption {
         type = lib.types.str;
@@ -98,6 +115,14 @@ in
         '';
       }
     ];
+
+    # atticd discards anything below `error` unless RUST_LOG says otherwise, which
+    # would hide the garbage collector entirely. Set on the unit rather than in
+    # the environment file: it is not a secret, and it belongs with the service
+    # definition where it can be read.
+    systemd.services.atticd.environment = lib.mkIf (cfg.log_filter != null) {
+      RUST_LOG = cfg.log_filter;
+    };
 
     services.atticd = {
       enable = true;
