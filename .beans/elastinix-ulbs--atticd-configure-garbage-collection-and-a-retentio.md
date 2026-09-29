@@ -1,11 +1,11 @@
 ---
 # elastinix-ulbs
 title: 'atticd: configure garbage collection and a retention period'
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-09-25T13:41:30Z
-updated_at: 2026-09-25T13:41:30Z
+updated_at: 2026-09-29T12:34:59Z
 ---
 
 ## Context
@@ -116,3 +116,41 @@ Note for when the first pass is finally read: expect zero deletions and that is
 correct. Retention is 90 days, `tn-infra` was created 2026-09-25, and there are
 no orphans.
 
+## Done (2026-09-29)
+
+Merged as PR #40 (`4ee0777`, the retention itself) and #41 (`0461cb5`, the log
+filter that made it observable). Deployed and confirmed on compute3 in both
+environments. openspec change `attic-garbage-collection`, all tasks complete.
+
+Production, the run that mattered:
+
+    Found 1 caches subject to time-based garbage collection
+    Deleted 0 objects from tn-infra (ID 1)
+    Deleted 0 orphan NARs
+    Deleted 47 orphan chunks
+
+The `1` is the whole point -- `tn-infra` carries no retention of its own, so it
+is covered only because the module default reaches it. Zero objects deleted is
+correct: the cache was four days old.
+
+### What this uncovered
+
+Configuring retention turned out to be the smallest part. Two things outside this
+module stood between it and a single freed byte, and neither was visible until
+the collector could finally report:
+
+- the compute3 instance role had no `s3:DeleteObject`, so every chunk deletion
+  logged AccessDenied
+- the bucket is versioned with no lifecycle rule, so a delete only writes a
+  marker. attic accounted for 598 MB of live chunks while the bucket billed
+  **3.66 GB** -- the difference being the residue of the 2026-09-24/25 purge,
+  which the ledger recorded as having freed the space and had not
+
+Both fixed in the workloads repository, with the delete right scoped to `*.chunk`
+rather than the bucket, because non-production carries a `zammad/` prefix.
+Afterwards the collector removed all 47 orphans and bucket and database agree
+again at 20,863 objects. The purge residue expires through the 7-day lifecycle
+rule around 1-2 October.
+
+The theme, three times over: the cache grew unobserved, the cleaning was
+unobserved, and the cleaning that was finally observed could not do its job.
