@@ -46,11 +46,23 @@ made the service look healthy are `eprintln!` and bypass tracing entirely.
 
 ## 4. Rollout
 
-- [ ] 4.1 Deploy compute3 non-production and confirm `[garbage-collection]` is
-  present in the running configuration and that the collector logs a pass. The
-  configuration half is already verified on both hosts; the logging half needs the
-  deploy that carries task 3b. The collector runs once at startup, so the pass
-  appears within seconds rather than after the twelve-hour interval.
+- [x] 4.1 Deploy compute3 non-production and confirm `[garbage-collection]` is
+  present in the running configuration and that the collector logs a pass. Both
+  confirmed 2026-09-29. The unit carries `RUST_LOG=attic_server=info` and the
+  collector ran at startup, seconds after the deploy rather than after the
+  twelve-hour interval:
+
+      INFO run_garbage_collection_once: Running garbage collection...
+      INFO run_time_based_garbage_collection: Found 0 caches subject to time-based garbage collection
+      INFO run_time_based_garbage_collection: Deleted 0 objects in total
+      INFO run_reap_orphan_nars: Deleted 0 orphan NARs
+
+  `Found 0 caches` is correct here: non-production holds no caches at all, which
+  the reconciliation check confirms. The orphan-chunk line is absent because
+  `run_reap_orphan_chunks` returns early when there are none. So this proves the
+  collector runs and reports; it does not prove that a cache is subject to
+  retention. That is what task 4.2 establishes.
+
 - [ ] 4.2 Deploy compute3 production and confirm the same; record in the
   workloads ledger (`stack/ec2_compute3/attic-tokens.md`) that `tn-infra` now
   inherits a 90-day retention, replacing the note that says nothing expires.
