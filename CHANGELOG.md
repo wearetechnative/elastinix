@@ -3,6 +3,11 @@
 ## Next version
 
 ### Added
+- **Attic pull consumer** (`elastinix.services.attic_pull`): makes a host pull from a private Attic cache. It replaces the per-repository module in the workloads stacks, and it has no knowledge of tfvars ([docs](docs/services/attic-pull.md))
+  - Sets the three Nix settings that have to change together: the substituter `<endpoint>/<cache>` and its trusted key, both appended with `mkAfter` so `cache.nixos.org` stays first, and `netrc-file` pointing at the pull credential
+  - `netrc_file` is a path string, so the secret never enters the Nix store and the module doesn't depend on agenix; the docs show the matching agenix secret (`owner = "root"`, `mode = "400"`)
+  - Refuses at evaluation time a missing value, an endpoint without scheme, an invalid Attic cache name, a malformed public key, a relative netrc path, and a pasted 64-byte **secret** key, which it names as such
+  - New checks `attic-pull` (evaluation) and `attic-pull-vm` (two-node VM: a client can't substitute from a private cache without its netrc, and can with it)
 - **Attic garbage collection and retention** (`elastinix.services.attic.garbage_collection`) — the module renders a `[garbage-collection]` section instead of inheriting attic's defaults invisibly, with `interval` stated explicitly at its upstream 12 hours and `default_retention_period` defaulting to **90 days**; `null` renders `"0"`, attic's own encoding for time-based collection off ([docs](docs/services/attic.md))
   - Before this the cache was append-only. Attic's collector was never idle — it reaps orphans on every pass regardless of retention — but an object row keeps its NAR referenced forever, so a closure nobody pulls any more never becomes an orphan and never left
   - "90 days" means old **and** unused: deletion requires both `created_at` and `last_accessed_at` to precede the cutoff, and only downloading the NAR bumps the latter, never a `.narinfo` lookup
