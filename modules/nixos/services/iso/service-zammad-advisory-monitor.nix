@@ -22,7 +22,14 @@ let
     "--hostname" config.networking.hostName
   ];
 
-  checkCommand = lib.escapeShellArgs commonArgs;
+  checkCommand = lib.escapeShellArgs (commonArgs
+    ++ lib.optionals (cfg.heartbeatUrl != null) [ "--heartbeat-url" cfg.heartbeatUrl ]
+    ++ lib.optionals (cfg.zammadVersion != null) [ "--zammad-version" cfg.zammadVersion ]
+    ++ lib.optionals (cfg.zammadApiUrl != null) [ "--zammad-api-url" cfg.zammadApiUrl ]
+    ++ lib.optional cfg.notifyUnaffected "--notify-unaffected");
+
+  # If Zammad runs on this same host via elastinix, Nix already knows its version
+  zammadCfg = config.elastinix.services.zammad;
 
   failureCommand = lib.escapeShellArgs (commonArgs ++ [ "--notify-failure" ]);
 
@@ -33,22 +40,15 @@ let
     ProtectHome = true;
     NoNewPrivileges = true;
     PrivateDevices = true;
-    ProtectClock = true;
-    ProtectHostname = true;
-    ProtectKernelLogs = true;
     ProtectKernelTunables = true;
     ProtectKernelModules = true;
     ProtectControlGroups = true;
-    ProtectProc = "invisible";
-    CapabilityBoundingSet = "";
-    UMask = "0077";
     RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
     RestrictNamespaces = true;
     LockPersonality = true;
     RestrictRealtime = true;
     RestrictSUIDSGID = true;
     RemoveIPC = true;
-    SystemCallArchitectures = "native";
     SystemCallFilter = [ "@system-service" "~@privileged" ];
   };
 
@@ -71,7 +71,7 @@ in
 
     slackWebhookFile = lib.mkOption {
       type = lib.types.str;
-      example = lib.literalExpression "config.age.secrets.zammad-advisory-slack-webhook.path";
+      example = "config.age.secrets.zammad-advisory-slack-webhook.path";
       description = "Path to an agenix-decrypted file containing only the Slack incoming-webhook URL.";
     };
 
@@ -84,19 +84,59 @@ in
       '';
     };
 
-    heartbeatUrlFile = lib.mkOption {
+    zammadVersion = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = if zammadCfg.enable then zammadCfg.package.version else null;
+      defaultText = lib.literalExpression
+        "if config.elastinix.services.zammad.enable then config.elastinix.services.zammad.package.version else null";
+      example = "7.1.3";
+      description = ''
+        Zammad version to check advisories against. Detected automatically when
+        elastinix.services.zammad is enabled on the same host. Set it by hand when the
+        monitor runs elsewhere. null = no filtering, every advisory is alerted.
+      '';
+    };
+
+    zammadApiUrl = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = "https://zammad.tools.technative.cloud/api/v1/version";
+      description = ''
+        Zammad version endpoint, queried on every run. When set, it takes precedence
+        over zammadVersion. Requires zammadTokenFile. If the call fails, advisories are
+        alerted as "check manually" and the run is marked failed.
+      '';
+    };
+
+    zammadTokenFile = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
-      example = lib.literalExpression "config.age.secrets.zammad-advisory-heartbeat-url.path";
+      example = "config.age.secrets.zammad-version-token.path";
+      description = "Path to an agenix-decrypted file containing only the Zammad API token (needs 'admin' permission).";
+    };
+
+    notifyUnaffected = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
       description = ''
-        Optional path to a file containing a dead-man's-switch URL (e.g. https://hc-ping.com/<uuid>)
-        that is pinged after every successful run. Read via LoadCredential so the URL stays
-        out of the Nix store and the process list.
+        Also post advisories that do not affect zammadVersion, as information.
+        They are always written to the register either way.
       '';
+    };
+
+    heartbeatUrl = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "https://hc-ping.com/<uuid>";
+      description = "Optional dead-man's-switch URL pinged after every successful run.";
     };
   };
 
   config = lib.mkIf cfg.enable {
+
+    assertions = [{
+      assertion = cfg.zammadApiUrl == null || cfg.zammadTokenFile != null;
+      message = "elastinix.services.zammad-advisory-monitor: zammadApiUrl requires zammadTokenFile.";
+    }];
 
     systemd.services.zammad-advisory-monitor = {
       description = "Check ${cfg.repository} GitHub security advisories";
@@ -110,7 +150,7 @@ in
         LoadCredential =                               # -> $CREDENTIALS_DIRECTORY
           [ "slack-webhook:${cfg.slackWebhookFile}" ]
           ++ lib.optional (cfg.githubTokenFile != null) "github-token:${cfg.githubTokenFile}"
-          ++ lib.optional (cfg.heartbeatUrlFile != null) "heartbeat-url:${cfg.heartbeatUrlFile}";
+          ++ lib.optional (cfg.zammadTokenFile != null) "zammad-token:${cfg.zammadTokenFile}";
       };
     };
 
