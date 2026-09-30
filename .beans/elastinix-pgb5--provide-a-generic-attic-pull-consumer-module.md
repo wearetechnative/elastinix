@@ -1,11 +1,12 @@
 ---
 # elastinix-pgb5
 title: Provide a generic Attic pull-consumer module
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-09-30T07:22:18Z
-updated_at: 2026-09-30T07:22:18Z
+updated_at: 2026-09-30T10:11:25Z
+openspec-link: openspec/changes/archive/2026-09-30-attic-pull-consumer
 ---
 
 Move the Attic pull-consumer logic out of `technative-awsaccounts-workloads` into elastinix, as a generic NixOS module next to the existing atticd module.
