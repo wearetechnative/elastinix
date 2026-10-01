@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -67,7 +68,16 @@ def fetch_zammad_version(url, token):
     if not url.rstrip("/").endswith("/api/v1/version"):
         url = url.rstrip("/") + "/api/v1/version"  # accept the base URL too
     headers = {"Authorization": f"Token token={token}", "Accept": "application/json"}
-    data = json.loads(http_request(url, headers=headers))
+    log(f"Requesting Zammad version from {url} with token {token[:4]}... ({len(token)} chars)")
+    try:
+        data = json.loads(http_request(url, headers=headers))
+    except urllib.error.HTTPError as e:
+        # Zammad explains the problem in the response body, e.g. {"error":"Not authorized"}
+        body = e.read().decode(errors="replace")[:300]
+        hint = {401: "token not accepted: wrong/expired token, or Token Access disabled in Admin > System > API",
+                403: "token accepted but lacks the 'admin' permission",
+                404: "wrong URL: should end with /api/v1/version"}.get(e.code, "")
+        raise RuntimeError(f"HTTP {e.code} from Zammad: {body} {('-> ' + hint) if hint else ''}") from None
     version = data.get("version")
     if not version:
         raise ValueError(f"No 'version' in Zammad response: {str(data)[:200]}")
@@ -182,16 +192,56 @@ def save_seen(path, seen):
     tmp.replace(path)
 
 
-def append_register(path, adv, status, our_version, notified):
+def append_register(path, adv, status, our_version, notified, source="new"):
     entry = {
         "detected_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         **{k: adv.get(k) for k in ("ghsa_id", "cve_id", "severity", "summary", "published_at", "html_url")},
         "our_version": our_version,
         "assessment": status,          # affected / not_affected / unknown
         "notified": notified,          # was a Slack message sent?
+        "source": source,              # "baseline" (existed at first run) or "new"
     }
     with path.open("a") as f:
         f.write(json.dumps(entry) + "\n")
+
+
+SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
+
+def baseline_message(advisories, our_version, version_text, hostname):
+    """One Slack summary of all EXISTING advisories that affect (or may affect) us."""
+    rows = []
+    for adv in advisories:
+        status, _ranges, patched = assess(adv, our_version)
+        if status != NOT_AFFECTED:
+            rows.append((status, adv, patched))
+    rows.sort(key=lambda r: (r[0] != AFFECTED, SEVERITY_ORDER.get(r[1].get("severity"), 9)))
+
+    affected = sum(1 for r in rows if r[0] == AFFECTED)
+    unknown = len(rows) - affected
+    head = (f"Zammad advisory monitor initialised on {hostname}. "
+            f"Baseline check of {len(advisories)} existing advisories against Zammad {version_text}: ")
+    if not rows:
+        return head + ":white_check_mark: none affect this version. New advisories will be posted here."
+
+    lines = [head + f":rotating_light: *{affected} affect this version*"
+             + (f", {unknown} could not be determined" if unknown else "") + ".", ""]
+    for status, adv, patched in rows:
+        mark = ":red_circle:" if status == AFFECTED else ":grey_question:"
+        lines.append(f"{mark} {(adv.get('severity') or '?').upper()} <{adv.get('html_url')}|{adv.get('ghsa_id')}> "
+                     f"{adv.get('summary')} (fixed in {patched})")
+    fixes = []
+    for _s, _a, pv in rows:
+        for part in pv.replace(">=", "").split(","):
+            try:
+                fixes.append(parse_version(part))
+            except ValueError:
+                pass  # unparseable fix version: just leave it out of the suggestion
+    newest_fix = max(fixes, default=None)
+    if newest_fix and affected:
+        lines += ["", f"Upgrading to *{'.'.join(map(str, newest_fix))}* or later fixes all listed advisories. "
+                      "Please create a review ticket. New advisories will be posted here individually."]
+    return "\n".join(lines)
 
 
 def run_check(args, webhook):
@@ -203,9 +253,14 @@ def run_check(args, webhook):
     version_error = None
     if args.zammad_api_url:
         try:
-            token = read_credential("zammad-token") or os.environ.get("ZAMMAD_TOKEN")
+            token = read_credential("zammad-token")
+            source = "systemd credential 'zammad-token'"
             if not token:
-                raise ValueError("no Zammad token (credential 'zammad-token' or ZAMMAD_TOKEN)")
+                token, source = os.environ.get("ZAMMAD_TOKEN"), "ZAMMAD_TOKEN environment variable"
+            if not token:
+                raise ValueError("no Zammad token found: credential 'zammad-token' is missing or empty "
+                                 "(check zammadTokenFile and that agenix decrypted the secret)")
+            log(f"Zammad token loaded from {source}")
             args.zammad_version = fetch_zammad_version(args.zammad_api_url, token)
             log(f"Zammad version from API: {args.zammad_version}")
         except Exception as e:
@@ -220,18 +275,6 @@ def run_check(args, webhook):
 
     seen = load_seen(seen_file)
 
-    # First run: remember everything that exists, but do not alert on history
-    if seen is None:
-        save_seen(seen_file, {a["ghsa_id"] for a in advisories})
-        post_slack(webhook, f"Zammad advisory monitor initialised on {args.hostname}. "
-                            f"Tracking {len(advisories)} existing advisories; new ones will be posted here. "
-                            f"Checking against Zammad version: {args.zammad_version or 'not configured (alerting on all)'}.")
-        log(f"Initialised state with {len(advisories)} advisories")
-        new = []
-    else:
-        new = [a for a in advisories if a["ghsa_id"] not in seen]
-    log(f"New advisories: {len(new)}")
-
     our_version = None
     if args.zammad_version:
         try:
@@ -240,6 +283,23 @@ def run_check(args, webhook):
             log(f"WARNING: cannot parse Zammad version {args.zammad_version!r}; alerting on everything")
     version_text = args.zammad_version or (
         "(version lookup FAILED)" if version_error else "(version not configured)")
+
+    # First run: assess every existing advisory once and post ONE summary
+    # (instead of one message per historic advisory). All of them are written
+    # to the register with source="baseline" as evidence of the baseline review.
+    if seen is None:
+        post_slack(webhook, baseline_message(advisories, our_version, version_text, args.hostname))
+        for adv in reversed(advisories):
+            status, _r, _p = assess(adv, our_version)
+            append_register(register_file, adv, status, args.zammad_version,
+                            status != NOT_AFFECTED, source="baseline")
+        save_seen(seen_file, {a["ghsa_id"] for a in advisories})
+        log(f"Baseline: assessed {len(advisories)} existing advisories")
+        new = []
+    else:
+        new = [a for a in advisories if a["ghsa_id"] not in seen]
+    log(f"New advisories: {len(new)}")
+
 
     # API returns newest first; handle oldest first so Slack reads chronologically
     for adv in reversed(new):
