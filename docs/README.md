@@ -14,6 +14,7 @@ Services that integrate with external systems and APIs.
 Services that provide infrastructure-level functionality.
 
 - **[Attic](services/attic.md)** - Attic binary cache with S3 chunk storage and its database (cache signing keys) taken from the agenix environment file, never from the Nix store
+- **[Attic Pull](services/attic-pull.md)** - Makes a host pull from a private Attic cache: substituter, trusted key and netrc credential set together, with `cache.nixos.org` kept
 - **[Postfix AWS SES Relay](services/postfix-relay-aws.md)** - Centralized mail relay for AWS SES with SASL authentication, network security, and sender address rewriting
 
 ### Security Services
@@ -22,6 +23,7 @@ Services that provide security scanning and compliance functionality.
 - **[Vulnerability Scan Central](services/vulnerability-scan-central.md)** - Combined central vulnerability scanner: vulnix for NixOS packages (all hosts) and trivy for Docker images (per host via `enableDockerScan`)
 - **[Vulnerability Prometheus Exporter](services/vulnerability-prometheus-exporter.md)** - Prometheus exporter exposing per-host vulnerability metrics from vulnix and trivy scan results
 - **[Zammad Security Advisory](services/zammad-advisory-monitor.md)** - Hourly monitor of Zammad's GitHub security advisories that compares them against our Zammad version and posts the ones affecting us to Slack
+- **[Host Attack Surface Profile](services/hasp.md)** - publishes a Host Attack Surface Profile, a static markdown file with information describing how the machine is exposed
 
 ### Monitoring Services
 

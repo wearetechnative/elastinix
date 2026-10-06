@@ -59,6 +59,11 @@
         checks = lib.optionalAttrs pkgs.stdenv.isLinux {
           attic-database = import ./tests/attic-database.nix { inherit pkgs lib; };
           attic-garbage-collection = import ./tests/attic-garbage-collection.nix { inherit pkgs lib; };
+          attic-pull = import ./tests/attic-pull.nix {
+            inherit pkgs lib;
+            agenix = inputs.agenix.nixosModules.default;
+          };
+          attic-pull-vm = import ./tests/attic-pull-vm.nix { inherit pkgs lib; };
         };
       };
 

@@ -52,6 +52,25 @@ period, which disables time-based collection and restores attic's own default.
 - **AND** only orphan reaping remains, which is attic's behaviour without the
   section
 
+### Requirement: The collector's work is visible in the journal
+
+The module SHALL set a `RUST_LOG` directive for atticd by default, so that the
+garbage collector's report of each pass reaches the journal. Without one, atticd
+keeps only `error` and the collector -- which reports exclusively at `info` --
+runs unobserved, which defeats the purpose of configuring it at all.
+
+#### Scenario: Default configuration logs the collector
+
+- **WHEN** a host enables `elastinix.services.attic` without setting `log_filter`
+- **THEN** the atticd unit carries `RUST_LOG=attic_server=info` in its environment
+- **AND** a pass writes `Found N caches subject to time-based garbage collection`
+  and its deletion counts to the journal
+
+#### Scenario: Silence can be chosen deliberately
+
+- **WHEN** `log_filter = null`
+- **THEN** the unit sets no `RUST_LOG`, which is atticd's own behaviour
+
 ### Requirement: Document what counts as access
 
 The module documentation SHALL state that `last_accessed_at` is bumped only when

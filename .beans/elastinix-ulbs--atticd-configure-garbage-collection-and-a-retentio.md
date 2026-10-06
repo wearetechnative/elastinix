@@ -1,11 +1,12 @@
 ---
 # elastinix-ulbs
 title: 'atticd: configure garbage collection and a retention period'
-status: in-progress
+status: completed
 type: feature
 priority: normal
+openspec-link: openspec/changes/archive/2026-09-29-attic-garbage-collection
 created_at: 2026-09-25T13:41:30Z
-updated_at: 2026-09-25T13:41:30Z
+updated_at: 2026-09-29T12:34:59Z
 ---
 
 ## Context
@@ -80,3 +81,77 @@ This does not remove the need for retention, it sharpens it: retention is the
 only mechanism that ever drops a path that is still indexed but no longer wanted.
 Attic offers no per-path delete in its API or client either, so without retention
 the only way to shrink the cache is direct database surgery.
+
+## The collector was invisible (2026-09-29)
+
+Found while verifying the rollout. `[garbage-collection]` was live on both
+compute3 hosts with the 90-day retention, atticd had been restarted hours
+earlier, and the journal showed **nothing** from the collector.
+
+It was running the whole time. `main.rs` spawns `run_garbage_collection` in
+`--mode monolithic`, and that function runs a pass immediately before it first
+sleeps -- so a pass happened seconds after each deploy. What was missing was any
+way to see it:
+
+- `init_logging` builds the subscriber with `EnvFilter::from_default_env()`, so
+  with `RUST_LOG` unset everything below `error` is discarded. Verified on
+  compute3-prod: no `RUST_LOG` in the process environment.
+- The collector reports exclusively through `tracing::info!` -- "Found N caches
+  subject to time-based garbage collection", "Deleted N orphan NARs", "Deleted N
+  orphan chunks".
+- The startup lines that made the service look healthy -- `Running migrations...`,
+  `Starting API server...`, `Listening on ...` -- are `eprintln!` and bypass
+  tracing entirely. That is why the unit looked more talkative than its log level
+  allowed.
+
+So the acceptance in this bean, "the atticd journal shows the collector running
+on its interval", was unreachable as written. The module now defaults
+`log_filter` to `attic_server=info`, set on the systemd unit rather than in the
+environment file: it is not a secret and it belongs where it can be read. `null`
+restores atticd's own silence.
+
+This is the same failure this bean exists to fix, one level up: the cache grew
+unobserved, and the cleaning was unobserved too.
+
+Note for when the first pass is finally read: expect zero deletions and that is
+correct. Retention is 90 days, `tn-infra` was created 2026-09-25, and there are
+no orphans.
+
+## Done (2026-09-29)
+
+Merged as PR #40 (`4ee0777`, the retention itself) and #41 (`0461cb5`, the log
+filter that made it observable). Deployed and confirmed on compute3 in both
+environments. openspec change `attic-garbage-collection`, all tasks complete.
+
+Production, the run that mattered:
+
+    Found 1 caches subject to time-based garbage collection
+    Deleted 0 objects from tn-infra (ID 1)
+    Deleted 0 orphan NARs
+    Deleted 47 orphan chunks
+
+The `1` is the whole point -- `tn-infra` carries no retention of its own, so it
+is covered only because the module default reaches it. Zero objects deleted is
+correct: the cache was four days old.
+
+### What this uncovered
+
+Configuring retention turned out to be the smallest part. Two things outside this
+module stood between it and a single freed byte, and neither was visible until
+the collector could finally report:
+
+- the compute3 instance role had no `s3:DeleteObject`, so every chunk deletion
+  logged AccessDenied
+- the bucket is versioned with no lifecycle rule, so a delete only writes a
+  marker. attic accounted for 598 MB of live chunks while the bucket billed
+  **3.66 GB** -- the difference being the residue of the 2026-09-24/25 purge,
+  which the ledger recorded as having freed the space and had not
+
+Both fixed in the workloads repository, with the delete right scoped to `*.chunk`
+rather than the bucket, because non-production carries a `zammad/` prefix.
+Afterwards the collector removed all 47 orphans and bucket and database agree
+again at 20,863 objects. The purge residue expires through the 7-day lifecycle
+rule around 1-2 October.
+
+The theme, three times over: the cache grew unobserved, the cleaning was
+unobserved, and the cleaning that was finally observed could not do its job.
