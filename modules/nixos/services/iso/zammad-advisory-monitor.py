@@ -303,7 +303,7 @@ def run_check(args, webhook):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(description="Zammad security advisory monitor")
     parser.add_argument("--repository", default="zammad/zammad")
     parser.add_argument("--hostname", default=os.uname().nodename)
     parser.add_argument("--heartbeat-url", default=None)
