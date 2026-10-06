@@ -1,18 +1,3 @@
-"""Zammad security advisory monitor (ISO 27001 A.8.8 / A.5.7).
-
-Fetches the GitHub security advisories of a repository, posts every NEW
-advisory to a Slack incoming webhook and appends it to an evidence register.
-
-Runs as a systemd oneshot service. Uses only the Python standard library.
-
-Files (inside $STATE_DIRECTORY, provided by systemd):
-  seen.json       GHSA ids that were already notified
-  register.jsonl  append-only log of detected advisories (ISO evidence)
-
-Secrets (inside $CREDENTIALS_DIRECTORY, provided by systemd LoadCredential):
-  slack-webhook   Slack incoming webhook URL
-  github-token    optional GitHub token
-"""
 
 import argparse
 import json
@@ -72,7 +57,6 @@ def fetch_zammad_version(url, token):
     try:
         data = json.loads(http_request(url, headers=headers))
     except urllib.error.HTTPError as e:
-        # Zammad explains the problem in the response body, e.g. {"error":"Not authorized"}
         body = e.read().decode(errors="replace")[:300]
         hint = {401: "token not accepted: wrong/expired token, or Token Access disabled in Admin > System > API",
                 403: "token accepted but lacks the 'admin' permission",
@@ -88,16 +72,6 @@ def post_slack(webhook_url, text):
     payload = json.dumps({"text": text}).encode()
     http_request(webhook_url, data=payload, headers={"Content-Type": "application/json"})
 
-
-# --- Version matching -------------------------------------------------------
-#
-# Zammad advisories use two formats in "vulnerable_version_range":
-#   "<= 7.1.2"       standard GitHub range (comma-separated parts are AND-ed)
-#   "7.0.2, 7.1.0"   last affected version per release branch:
-#                    7.0.x up to 7.0.2 and 7.1.x up to 7.1.0 are affected
-#
-# Result is always one of AFFECTED / NOT_AFFECTED / UNKNOWN.
-# UNKNOWN is alerted like AFFECTED: when in doubt, a human must look.
 
 AFFECTED, NOT_AFFECTED, UNKNOWN = "affected", "not_affected", "unknown"
 OPERATORS = ("<=", ">=", "<", ">", "=")

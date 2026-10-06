@@ -21,6 +21,7 @@ Services that provide security scanning and compliance functionality.
 
 - **[Vulnerability Scan Central](services/vulnerability-scan-central.md)** - Combined central vulnerability scanner: vulnix for NixOS packages (all hosts) and trivy for Docker images (per host via `enableDockerScan`)
 - **[Vulnerability Prometheus Exporter](services/vulnerability-prometheus-exporter.md)** - Prometheus exporter exposing per-host vulnerability metrics from vulnix and trivy scan results
+- **[Zammad Security Advisory](services/zammad-advisory-monitor.md)** - Hourly monitor of Zammad's GitHub security advisories that compares them against our Zammad version and posts the ones affecting us to Slack
 
 ### Monitoring Services
 

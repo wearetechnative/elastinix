@@ -99,7 +99,8 @@ in
 
     zammadApiUrl = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
-      default = "https://zammad.tools.technative.cloud/api/v1/version";
+      default = null;
+      example = "https://zammad.tools.technative.cloud/api/v1/version"
       description = ''
         Zammad version endpoint, queried on every run. When set, it takes precedence
         over zammadVersion. Requires zammadTokenFile. If the call fails, advisories are
