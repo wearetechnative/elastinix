@@ -17,7 +17,6 @@ in
     port = lib.mkOption {
       type = lib.types.port;
       description = "Port for the chhoto-url server.";
-      default = 4567;
     };
 
     siteUrl = lib.mkOption {
@@ -33,12 +32,11 @@ in
       environmentFiles = cfg.environmentFiles;
       settings = {
         port = cfg.port;
-        site_url = cfg.siteUrl;
-        disable_frontend = false;
+        site_url = cfg.site_url;
       };
     };
 
-    services.nginx.virtualHosts."url.${environment_domain}" = {
+    services.nginx.virtualHosts."chhoto.${environment_domain}" = {
       enableACME = true;
       forceSSL = true;
       locations = {
