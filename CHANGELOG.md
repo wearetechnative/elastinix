@@ -3,6 +3,7 @@
 ## Next version
 
 ### Added
+- **`bootstrapNixpkgs` argument for `tf_command`** (default `nixpkgs`): the bootstrap AMI is built from this nixpkgs instead of the live system's. Pinning it keeps the AMI, and with it the EC2 instance, unchanged when `nixpkgs` is updated; a kernel update then only needs a reboot ([README](README.md#pinning-the-bootstrap-image))
 - **Attic pull consumer** (`elastinix.services.attic_pull`): makes a host pull from a private Attic cache. It replaces the per-repository module in the workloads stacks, and it has no knowledge of tfvars ([docs](docs/services/attic-pull.md))
   - Sets the three Nix settings that have to change together: the substituter `<endpoint>/<cache>` and its trusted key, both appended with `mkAfter` so `cache.nixos.org` stays first, and `netrc-file` pointing at the pull credential
   - `netrc_file` is a path string, so the secret never enters the Nix store and the module doesn't depend on agenix; the docs show the matching agenix secret (`owner = "root"`, `mode = "400"`)
