@@ -343,6 +343,19 @@ def inuse_units(records, dedup):
     return {k: sorted(v) for k, v in units.items()}
 
 
+def inuse_samples(records, dedup):
+    totals = {}
+    for rec in records:
+        day = {}
+        for name, entry in ((rec.get("inuse") or {}).get("observed") or {}).items():
+            samples = int(entry.get("samples") or 0) if isinstance(entry, dict) else 0
+            key = group_key(name, dedup)
+            day[key] = max(day.get(key, 0), samples)
+        for key, samples in day.items():
+            totals[key] = totals.get(key, 0) + samples
+    return totals
+
+
 def load_inuse(records, dedup):
     """In-use group keys observed in the period, or None meaning unknown.
 
@@ -365,7 +378,8 @@ def load_inuse(records, dedup):
     return keys
 
 
-def build_findings(host_dir, inuse_keys, dedup, exclusions, units_by_group=None):
+def build_findings(host_dir, inuse_keys, dedup, exclusions, units_by_group=None,
+                   samples_by_group=None):
     path = os.path.join(host_dir, "output.json")
     if not os.path.isfile(path):
         return [], None
@@ -407,6 +421,8 @@ def build_findings(host_dir, inuse_keys, dedup, exclusions, units_by_group=None)
                     float(score) if score is not None else None),
                 "inUse": in_use,
                 "units": (units_by_group or {}).get(key, []),
+                "samples": (None if in_use == "unknown"
+                            else (samples_by_group or {}).get(key, 0)),
             })
 
     summary = {
@@ -501,8 +517,9 @@ def main():
         examined, complete, first, last = coverage_of(records)
         inuse_keys = load_inuse(records, dedup)
         units_by_group = inuse_units(records, dedup) if inuse_keys is not None else {}
+        samples_by_group = inuse_samples(records, dedup) if inuse_keys is not None else {}
         findings, summary = build_findings(host_dir, inuse_keys, dedup, exclusions,
-                                           units_by_group)
+                                           units_by_group, samples_by_group)
         hosts[name] = {
             "observation": {
                 "daysExamined": examined,
