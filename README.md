@@ -93,6 +93,22 @@ packages = {
 }
 ```
 
+### Pinning the bootstrap image
+
+`tf_command` builds the bootstrap AMI from `bootstrapNixpkgs`, which defaults to `nixpkgs`. The AMI is the instance's `ami` attribute, so every change of its store path replaces the instance. Pass a separate, pinned nixpkgs to keep the AMI stable while `nixpkgs` is updated; the live system, including the kernel, keeps following `nixpkgs` and a new kernel is activated with a reboot.
+
+```nix
+inputs.bootstrappkgs.url = "github:NixOS/nixpkgs/<rev>";
+
+machineArgs = {
+  inherit nixpkgs;
+  bootstrapNixpkgs = bootstrappkgs;
+  # ...
+};
+```
+
+Bumping `bootstrappkgs` produces a new AMI and therefore a new instance.
+
 ## Documentation
 
 ### Services
