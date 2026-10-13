@@ -3,6 +3,10 @@
 ## Next version
 
 ### Added
+- **Postfix SES relay credential rotation** (`elastinix.services.postfix-relay-aws.credentialsRestartTriggers`, default `[]`): a rotated SES secret is now picked up on the next switch instead of the next reboot ([docs](docs/services/postfix-relay-aws.md#rotating-the-credentials))
+  - `postfix-setup-sasl` copies and postmaps `credentialsFile` once. The path of the secret doesn't change on rotation, so the unit stayed the same and Postfix kept sending the old credentials (`535 Authentication Credentials Invalid`)
+  - The host passes something that changes with the secret, typically `[ config.age.secrets.ses-smtp.file ]`; the module stays independent of agenix
+  - An empty list gives an evaluation warning
 - **`bootstrapNixpkgs` argument for `tf_command`** (default `nixpkgs`): the bootstrap AMI is built from this nixpkgs instead of the live system's. Pinning it keeps the AMI, and with it the EC2 instance, unchanged when `nixpkgs` is updated; a kernel update then only needs a reboot ([README](README.md#pinning-the-bootstrap-image))
 - **Attic pull consumer** (`elastinix.services.attic_pull`): makes a host pull from a private Attic cache. It replaces the per-repository module in the workloads stacks, and it has no knowledge of tfvars ([docs](docs/services/attic-pull.md))
   - Sets the three Nix settings that have to change together: the substituter `<endpoint>/<cache>` and its trusted key, both appended with `mkAfter` so `cache.nixos.org` stays first, and `netrc-file` pointing at the pull credential

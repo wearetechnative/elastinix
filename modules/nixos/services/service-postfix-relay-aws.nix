@@ -34,6 +34,21 @@ in {
       '';
     };
 
+    credentialsRestartTriggers = mkOption {
+      type = types.listOf types.unspecified;
+      default = [ ];
+      example = literalExpression "[ config.age.secrets.ses-smtp.file ]";
+      description = ''
+        Values that change whenever the contents of credentialsFile change,
+        typically the encrypted secret file.
+
+        credentialsFile is copied and postmapped once into
+        /var/lib/postfix/sasl_passwd.db. Its path stays the same when the
+        secret is rotated, so without a trigger a switch keeps the old
+        credentials until the next reboot.
+      '';
+    };
+
     trustedNetworks = mkOption {
       type = types.listOf types.str;
       default = [ "127.0.0.0/8" "::1/128" ];
@@ -88,6 +103,12 @@ in {
   };
 
   config = mkIf cfg.enable {
+    warnings = optional (cfg.credentialsRestartTriggers == [ ]) ''
+      elastinix.services.postfix-relay-aws.credentialsRestartTriggers is empty:
+      a rotated credentialsFile is not picked up until the next reboot.
+      Set it to e.g. [ config.age.secrets.ses-smtp.file ].
+    '';
+
     # Extract domain from defaultSenderAddress for services.postfix.domain
     # Example: "noreply@example.com" -> "example.com"
     services.postfix = {
@@ -181,6 +202,10 @@ in {
       description = "Setup Postfix SASL credentials for AWS SES";
       before = [ "postfix.service" ];
       wantedBy = [ "multi-user.target" ];
+
+      # A RemainAfterExit oneshot is only restarted by a switch when its unit
+      # changes; the triggers make a rotated secret change the unit.
+      restartTriggers = cfg.credentialsRestartTriggers;
 
       script = ''
         # Ensure /var/lib/postfix is owned by postfix user
