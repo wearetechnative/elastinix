@@ -46,6 +46,8 @@ echo "[email-smtp.eu-central-1.amazonaws.com]:587 AKIAXXX:SecretXXX" | agenix -e
     sesEndpoint = "email-smtp.eu-central-1.amazonaws.com";
     sesPort = 587;  # 587=STARTTLS, 465=TLS, 25=plain
     credentialsFile = config.age.secrets.ses-smtp.path;
+    # Restart the credentials setup when the secret is rotated (see below)
+    credentialsRestartTriggers = [ config.age.secrets.ses-smtp.file ];
 
     trustedNetworks = [
       "10.0.0.0/16"    # VPC CIDR
@@ -73,6 +75,14 @@ echo "[email-smtp.eu-central-1.amazonaws.com]:587 AKIAXXX:SecretXXX" | agenix -e
 ```
 
 **SES Endpoints**: [AWS documentation](https://docs.aws.amazon.com/general/latest/gr/ses.html)
+
+### Rotating the credentials
+
+Postfix doesn't read `credentialsFile` directly. The `postfix-setup-sasl` oneshot copies it to `/var/lib/postfix/sasl_passwd` and runs `postmap` once. A rotated secret keeps the same path (`/run/agenix/ses-smtp`), so on its own a switch leaves the unit unchanged and Postfix keeps sending the old credentials until the next reboot.
+
+`credentialsRestartTriggers` closes that gap. Pass something that changes with the secret, such as the encrypted file: a new `.age` file gives a new store path, the unit changes, and the switch restarts the setup after agenix has installed the new secret. Postfix notices the new `sasl_passwd.db` by itself. With an empty list the module emits an evaluation warning.
+
+The module doesn't depend on agenix: any value that changes with the credentials works.
 
 ## Client Configuration
 
@@ -152,6 +162,7 @@ postconf relayhost  # Verify relay config
 - Use SES SMTP credentials (not IAM keys)
 - Check credentials format: `[host]:port username:password`
 - Verify file permissions: `ls -la /var/lib/postfix/sasl_passwd*`
+- After a rotation: `cmp /run/agenix/ses-smtp /var/lib/postfix/sasl_passwd`. If they differ, set `credentialsRestartTriggers`, then run `systemctl restart postfix-setup-sasl` once
 
 **Connection refused**
 - Check AWS Security Group egress to port 587
