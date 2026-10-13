@@ -114,12 +114,10 @@ in {
           smtp_tls_note_starttls_offer = true;
 
           # Address Rewriting
-          # Use both hash (for exact matches) and regexp (for catch-all)
+          # A single regexp map: generic(5) has no "user@" lookup form, so a
+          # hash map can't express senderMaps keys like "root@" (any host).
           # Note: NixOS postfix module places mapFiles in /var/lib/postfix/conf/
-          smtp_generic_maps = [
-            "hash:/var/lib/postfix/conf/generic"
-            "regexp:/var/lib/postfix/conf/generic_regexp"
-          ];
+          smtp_generic_maps = [ "regexp:/var/lib/postfix/conf/generic_regexp" ];
 
           # SES Compliance Settings
           message_size_limit = cfg.messageSizeLimit;
@@ -150,19 +148,24 @@ in {
 
       # Map Files
       mapFiles = {
-        # Sender rewriting - exact matches (hash map)
-        generic = pkgs.writeText "postfix-generic" (
+        # Sender rewriting (regexp map, first match wins)
+        generic_regexp = pkgs.writeText "postfix-generic-regexp" (
           concatStringsSep "\n" (
-            # Specific sender mappings from cfg.senderMaps
-            (mapAttrsToList (from: to: "${from} ${to}") cfg.senderMaps)
-          )
+            # senderMaps: "user@" matches that user on any host, a full address matches exactly
+            (mapAttrsToList (from: to:
+              if hasSuffix "@" from
+              then "/^${escapeRegex from}/ ${to}"
+              else "/^${escapeRegex from}$/ ${to}"
+            ) cfg.senderMaps)
+            ++ [
+              # Catch-all: addresses without a public domain go to defaultSenderAddress.
+              # A bare host ("app@localhost") or an internal FQDN such as EC2's
+              # "root@ip-10-0-2-137.eu-central-1.compute.internal", which SES rejects.
+              "/^.+@[^.]+$/ ${cfg.defaultSenderAddress}"
+              "/^.+@.+\\.(internal|local|localdomain)$/ ${cfg.defaultSenderAddress}"
+            ]
+          ) + "\n"
         );
-
-        # Sender rewriting - regex catch-all (regexp map)
-        generic_regexp = pkgs.writeText "postfix-generic-regexp" ''
-          # Catch-all: rewrite any address without proper domain to defaultSenderAddress
-          /.+@[^.]+$/ ${cfg.defaultSenderAddress}
-        '';
 
         # Local mail aliases
         aliases = pkgs.writeText "postfix-aliases" ''
