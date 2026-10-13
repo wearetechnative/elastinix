@@ -124,6 +124,14 @@ services.postfix = {
 | `www-data@appserver` | `webserver@example.com` (via senderMaps) |
 | `noreply@example.com` | unchanged (already verified) |
 | `app@localhost` | `noreply@example.com` (catch-all regex) |
+| `cron@ip-10-0-2-137.eu-central-1.compute.internal` | `noreply@example.com` (catch-all regex) |
+
+All rules live in one regexp map (`/var/lib/postfix/conf/generic_regexp`), checked in order, first match wins:
+
+1. `senderMaps` — a key ending in `@` (`"root@"`) matches that user on **any** host, also on a verified domain; a full address matches only itself
+2. Catch-all — a domain without a dot (`localhost`, a bare hostname) or ending in `.internal`, `.local` or `.localdomain` becomes `defaultSenderAddress`
+
+Any other address passes unchanged and must be verified in SES.
 
 ## Testing
 
