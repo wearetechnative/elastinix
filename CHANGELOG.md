@@ -31,6 +31,11 @@
 - **Observation moved to sealed daily records** written where they are served (`/var/lib/hostinfo/observations/`), replacing the forever-growing in-use document so a negative claim is bounded by the monthly reporting period rather than by whatever had elapsed since the last deploy; the scan timer now defaults to `daily`, the existing cumulative evidence is discarded so every host reports `inUse: "unknown"` for one day, and migration on a deployed host is manual and order-critical ([docs](docs/services/hostinfo.md)).
 
 ### Fixed
+- **Kernel hostname follows `networking.hostName`** (`modules/nixos/bootstrap/base-conf.nix`): the kernel hostname is now set through `boot.kernel.sysctl."kernel.hostname"`, at boot and on every switch that changes it
+  - An instance first boots the bootstrap image with an empty `hostName`, so `apply-ec2-data` set the kernel hostname from EC2 metadata (`ip-10-0-2-137.eu-central-1.compute.internal`). The switch to the live config only wrote `/etc/hostname`, so `uname -n` kept the EC2 name and tools such as `mail(1)` sent as `root@ip-…compute.internal`
+  - Hosts that are already running get their configured hostname on the next deploy, without a reboot. The bootstrap image (empty `hostName`) is unchanged
+  - **Note**: anything keyed on the EC2 hostname changes with it, for example the CloudWatch agent's default `host` dimension
+  - New check `kernel-hostname-vm`
 - **Postfix SES relay sender rewriting** (`elastinix.services.postfix-relay-aws`): mail from internal hostnames is now rewritten before it reaches SES ([docs](docs/services/postfix-relay-aws.md))
   - `senderMaps` keys such as `"root@"` never matched: they were written to a hash map, and generic(5) has no `user@` lookup form. All rules are now in a single regexp map, so `root@` matches root on any host
   - The catch-all only rewrote domains without a dot, so an EC2 FQDN like `root@ip-10-0-2-137.eu-central-1.compute.internal` reached SES and bounced with `554 Email address is not verified`. Domains ending in `.internal`, `.local` and `.localdomain` are now rewritten to `defaultSenderAddress` as well

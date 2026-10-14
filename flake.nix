@@ -64,6 +64,7 @@
             agenix = inputs.agenix.nixosModules.default;
           };
           attic-pull-vm = import ./tests/attic-pull-vm.nix { inherit pkgs lib; };
+          kernel-hostname-vm = import ./tests/kernel-hostname-vm.nix { inherit pkgs lib; };
         };
       };
 
