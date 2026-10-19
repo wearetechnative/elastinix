@@ -1,11 +1,12 @@
 ---
 # elastinix-do0e
 title: Build Zammad from upstream GitHub source in elastinix
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-19T08:10:58Z
-updated_at: 2026-10-19T08:17:26Z
+updated_at: 2026-10-19T09:42:53Z
+openspec-link: openspec/changes/archive/2026-10-19-zammad-source-build
 ---
 
 Let elastinix build Zammad from the upstream GitHub source (`zammad/zammad`) at a tag we choose, so we no longer depend on whichever Zammad version a nixpkgs pin ships.

@@ -3,6 +3,11 @@
 ## Next version
 
 ### Added
+- **Zammad built from upstream source** (`pkgs/zammad/`, flake output `packages.<linux>.zammad`): the default of `elastinix.services.zammad.package` is now elastinix's own build of `zammad/zammad` at the revision pinned in `pkgs/zammad/source.json`, starting at **7.1.3**. The Zammad version no longer follows the nixpkgs pin ([docs](docs/services/zammad.md))
+  - The recipe is the nixpkgs one (`pkgs/by-name/za/zammad`), with `version` moved into `source.json` so one file decides it
+  - Built per service with `callPackage`, no overlay: `pkgs.zammad` is unchanged for other modules, and `package = pkgs.zammad` still selects the nixpkgs build
+  - `nix run .#zammad.updateScript -- <tag> ./pkgs/zammad` regenerates `source.json` and `gemset.nix` for a chosen tag; the pnpm hash is refreshed by hand
+  - Not on cache.nixos.org: build `.#zammad` and push it to attic before hosts deploy
 - **Postfix SES relay credential rotation** (`elastinix.services.postfix-relay-aws.credentialsRestartTriggers`, default `[]`): a rotated SES secret is now picked up on the next switch instead of the next reboot ([docs](docs/services/postfix-relay-aws.md#rotating-the-credentials))
   - `postfix-setup-sasl` copies and postmaps `credentialsFile` once. The path of the secret doesn't change on rotation, so the unit stayed the same and Postfix kept sending the old credentials (`535 Authentication Credentials Invalid`)
   - The host passes something that changes with the secret, typically `[ config.age.secrets.ses-smtp.file ]`; the module stays independent of agenix

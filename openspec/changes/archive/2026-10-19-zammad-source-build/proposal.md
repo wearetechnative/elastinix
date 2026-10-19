@@ -1,6 +1,6 @@
 # Proposal
 
-Epic: [elastinix-do0e — Build Zammad from upstream GitHub source in elastinix](../../../.beans/elastinix-do0e--build-zammad-from-upstream-github-source-in-elasti.md)
+Epic: [elastinix-do0e — Build Zammad from upstream GitHub source in elastinix](../../../../.beans/elastinix-do0e--build-zammad-from-upstream-github-source-in-elasti.md)
 
 ## Why
 

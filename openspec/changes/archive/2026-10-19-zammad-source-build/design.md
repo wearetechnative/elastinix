@@ -23,7 +23,7 @@ See proposal.md (Why). Current state:
 
 - Changing the Zammad NixOS module itself (`services.zammad`) or the elastinix zammad service options beyond the `package` default.
 - Automating version bumps (CI or renovate). Bumps stay manual and are triggered by `zammad-advisory-monitor`.
-- Upgrading to Zammad 7.2.x. It needs Elasticsearch ≥ 8.15, which nixpkgs does not ship, so it is tracked separately in [elastinix-gt7k](../../../.beans/elastinix-gt7k--upgrade-zammad-to-722-with-elasticsearch-815.md).
+- Upgrading to Zammad 7.2.x. It needs Elasticsearch ≥ 8.15, which nixpkgs does not ship, so it is tracked separately in [elastinix-gt7k](../../../../.beans/elastinix-gt7k--upgrade-zammad-to-722-with-elasticsearch-815.md).
 - The workloads follow-up (removing the `zammad-elastinix` input from compute3) and deleting the `update-zammad` branch.
 
 ## Decisions
