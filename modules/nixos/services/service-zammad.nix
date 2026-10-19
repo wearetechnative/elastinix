@@ -11,8 +11,15 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      description = "";
-      default = pkgs.zammad;
+      description = ''
+        Zammad package to run. Defaults to the elastinix build of the upstream
+        source pinned in pkgs/zammad/source.json, independent of the nixpkgs pin.
+      '';
+      # Built per service with callPackage (no overlay), so pkgs.zammad stays
+      # untouched for other modules and the upstream module can still
+      # .override { dataDir } it.
+      default = pkgs.callPackage ../../../pkgs/zammad/package.nix { };
+      defaultText = lib.literalExpression "pkgs.callPackage <elastinix>/pkgs/zammad/package.nix { }";
     };
 
     database_username = lib.mkOption {

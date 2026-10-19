@@ -55,6 +55,12 @@
       perSystem = { pkgs, lib, ... }: {
         devshells.default = {};
 
+        # Zammad built from the upstream source pinned in pkgs/zammad/source.json.
+        # Linux only, like the recipe's meta.platforms.
+        packages = lib.optionalAttrs pkgs.stdenv.isLinux {
+          zammad = pkgs.callPackage ./pkgs/zammad/package.nix { };
+        };
+
         # NixOS VM tests only build on Linux.
         checks = lib.optionalAttrs pkgs.stdenv.isLinux {
           attic-database = import ./tests/attic-database.nix { inherit pkgs lib; };
