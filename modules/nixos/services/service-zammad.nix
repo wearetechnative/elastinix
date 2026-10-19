@@ -3,6 +3,10 @@ let
   cfg = config.elastinix.services.zammad;
   infra_environment = tfvars.infra_environment;
   environment_domain = tfvars.environment_domain;
+
+  # Zammad 7.2 requires Elasticsearch >= 8.15; nixpkgs only ships 7.17. Built
+  # here (no overlay), so pkgs.elasticsearch is unchanged for other modules.
+  elasticsearchPackage = pkgs.callPackage ../../../pkgs/elasticsearch/package.nix { };
 in
   {
   options.elastinix.services.zammad = {
@@ -75,9 +79,20 @@ in
 
     services.elasticsearch = {
       enable = true;
+      package = elasticsearchPackage;
       dataDir = "/var/lib/elasticsearch";
-      plugins = [ pkgs.elasticsearchPlugins.ingest-attachment ];
-      extraConf = "http.max_content_length: 400mb";
+      # The upstream module's single_node also sets
+      # gateway.auto_import_dangling_indices, which Elasticsearch 8 rejects.
+      single_node = false;
+      # ingest-attachment is a bundled module since 8.4, so no plugins.
+      # Local-only node: no xpack security (it would auto-enable TLS and
+      # passwords on first start) and no machine learning.
+      extraConf = ''
+        discovery.type: single-node
+        xpack.security.enabled: false
+        xpack.ml.enabled: false
+        http.max_content_length: 400mb
+      '';
       logging = ''
             logger.action.name = org.elasticsearch.action
             logger.action.level = info
@@ -94,9 +109,23 @@ in
     services.nginx.virtualHosts."zammad.${environment_domain}" = {
       enableACME = true;
       forceSSL = true;
+      # Same locations as the upstream module's nginx.configure vhost. Zammad
+      # 7.2 takes the scheme from X-Forwarded-Proto (recommendedProxySettings)
+      # and authenticates the legacy WebSocket from the session cookie.
       locations = {
         "/" = {
-          proxyPass = "http://127.0.0.1:3000";
+          proxyPass = "http://127.0.0.1:${toString config.services.zammad.port}";
+          recommendedProxySettings = true;
+        };
+        "/cable" = {
+          proxyPass = "http://127.0.0.1:${toString config.services.zammad.port}";
+          proxyWebsockets = true;
+          recommendedProxySettings = true;
+        };
+        "/ws" = {
+          proxyPass = "http://127.0.0.1:${toString config.services.zammad.websocketPort}";
+          proxyWebsockets = true;
+          recommendedProxySettings = true;
         };
       };
     };

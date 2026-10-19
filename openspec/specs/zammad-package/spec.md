@@ -30,14 +30,19 @@ The Zammad version and source pin SHALL be defined in one data file (`source.jso
 - **WHEN** `source.json` contains `"version": "7.1.3"`
 - **THEN** the built package reports `version = "7.1.3"`
 
-### Requirement: Initial Zammad version
+### Requirement: Minimum pinned Zammad version
 
-The first vendored recipe SHALL pin Zammad 7.1.3, the version currently deployed on compute3 through the `update-zammad` branch. Adopting it must cause neither a downgrade nor a data migration.
+The vendored recipe SHALL pin Zammad 7.2.2 or newer. Hosts that already ran 7.2.2 must never be downgraded by a later pin.
 
-#### Scenario: Initial pin matches deployed version
+#### Scenario: Pin is at least 7.2.2
 
-- **WHEN** this change is applied
-- **THEN** the vendored package builds Zammad 7.1.3
+- **WHEN** the vendored Zammad package is evaluated
+- **THEN** its version is 7.2.2 or newer
+
+#### Scenario: Package manager requirements met
+
+- **WHEN** the pinned tag's `package.json` requires pnpm ≥ 11 and Node ≥ 24
+- **THEN** the recipe builds its frontend with pnpm 11 and Node 24 from nixpkgs
 
 ### Requirement: Default package of the zammad service
 
