@@ -6,6 +6,7 @@
   fetchpatch,
   applyPatches,
   bundlerEnv,
+  defaultGemConfig,
   callPackage,
   procps,
   ruby,
@@ -13,7 +14,7 @@
   jq,
   moreutils,
   nodejs,
-  pnpm_10,
+  pnpm_11,
   fetchPnpmDeps,
   pnpmConfigHook,
   cacert,
@@ -50,6 +51,26 @@ let
 
     gemdir = src;
     gemset = ./gemset.nix;
+
+    gemConfig = defaultGemConfig // {
+      # nixpkgs' config drops the cli.rb task's dart-sass prerequisite so
+      # nothing is downloaded; since sass-embedded 1.103 that prerequisite is
+      # also what creates ARCHDIR, so create it in the cli.rb task itself.
+      sass-embedded =
+        attrs:
+        let
+          upstream = defaultGemConfig.sass-embedded attrs;
+        in
+        upstream
+        // {
+          postPatch = upstream.postPatch + ''
+            substituteInPlace ext/sass/Rakefile \
+              --replace-fail "file File.absolute_path('cli.rb', ARCHDIR) do |task|" \
+                             "file File.absolute_path('cli.rb', ARCHDIR) do |task|
+            mkdir_p ARCHDIR"
+          '';
+        };
+    };
     groups = [
       "assets"
       "unicorn" # server
@@ -75,7 +96,7 @@ stdenvNoCC.mkDerivation {
     valkey
     postgresql
     pnpmConfigHook
-    pnpm_10
+    pnpm_11
     nodejs
     procps
     cacert
@@ -85,10 +106,10 @@ stdenvNoCC.mkDerivation {
 
   pnpmDeps = fetchPnpmDeps {
     inherit pname src;
-    pnpm = pnpm_10;
+    pnpm = pnpm_11;
 
     fetcherVersion = 3;
-    hash = "sha256-JG1VhG56L1bDyrVOjP4MFB5h//dVchgnrHiqhGNIuw4=";
+    hash = "sha256-XRH+UNgQJYfaoRd+MLXW2usA0Vle2wVoK7X/tZPNaG4=";
   };
 
   buildPhase = ''

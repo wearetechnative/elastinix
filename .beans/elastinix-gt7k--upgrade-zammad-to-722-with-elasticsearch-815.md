@@ -1,11 +1,12 @@
 ---
 # elastinix-gt7k
 title: Upgrade Zammad to 7.2.2 with Elasticsearch 8.15+
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-19T08:26:03Z
-updated_at: 2026-10-19T08:26:03Z
+updated_at: 2026-10-19T19:01:32Z
+openspec-link: openspec/changes/archive/2026-10-19-zammad-7-2-elasticsearch-8
 blocked_by:
     - elastinix-do0e
 ---

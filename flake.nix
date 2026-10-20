@@ -52,13 +52,22 @@
 
       systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
 
-      perSystem = { pkgs, lib, ... }: {
+      perSystem = { pkgs, lib, system, ... }: {
+        # Default nixpkgs, except that the vendored Elasticsearch (elastic20,
+        # unfree) may be built for the packages and checks below.
+        _module.args.pkgs = import inputs.nixpkgs {
+          inherit system;
+          config.allowUnfreePredicate = pkg: lib.getName pkg == "elasticsearch";
+        };
+
         devshells.default = {};
 
         # Zammad built from the upstream source pinned in pkgs/zammad/source.json.
         # Linux only, like the recipe's meta.platforms.
         packages = lib.optionalAttrs pkgs.stdenv.isLinux {
           zammad = pkgs.callPackage ./pkgs/zammad/package.nix { };
+          # Elasticsearch 8 for the zammad service; nixpkgs only ships 7.17.
+          elasticsearch = pkgs.callPackage ./pkgs/elasticsearch/package.nix { };
         };
 
         # NixOS VM tests only build on Linux.
@@ -71,6 +80,7 @@
           };
           attic-pull-vm = import ./tests/attic-pull-vm.nix { inherit pkgs lib; };
           kernel-hostname-vm = import ./tests/kernel-hostname-vm.nix { inherit pkgs lib; };
+          zammad-vm = import ./tests/zammad-vm.nix { inherit pkgs lib; };
         };
       };
 

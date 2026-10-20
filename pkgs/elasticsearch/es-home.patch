@@ -1,0 +1,36 @@
+--- a/bin/elasticsearch-env	2026-10-19 16:07:39.764956023 +0200
++++ b/bin/elasticsearch-env	2026-10-19 16:07:39.888709774 +0200
+@@ -19,18 +19,24 @@
+   fi
+ done
+ 
+-# determine Elasticsearch home; to do this, we strip from the path until we find
+-# bin, and then strip bin (there is an assumption here that there is no nested
+-# directory under bin also named bin)
+-ES_HOME=`dirname "$SCRIPT"`
++# determine Elasticsearch home, unless the caller set it (the NixOS module
++# points ES_HOME at the writable data directory); to do this, we strip from the
++# path until we find bin, and then strip bin (there is an assumption here that
++# there is no nested directory under bin also named bin)
++if [ -z "$ES_HOME" ]; then
++  ES_HOME=`dirname "$SCRIPT"`
+ 
+-# now make ES_HOME absolute
+-ES_HOME=`cd "$ES_HOME"; pwd`
++  # now make ES_HOME absolute
++  ES_HOME=`cd "$ES_HOME"; pwd`
+ 
+-while [ "`basename "$ES_HOME"`" != "bin" ]; do
++  while [ "`basename "$ES_HOME"`" != "bin" ]; do
++    ES_HOME=`dirname "$ES_HOME"`
++  done
+   ES_HOME=`dirname "$ES_HOME"`
+-done
+-ES_HOME=`dirname "$ES_HOME"`
++fi
++
++# default to the JDK from nixpkgs; the bundled JDK is not installed
++ES_JAVA_HOME="${ES_JAVA_HOME:-@jdk@}"
+ 
+ # now set the path to java
+ if [ ! -z "$ES_JAVA_HOME" ]; then
