@@ -1,8 +1,22 @@
-{ config, pkgs, tfvars, lib, ... }:
+{ config, pkgs, inputs, tfvars, lib, ... }:
 let
   cfg = config.elastinix.services.zammad;
   infra_environment = tfvars.infra_environment;
   environment_domain = tfvars.environment_domain;
+
+  # Oldest release allowed against the production database (migrations are
+  # forward-only). Raise this after every production upgrade.
+  minimumVersion = "7.2.2";
+
+  # Packages per `source`; attrsets are lazy, so only the selected one is built.
+  # Built per service (no overlay), so pkgs.zammad stays untouched for other
+  # modules and the upstream module can still .override { dataDir } it.
+  unstable = inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+  packages = {
+    pinned = pkgs.callPackage ../../../pkgs/zammad/package.nix { };
+    nixpkgs = pkgs.zammad;
+    unstable = unstable.zammad;
+  };
 
   # Zammad 7.2 requires Elasticsearch >= 8.15; nixpkgs only ships 7.17. Built
   # here (no overlay), so pkgs.elasticsearch is unchanged for other modules.
@@ -13,17 +27,27 @@ in
 
     enable = lib.mkEnableOption "Zammad";
 
+    source = lib.mkOption {
+      type = lib.types.enum [ "pinned" "nixpkgs" "unstable" ];
+      default = "pinned";
+      description = ''
+        Where the default `package` comes from: "pinned" builds the upstream
+        source pinned in pkgs/zammad/source.json, "nixpkgs" uses pkgs.zammad,
+        "unstable" uses the nixpkgs-unstable input.
+      '';
+    };
+
     package = lib.mkOption {
       type = lib.types.package;
-      description = ''
-        Zammad package to run. Defaults to the elastinix build of the upstream
-        source pinned in pkgs/zammad/source.json, independent of the nixpkgs pin.
+      description = "Zammad package to run. Defaults to the package selected by `source`.";
+      default = packages.${cfg.source};
+      defaultText = lib.literalExpression ''
+        {
+          pinned = pkgs.callPackage <elastinix>/pkgs/zammad/package.nix { };
+          nixpkgs = pkgs.zammad;
+          unstable = inputs.nixpkgs-unstable.legacyPackages.''${system}.zammad;
+        }.''${config.elastinix.services.zammad.source}
       '';
-      # Built per service with callPackage (no overlay), so pkgs.zammad stays
-      # untouched for other modules and the upstream module can still
-      # .override { dataDir } it.
-      default = pkgs.callPackage ../../../pkgs/zammad/package.nix { };
-      defaultText = lib.literalExpression "pkgs.callPackage <elastinix>/pkgs/zammad/package.nix { }";
     };
 
     database_username = lib.mkOption {
@@ -59,6 +83,11 @@ in
 
   # Only enable Zammad when in production environment
   config = lib.mkIf cfg.enable {
+    warnings = lib.optional (lib.versionOlder cfg.package.version minimumVersion) ''
+      elastinix.services.zammad: package version ${cfg.package.version} is older than
+      the minimum version ${minimumVersion}. Zammad database migrations are
+      forward-only; take a backup of the database before downgrading.
+    '';
 
     services.zammad = {
       package = cfg.package;

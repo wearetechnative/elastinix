@@ -68,6 +68,9 @@
           zammad = pkgs.callPackage ./pkgs/zammad/package.nix { };
           # Elasticsearch 8 for the zammad service; nixpkgs only ships 7.17.
           elasticsearch = pkgs.callPackage ./pkgs/elasticsearch/package.nix { };
+          # Vaultwarden built from the upstream source pinned in
+          # pkgs/vaultwarden/source.json; used with services.vaultwarden.source = "pinned".
+          vaultwarden = pkgs.callPackage ./pkgs/vaultwarden/package.nix { dbBackend = "postgresql"; };
         };
 
         # NixOS VM tests only build on Linux.
@@ -80,7 +83,7 @@
           };
           attic-pull-vm = import ./tests/attic-pull-vm.nix { inherit pkgs lib; };
           kernel-hostname-vm = import ./tests/kernel-hostname-vm.nix { inherit pkgs lib; };
-          zammad-vm = import ./tests/zammad-vm.nix { inherit pkgs lib; };
+          zammad-vm = import ./tests/zammad-vm.nix { inherit pkgs lib inputs; };
         };
       };
 

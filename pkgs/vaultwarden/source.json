@@ -1,0 +1,12 @@
+{
+  "owner": "dani-garcia",
+  "repo": "vaultwarden",
+  "rev": "6ed6921cc2b0e03b4d74189574d2a5e71c512e97",
+  "hash": "sha256-7r4vTThc98coMIOxPA61X/A8pLiAfPVJxJlWQY8yELw=",
+  "cargoHash": "sha256-onyxPAt3bVsF9Zj0Z+rnXoUA0NQLabYxxGqzhnVHz/E=",
+  "version": "1.37.5",
+  "webvault": {
+    "version": "2026.10.1",
+    "hash": "sha256-02Zo+Ih5HzFQENUV1URGg2OlLkhMOMpnOPPjj/xvjI0="
+  }
+}

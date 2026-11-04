@@ -16,7 +16,8 @@ All options live under `elastinix.services.zammad`.
 | Option                  | Type    | Default                       | Description                               |
 | ----------------------- | ------- | ----------------------------- | ----------------------------------------- |
 | `enable`                | bool    | `false`                       | Enable Zammad                             |
-| `package`               | package | elastinix build (see below)   | Zammad package to run                     |
+| `source`                | enum    | `"pinned"`                    | Where the default `package` comes from    |
+| `package`               | package | selected by `source`          | Zammad package to run                     |
 | `database_username`     | str     | —                             | PostgreSQL user                           |
 | `database_host`         | str     | —                             | PostgreSQL host                           |
 | `database_port`         | int     | —                             | PostgreSQL port                           |
@@ -28,15 +29,32 @@ All options live under `elastinix.services.zammad`.
 never enter the Nix store. Point them at agenix secrets
 (`config.age.secrets.<name>.path`).
 
-### `package`
+### `source` and `package`
 
-The default is `pkgs.callPackage <elastinix>/pkgs/zammad/package.nix { }`. It
-is built per service, not through an overlay, so `pkgs.zammad` stays the
-nixpkgs package for every other module. To run the nixpkgs build instead:
+`source` picks the default of `package`:
+
+| `source`   | Package                                                       | Version (2026-11) |
+| ---------- | ------------------------------------------------------------- | ----------------- |
+| `pinned`   | `pkgs.callPackage <elastinix>/pkgs/zammad/package.nix { }`    | 7.2.2             |
+| `nixpkgs`  | `pkgs.zammad` (nixos-26.05)                                   | 7.1.3             |
+| `unstable` | `zammad` from the `nixpkgs-unstable` input                    | 7.1.2             |
+
+Every package is selected per service, not through an overlay, so
+`pkgs.zammad` stays the nixpkgs package for every other module. Only the
+nixpkgs builds are older than 7.2 and expect Elasticsearch 7; this module
+always runs Elasticsearch 8, so `nixpkgs` and `unstable` are for emergencies
+only. `unstable` follows the `nixpkgs-unstable` lock, which documenso shares.
+
+An explicit `package` wins over `source`:
 
 ```nix
-elastinix.services.zammad.package = pkgs.zammad;
+elastinix.services.zammad.package = myZammad;
 ```
+
+The module warns at build time when the package is older than its minimum
+version (`minimumVersion` in `service-zammad.nix`, now **7.2.2**): Zammad
+migrates its database forward only, so take a backup before running an older
+release. Raise `minimumVersion` after every production upgrade.
 
 The [Zammad Security Advisory monitor](zammad-advisory-monitor.md) reads
 `package.version`, so it follows whatever package is configured here.

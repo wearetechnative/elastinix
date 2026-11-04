@@ -11,7 +11,7 @@
 # generous so the test also passes when the builder has no KVM (TCG).
 #
 # Exposed as checks.<linux-system>.zammad-vm in flake.nix.
-{ pkgs, lib, ... }:
+{ pkgs, lib, inputs, ... }:
 
 let
   # zammad.example.com is Zammad's default fqdn, which ActionCable accepts as
@@ -23,6 +23,7 @@ in
 pkgs.testers.runNixOSTest {
   name = "zammad-vm";
 
+  node.specialArgs.inputs = inputs;
   node.specialArgs.tfvars = {
     infra_environment = "test";
     environment_domain = domain;
