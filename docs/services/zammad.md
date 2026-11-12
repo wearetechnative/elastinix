@@ -35,7 +35,7 @@ never enter the Nix store. Point them at agenix secrets
 
 | `source`   | Package                                                       | Version (2026-11) |
 | ---------- | ------------------------------------------------------------- | ----------------- |
-| `pinned`   | `pkgs.callPackage <elastinix>/pkgs/zammad/package.nix { }`    | 7.2.2             |
+| `pinned`   | `pkgs.callPackage <elastinix>/pkgs/zammad/package.nix { }`    | 7.2.3             |
 | `nixpkgs`  | `pkgs.zammad` (nixos-26.05)                                   | 7.1.3             |
 | `unstable` | `zammad` from the `nixpkgs-unstable` input                    | 7.1.2             |
 
@@ -126,10 +126,10 @@ scheme only from `X-Forwarded-Proto`, and authenticates the legacy WebSocket
 {
   "owner": "zammad",
   "repo": "zammad",
-  "rev": "295796a2df0b38a579846c017383835657687a22",
-  "hash": "sha256-PDrBkRi/hT7IM3Ed1WZ5seoE6EKQVIJp65wLz3bWQew=",
+  "rev": "d3f316a4002e123dfb0a7b71712d23434c073178",
+  "hash": "sha256-v/n54ulf21ZntadRiuslPdBjoaLemPLN+zctbBy2vYA=",
   "fetchSubmodules": true,
-  "version": "7.2.2"
+  "version": "7.2.3"
 }
 ```
 

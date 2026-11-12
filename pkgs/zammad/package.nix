@@ -109,7 +109,7 @@ stdenvNoCC.mkDerivation {
     pnpm = pnpm_11;
 
     fetcherVersion = 3;
-    hash = "sha256-4DXnIsrJEqtgswUBrK5fmBJuceC8KCcW1aHthAUkEXc=";
+    hash = "sha256-dGI4m3FgfgU3lipPwyX8OGaKjpUaLCM0/0CTAyE9w/U=";
   };
 
   buildPhase = ''
