@@ -94,13 +94,15 @@ in
     services.nginx.virtualHosts."vaultwarden.${environment_domain}" = {
       enableACME = true;
       forceSSL = true;
+      extraConfig = ''
+    client_max_body_size 525M;
+      '';
       locations = {
         "/" = {
           proxyPass = "http://127.0.0.1:8222";
           proxyWebsockets = true;
         };
       };
-      clientMaxBodySize = "525M";
       recommendedProxySettings = true;
     };
   };
