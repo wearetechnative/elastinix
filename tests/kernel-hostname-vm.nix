@@ -3,7 +3,7 @@
 # switch, without a reboot.
 #
 # Exposed as checks.<linux-system>.kernel-hostname-vm in flake.nix.
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 
 pkgs.testers.runNixOSTest {
   name = "kernel-hostname-vm";

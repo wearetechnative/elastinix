@@ -8,7 +8,6 @@
 }:
 let
   cfg = config.elastinix.services.zammad;
-  inherit (tfvars) infra_environment;
   inherit (tfvars) environment_domain;
 
   # Oldest release allowed against the production database (migrations are

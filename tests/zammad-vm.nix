@@ -34,7 +34,7 @@ pkgs.testers.runNixOSTest {
     environment_domain = domain;
   };
 
-  nodes.machine = { config, ... }: {
+  nodes.machine = { ... }: {
     imports = [
       ../modules/nixos/services/service-zammad.nix
       # Hosts enable nginx through this module; the zammad module only adds

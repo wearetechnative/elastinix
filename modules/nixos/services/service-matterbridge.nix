@@ -18,7 +18,7 @@ in
   config = lib.mkIf cfg.enable {
 
     nixpkgs.overlays = [
-      (final: prev: {
+      (_final: prev: {
         matterbridge = prev.buildGoModule rec {
           pname = "matterbridge";
           version = "c4157a4d5b49fce79c80a30730dc7c404bacd663";

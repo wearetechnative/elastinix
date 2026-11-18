@@ -1,14 +1,12 @@
 {
   pkgs,
   config,
-  tfvars,
   lib,
   ...
 }:
 
 let
   cfg = config.elastinix.services.frp;
-  inherit (tfvars) infra_environment;
 in
 {
   options.elastinix.services.frp = {

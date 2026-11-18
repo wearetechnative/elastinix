@@ -14,7 +14,6 @@ let
     mkOption
     mkIf
     mkMerge
-    mkDefault
     types
     literalExpression
     optionalString

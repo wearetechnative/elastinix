@@ -1,10 +1,10 @@
 { inputs, ... }:
 {
-  nixpkgs,
   runSystem,
   tfBinOverride,
   distribution ? "terraform",
   version ? "1-5-3",
+  ...
 }:
 let
   tf_pkgs = import inputs."nixpkgs-${distribution}-v${version}" {

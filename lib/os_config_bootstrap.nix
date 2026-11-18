@@ -1,4 +1,4 @@
-{ inputs, nixpkgs }:
+{ nixpkgs, ... }:
 targetSystem: rootAuthorizedKeys:
 
 (nixpkgs.lib.nixosSystem {

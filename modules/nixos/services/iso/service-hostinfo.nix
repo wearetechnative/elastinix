@@ -8,11 +8,11 @@
 let
   cfg = config.elastinix.services.hostinfo;
 
-  elastinixServices = lib.filterAttrs (n: v: lib.isAttrs v && (v.enable or false)) (
+  elastinixServices = lib.filterAttrs (_n: v: lib.isAttrs v && (v.enable or false)) (
     config.elastinix.services or { }
   );
 
-  elastinixPrograms = lib.filterAttrs (n: v: lib.isAttrs v && (v.enable or false)) (
+  elastinixPrograms = lib.filterAttrs (_n: v: lib.isAttrs v && (v.enable or false)) (
     config.elastinix.programs or { }
   );
 

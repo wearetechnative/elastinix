@@ -3,7 +3,6 @@
   lib,
   nixosTests,
   fetchFromGitHub,
-  fetchpatch,
   applyPatches,
   bundlerEnv,
   defaultGemConfig,
