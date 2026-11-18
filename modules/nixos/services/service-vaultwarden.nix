@@ -60,6 +60,31 @@ in
       type = lib.types.str;
       description = "The environment variables for vaultwarden";
     };
+
+    nginx = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Render the module's nginx virtual host and its ACME certificate.
+          Set this to false when the host declares its own virtual host (and
+          certificate) for Vaultwarden, so the consumer flake owns the
+          published domain and the module does not add a second one.
+        '';
+      };
+
+      domain = lib.mkOption {
+        type = lib.types.str;
+        default = "vaultwarden.${environment_domain}";
+        defaultText = lib.literalExpression ''"vaultwarden.''${tfvars.environment_domain}"'';
+        description = ''
+          Fully qualified domain name for the nginx virtual host and its ACME
+          certificate. Defaults to `vaultwarden.<environment_domain>`; set it
+          when the service is published on another domain, for example
+          `vaultwarden.technative.eu`.
+        '';
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -69,36 +94,49 @@ in
       forward-only; take a backup of the database before downgrading.
     '';
 
-    # Vaultwarden service configuration
-    services.vaultwarden = {
-      enable = true;
-      inherit (cfg) package;
-      # The upstream module takes the web vault from pkgs.vaultwarden; keep it
-      # matched to the selected server.
-      webVaultPackage = cfg.package.webvault or pkgs.vaultwarden.webvault;
-      dbBackend = "postgresql";
-      environmentFile = cfg.environment_file;
+    services = {
+      # Vaultwarden service configuration
+      vaultwarden = {
+        enable = true;
+        inherit (cfg) package;
+        # The upstream module takes the web vault from pkgs.vaultwarden; keep it
+        # matched to the selected server.
+        webVaultPackage = cfg.package.webvault or pkgs.vaultwarden.webvault;
+        dbBackend = "postgresql";
+        environmentFile = cfg.environment_file;
+      };
+      nginx = {
+        recommendedProxySettings = true;
+        virtualHosts = lib.mkIf cfg.nginx.enable {
+          "${cfg.nginx.domain}" = {
+            enableACME = true;
+            forceSSL = true;
+            extraConfig = ''
+              client_max_body_size 525M;
+            '';
+            locations = {
+              "/" = {
+                proxyPass = "http://127.0.0.1:8222";
+                proxyWebsockets = true;
+              };
+            };
+          };
+        };
+      };
     };
 
     environment.systemPackages = [
       pkgs.system-sendmail
     ];
 
-    security.acme.certs."vaultwarden.${environment_domain}" = {
-      webroot = "/var/lib/acme/acme-challenge";
-      group = "nginx";
+    security.acme.certs = lib.mkIf cfg.nginx.enable {
+      "${cfg.nginx.domain}" = {
+        webroot = "/var/lib/acme/acme-challenge";
+        group = "nginx";
+      };
     };
 
     systemd.services.vaultwarden.serviceConfig.ReadWritePaths = "/vaultwarden"; # needed to get systemd vaultwarden.service read outside system folders
 
-    services.nginx.virtualHosts."vaultwarden.${environment_domain}" = {
-      enableACME = true;
-      forceSSL = true;
-      locations = {
-        "/" = {
-          proxyPass = "http://127.0.0.1:8222";
-        };
-      };
-    };
   };
 }
