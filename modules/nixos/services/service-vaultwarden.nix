@@ -104,7 +104,6 @@ in
           proxyWebsockets = true;
         };
       };
-      recommendedProxySettings = true;
     };
   };
 }
