@@ -1,4 +1,10 @@
-{ config, lib, pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 with lib;
 
@@ -8,55 +14,58 @@ let
   # Use the jirasync package from the flake input
   jirasyncPackage = inputs.jirasync.packages.${pkgs.system}.default;
 
-in {
+in
+{
   options.elastinix.services.jirasync = {
     enable = mkEnableOption "Jira synchronization service";
 
     instances = mkOption {
-      type = types.attrsOf (types.submodule {
-        options = {
-          configFile = mkOption {
-            type = types.str;
-            description = "Path to the Jira sync configuration file";
-          };
+      type = types.attrsOf (
+        types.submodule {
+          options = {
+            configFile = mkOption {
+              type = types.str;
+              description = "Path to the Jira sync configuration file";
+            };
 
-          stateFile = mkOption {
-            type = types.str;
-            description = "Full path to the state file (e.g. /var/lib/jirasync/iit.state.json)";
-          };
+            stateFile = mkOption {
+              type = types.str;
+              description = "Full path to the state file (e.g. /var/lib/jirasync/iit.state.json)";
+            };
 
-          daysToSync = mkOption {
-            type = types.nullOr types.int;
-            default = null;
-            description = "Bootstrap: days to look back on first run (ignored if state file exists). Leave null to fetch all on first run.";
-          };
+            daysToSync = mkOption {
+              type = types.nullOr types.int;
+              default = null;
+              description = "Bootstrap: days to look back on first run (ignored if state file exists). Leave null to fetch all on first run.";
+            };
 
-          dryRun = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Run in dry-run mode without making changes";
-          };
+            dryRun = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Run in dry-run mode without making changes";
+            };
 
-          interval = mkOption {
-            type = types.str;
-            default = "hourly";
-            description = "Systemd timer interval (e.g., 'daily', 'hourly', '*:0/30' for every 30 minutes)";
-          };
+            interval = mkOption {
+              type = types.str;
+              default = "hourly";
+              description = "Systemd timer interval (e.g., 'daily', 'hourly', '*:0/30' for every 30 minutes)";
+            };
 
-          user = mkOption {
-            type = types.str;
-            default = "root";
-            description = "User to run the service as";
-          };
+            user = mkOption {
+              type = types.str;
+              default = "root";
+              description = "User to run the service as";
+            };
 
-          group = mkOption {
-            type = types.str;
-            default = "root";
-            description = "Group to run the service as";
+            group = mkOption {
+              type = types.str;
+              default = "root";
+              description = "Group to run the service as";
+            };
           };
-        };
-      });
-      default = {};
+        }
+      );
+      default = { };
       description = "Jira sync instances to configure";
     };
   };
@@ -64,84 +73,119 @@ in {
   config = mkIf cfg.enable {
     environment.systemPackages = [ jirasyncPackage ];
 
-    # Create state file directories for all instances
-    systemd.tmpfiles.rules = concatMap (name:
-      let instanceCfg = cfg.instances.${name};
-      in [ "d ${builtins.dirOf instanceCfg.stateFile} 0750 ${instanceCfg.user} ${instanceCfg.group} -" ]
-    ) (attrNames cfg.instances);
+    systemd = {
+      # Create state file directories for all instances
+      tmpfiles.rules = concatMap (
+        name:
+        let
+          instanceCfg = cfg.instances.${name};
+        in
+        [ "d ${builtins.dirOf instanceCfg.stateFile} 0750 ${instanceCfg.user} ${instanceCfg.group} -" ]
+      ) (attrNames cfg.instances);
+      # Create systemd services for each instance
+      services = listToAttrs (
+        map (
+          name:
+          let
+            instanceCfg = cfg.instances.${name};
+          in
+          nameValuePair "jirasync-${name}" {
+            description = "Jira synchronization service (${name})";
+            after = [ "network-online.target" ];
+            wants = [ "network-online.target" ];
 
-    # Create users and groups for all instances (skip root as it already exists)
-    users.users = listToAttrs (filter (x: x.name != "root") (map (name:
-      let instanceCfg = cfg.instances.${name};
-      in nameValuePair instanceCfg.user {
-        isSystemUser = true;
-        group = instanceCfg.group;
-        description = "Jira sync service user";
-      }
-    ) (attrNames cfg.instances)));
+            script = ''
+              ${jirasyncPackage}/bin/jirasync \
+                --config "${instanceCfg.configFile}" \
+                --state-file "${instanceCfg.stateFile}" \
+                ${optionalString (instanceCfg.daysToSync != null) "--days ${toString instanceCfg.daysToSync}"} \
+                ${optionalString instanceCfg.dryRun "--dry-run"}
+            '';
 
-    users.groups = listToAttrs (filter (x: x.name != "root") (map (name:
-      let instanceCfg = cfg.instances.${name};
-      in nameValuePair instanceCfg.group {}
-    ) (attrNames cfg.instances)));
+            serviceConfig = {
+              Type = "oneshot";
+              User = instanceCfg.user;
+              Group = instanceCfg.group;
 
-    # Create systemd services for each instance
-    systemd.services = listToAttrs (map (name:
-      let instanceCfg = cfg.instances.${name};
-      in nameValuePair "jirasync-${name}" {
-        description = "Jira synchronization service (${name})";
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
+              # Allow writing state file to its configured location
+              ReadWritePaths = [ (builtins.dirOf instanceCfg.stateFile) ];
 
-        script = ''
-          ${jirasyncPackage}/bin/jirasync \
-            --config "${instanceCfg.configFile}" \
-            --state-file "${instanceCfg.stateFile}" \
-            ${optionalString (instanceCfg.daysToSync != null) "--days ${toString instanceCfg.daysToSync}"} \
-            ${optionalString instanceCfg.dryRun "--dry-run"}
-        '';
+              # Security hardening
+              PrivateTmp = true;
+              ProtectSystem = "strict";
+              ProtectHome = true;
+              NoNewPrivileges = true;
+              PrivateDevices = true;
+              ProtectKernelTunables = true;
+              ProtectKernelModules = true;
+              ProtectControlGroups = true;
+              RestrictAddressFamilies = [
+                "AF_INET"
+                "AF_INET6"
+              ];
+              RestrictNamespaces = true;
+              LockPersonality = true;
+              RestrictRealtime = true;
+              RestrictSUIDSGID = true;
+              RemoveIPC = true;
+              SystemCallFilter = [
+                "@system-service"
+                "~@privileged"
+              ];
+            };
+          }
+        ) (attrNames cfg.instances)
+      );
+      # Create systemd timers for each instance
+      timers = listToAttrs (
+        map (
+          name:
+          let
+            instanceCfg = cfg.instances.${name};
+          in
+          nameValuePair "jirasync-${name}" {
+            description = "Timer for Jira synchronization (${name})";
+            wantedBy = [ "timers.target" ];
 
-        serviceConfig = {
-          Type = "oneshot";
-          User = instanceCfg.user;
-          Group = instanceCfg.group;
+            timerConfig = {
+              OnCalendar = instanceCfg.interval;
+              Persistent = true;
+              RandomizedDelaySec = "5min";
+            };
+          }
+        ) (attrNames cfg.instances)
+      );
+    };
 
-          # Allow writing state file to its configured location
-          ReadWritePaths = [ (builtins.dirOf instanceCfg.stateFile) ];
+    users = {
+      # Create users and groups for all instances (skip root as it already exists)
+      users = listToAttrs (
+        filter (x: x.name != "root") (
+          map (
+            name:
+            let
+              instanceCfg = cfg.instances.${name};
+            in
+            nameValuePair instanceCfg.user {
+              isSystemUser = true;
+              inherit (instanceCfg) group;
+              description = "Jira sync service user";
+            }
+          ) (attrNames cfg.instances)
+        )
+      );
+      groups = listToAttrs (
+        filter (x: x.name != "root") (
+          map (
+            name:
+            let
+              instanceCfg = cfg.instances.${name};
+            in
+            nameValuePair instanceCfg.group { }
+          ) (attrNames cfg.instances)
+        )
+      );
+    };
 
-          # Security hardening
-          PrivateTmp = true;
-          ProtectSystem = "strict";
-          ProtectHome = true;
-          NoNewPrivileges = true;
-          PrivateDevices = true;
-          ProtectKernelTunables = true;
-          ProtectKernelModules = true;
-          ProtectControlGroups = true;
-          RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
-          RestrictNamespaces = true;
-          LockPersonality = true;
-          RestrictRealtime = true;
-          RestrictSUIDSGID = true;
-          RemoveIPC = true;
-          SystemCallFilter = [ "@system-service" "~@privileged" ];
-        };
-      }
-    ) (attrNames cfg.instances));
-
-    # Create systemd timers for each instance
-    systemd.timers = listToAttrs (map (name:
-      let instanceCfg = cfg.instances.${name};
-      in nameValuePair "jirasync-${name}" {
-        description = "Timer for Jira synchronization (${name})";
-        wantedBy = [ "timers.target" ];
-
-        timerConfig = {
-          OnCalendar = instanceCfg.interval;
-          Persistent = true;
-          RandomizedDelaySec = "5min";
-        };
-      }
-    ) (attrNames cfg.instances));
   };
 }

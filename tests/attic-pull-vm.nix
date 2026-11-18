@@ -21,13 +21,15 @@ let
       "$(${lib.getExe pkgs.openssl} genrsa -traditional 4096 | ${pkgs.coreutils}/bin/base64 -w0)" > $out
   '';
 
-  createCache = pkgs.writeText "attic-pull-test-create-cache.json" (builtins.toJSON {
-    keypair.Keypair = cacheSecretKey;
-    is_public = false;
-    store_dir = "/nix/store";
-    priority = 41;
-    upstream_cache_key_names = [ "cache.nixos.org-1" ];
-  });
+  createCache = pkgs.writeText "attic-pull-test-create-cache.json" (
+    builtins.toJSON {
+      keypair.Keypair = cacheSecretKey;
+      is_public = false;
+      store_dir = "/nix/store";
+      priority = 41;
+      upstream_cache_key_names = [ "cache.nixos.org-1" ];
+    }
+  );
 in
 pkgs.testers.runNixOSTest {
   name = "attic-pull";
@@ -52,7 +54,10 @@ pkgs.testers.runNixOSTest {
       };
     };
     networking.firewall.allowedTCPPorts = [ 8080 ];
-    environment.systemPackages = [ pkgs.attic-client pkgs.curl ];
+    environment.systemPackages = [
+      pkgs.attic-client
+      pkgs.curl
+    ];
     virtualisation.memorySize = 2048;
   };
 

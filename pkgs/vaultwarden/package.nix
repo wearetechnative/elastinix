@@ -27,7 +27,13 @@ rustPackages_1_98.rustPlatform.buildRustPackage {
   pname = "vaultwarden";
   inherit version;
 
-  src = fetchFromGitHub (removeAttrs source [ "version" "cargoHash" "webvault" ]);
+  src = fetchFromGitHub (
+    removeAttrs source [
+      "version"
+      "cargoHash"
+      "webvault"
+    ]
+  );
 
   inherit (source) cargoHash;
 

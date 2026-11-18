@@ -1,7 +1,12 @@
-{ lib, config, tfvars, ... }:
+{
+  lib,
+  config,
+  tfvars,
+  ...
+}:
 let
   cfg = config.elastinix.services.chhoto;
-  environment_domain = tfvars.environment_domain;
+  inherit (tfvars) environment_domain;
 in
 {
   options.elastinix.services.chhoto = {
@@ -10,7 +15,7 @@ in
 
     environmentFiles = lib.mkOption {
       type = lib.types.listOf lib.types.path;
-      default = [];
+      default = [ ];
       description = "Environment files for secrets (password, API key).";
     };
 
@@ -30,9 +35,9 @@ in
   config = lib.mkIf cfg.enable {
     services.chhoto-url = {
       enable = true;
-      environmentFiles = cfg.environmentFiles;
+      inherit (cfg) environmentFiles;
       settings = {
-        port = cfg.port;
+        inherit (cfg) port;
         site_url = cfg.siteUrl;
         disable_frontend = false;
       };

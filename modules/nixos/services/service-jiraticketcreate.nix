@@ -225,7 +225,7 @@ in
             };
             labels = mkOption {
               type = types.listOf types.str;
-              default = [];
+              default = [ ];
               description = "Extra Jira labels to add to created tickets. The module always prepends \"jiraticketcreate-elastinix\" regardless of this value.";
             };
           };

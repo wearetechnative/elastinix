@@ -1,10 +1,17 @@
-{ inputs, config, lib, pkgs, ... }:
+{
+  inputs,
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
 
   cfg = config.elastinix.programs.awsUtils;
 
-in {
+in
+{
 
   options.elastinix.programs.awsUtils.enable = lib.mkEnableOption ''
     AWS Utilities

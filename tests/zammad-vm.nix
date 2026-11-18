@@ -11,7 +11,12 @@
 # generous so the test also passes when the builder has no KVM (TCG).
 #
 # Exposed as checks.<linux-system>.zammad-vm in flake.nix.
-{ pkgs, lib, inputs, ... }:
+{
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
 
 let
   # zammad.example.com is Zammad's default fqdn, which ActionCable accepts as
@@ -29,7 +34,7 @@ pkgs.testers.runNixOSTest {
     environment_domain = domain;
   };
 
-  nodes.machine = { config, ... }: {
+  nodes.machine = { ... }: {
     imports = [
       ../modules/nixos/services/service-zammad.nix
       # Hosts enable nginx through this module; the zammad module only adds
@@ -37,7 +42,18 @@ pkgs.testers.runNixOSTest {
       ../modules/nixos/services/service-nginx.nix
     ];
 
-    elastinix.services.nginx.enable = true;
+    elastinix.services = {
+      nginx.enable = true;
+      zammad = {
+        enable = true;
+        database_username = "zammad";
+        database_host = "127.0.0.1";
+        database_port = 5432;
+        database_name = "zammad";
+        secret_key_base_file = "${pkgs.writeText "zammad-secret-key-base" "52882ef142066e09ab99ce816ba72522e789505caba224a52d750ec7dc872c2c371b2fd19f16b25dfbdd435a4dd46cb3df9f82eb63fafad715056bdfe25740d6"}";
+        password_file = "${pkgs.writeText "zammad-db-password" dbPassword}";
+      };
+    };
 
     virtualisation = {
       memorySize = 6144;
@@ -46,31 +62,22 @@ pkgs.testers.runNixOSTest {
       diskSize = 6144;
     };
 
-    elastinix.services.zammad = {
-      enable = true;
-      database_username = "zammad";
-      database_host = "127.0.0.1";
-      database_port = 5432;
-      database_name = "zammad";
-      secret_key_base_file = "${pkgs.writeText "zammad-secret-key-base"
-        "52882ef142066e09ab99ce816ba72522e789505caba224a52d750ec7dc872c2c371b2fd19f16b25dfbdd435a4dd46cb3df9f82eb63fafad715056bdfe25740d6"}";
-      password_file = "${pkgs.writeText "zammad-db-password" dbPassword}";
+    services = {
+      # Keep the auto-sized heap (half of RAM) from starving Zammad in the VM.
+      elasticsearch.extraJavaOptions = [
+        "-Xms512m"
+        "-Xmx512m"
+      ];
+      # The module expects an external database; provide one locally.
+      postgresql = {
+        enable = true;
+        initialScript = pkgs.writeText "zammad-db-init.sql" ''
+          CREATE ROLE zammad LOGIN PASSWORD '${dbPassword}';
+          CREATE DATABASE zammad OWNER zammad ENCODING 'UTF8';
+        '';
+      };
     };
 
-    # Keep the auto-sized heap (half of RAM) from starving Zammad in the VM.
-    services.elasticsearch.extraJavaOptions = [
-      "-Xms512m"
-      "-Xmx512m"
-    ];
-
-    # The module expects an external database; provide one locally.
-    services.postgresql = {
-      enable = true;
-      initialScript = pkgs.writeText "zammad-db-init.sql" ''
-        CREATE ROLE zammad LOGIN PASSWORD '${dbPassword}';
-        CREATE DATABASE zammad OWNER zammad ENCODING 'UTF8';
-      '';
-    };
     systemd.services.zammad-web = {
       after = [ "postgresql.target" ];
       requires = [ "postgresql.target" ];

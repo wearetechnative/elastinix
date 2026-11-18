@@ -1,10 +1,18 @@
-{ lib, config, options, pkgs, inputs, tfvars, ... }:
+{
+  lib,
+  config,
+  options,
+  pkgs,
+  inputs,
+  tfvars,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.badgersbay;
   opt = options.elastinix.services.badgersbay;
   badgersbayPackage = inputs.badgersbay.packages.${pkgs.system}.default;
-  environment_domain = tfvars.environment_domain;
+  inherit (tfvars) environment_domain;
 
   yamlFormat = pkgs.formats.yaml { };
 
@@ -65,21 +73,32 @@ let
   ageSecretsDir = if ageConfig == null then null else ageConfig.secretsDir;
 
   # Every secret path the service is given, with the option name to blame.
-  secretFiles =
-    [
-      { option = "tokenFile"; value = cfg.tokenFile; }
-      { option = "dashboardPasswordFile"; value = cfg.dashboardPasswordFile; }
-    ]
-    ++ lib.optional (cfg.assetRegisterFile != null) {
-      option = "assetRegisterFile";
-      value = cfg.assetRegisterFile;
-    };
+  secretFiles = [
+    {
+      option = "tokenFile";
+      value = cfg.tokenFile;
+    }
+    {
+      option = "dashboardPasswordFile";
+      value = cfg.dashboardPasswordFile;
+    }
+  ]
+  ++ lib.optional (cfg.assetRegisterFile != null) {
+    option = "assetRegisterFile";
+    value = cfg.assetRegisterFile;
+  };
 
   # Every file the server reads at startup. Deliberately not `secretFiles`: the
   # configuration is not a secret and the assertions below have nothing to say
   # about it, but it is the file that caused the incident, because compute2
   # delivers it through agenix like the rest.
-  runtimeFiles = [ { option = "configFile"; value = cfg.configFile; } ] ++ secretFiles;
+  runtimeFiles = [
+    {
+      option = "configFile";
+      value = cfg.configFile;
+    }
+  ]
+  ++ secretFiles;
 
   # An option's `default` is injected as a definition at `mkOptionDefault`
   # priority, so `isDefined` is true even for an option nobody touched. A
@@ -91,11 +110,9 @@ let
   # both are refused.
   inNixStore = value: builtins.isPath value || lib.hasPrefix builtins.storeDir (toString value);
 
-  underAgenix = value:
-    ageSecretsDir != null && lib.hasPrefix "${ageSecretsDir}/" (toString value);
+  underAgenix = value: ageSecretsDir != null && lib.hasPrefix "${ageSecretsDir}/" (toString value);
 
-  declaredSecret = value:
-    lib.findFirst (secret: secret.path == toString value) null ageSecrets;
+  declaredSecret = value: lib.findFirst (secret: secret.path == toString value) null ageSecrets;
 
   # What has to change in the unit for a changed file to reach the process.
   #
@@ -113,21 +130,29 @@ let
   # `agenix -e`. Interpolated rather than `toString`d, because `toString` on a
   # path literal yields the source path - a constant, which would trigger
   # nothing.
-  fileTriggers = file:
-    let declared = declaredSecret file.value; in
-    [ "${file.value}" ]
-    ++ lib.optional (declared != null) "${declared.file}";
+  fileTriggers =
+    file:
+    let
+      declared = declaredSecret file.value;
+    in
+    [ "${file.value}" ] ++ lib.optional (declared != null) "${declared.file}";
 
   # Only numeric modes can be judged; agenix hands `mode` to chmod, which also
   # accepts symbolic forms, and a form we cannot read is not a form we should
   # fail a deploy over.
-  octalMode = mode:
-    let parts = builtins.match "[0-7]?([0-7])([0-7])([0-7])" (toString mode); in
-    if parts == null then null else {
-      user = lib.toInt (builtins.elemAt parts 0);
-      group = lib.toInt (builtins.elemAt parts 1);
-      other = lib.toInt (builtins.elemAt parts 2);
-    };
+  octalMode =
+    mode:
+    let
+      parts = builtins.match "[0-7]?([0-7])([0-7])([0-7])" (toString mode);
+    in
+    if parts == null then
+      null
+    else
+      {
+        user = lib.toInt (builtins.elemAt parts 0);
+        group = lib.toInt (builtins.elemAt parts 1);
+        other = lib.toInt (builtins.elemAt parts 2);
+      };
 
   # A numeric owner other than root cannot be matched against a user name, so
   # it is left alone rather than guessed at.
@@ -135,8 +160,11 @@ let
 
   # True only when the file is certainly out of reach: root can read anything,
   # an unknown owner is not judged, and any read bit that applies is enough.
-  unreadableByService = secret:
-    let mode = octalMode secret.mode; in
+  unreadableByService =
+    secret:
+    let
+      mode = octalMode secret.mode;
+    in
     cfg.user != "root"
     && mode != null
     && !(ambiguousOwner secret.owner)
@@ -312,7 +340,10 @@ in
 
                 audit_months = lib.mkOption {
                   type = lib.types.listOf (lib.types.ints.between 1 12);
-                  default = [ 3 9 ];
+                  default = [
+                    3
+                    9
+                  ];
                   description = ''
                     Months in which an audit round opens, as month numbers.
                     Two rounds a year is the ISO cadence we run.
@@ -339,7 +370,10 @@ in
                     options = {
                       mandatory = lib.mkOption {
                         type = lib.types.listOf lib.types.str;
-                        default = [ "fastfetch" "lynis" ];
+                        default = [
+                          "fastfetch"
+                          "lynis"
+                        ];
                         description = ''
                           Report types every system must submit. `fastfetch`
                           carries the system identity; badgersbay stopped
@@ -411,93 +445,96 @@ in
 
   config = lib.mkIf cfg.enable {
 
-    assertions =
+    assertions = [
+      {
+        assertion = !(setByHost opt.configFile && setByHost opt.settings);
+        message = ''
+          elastinix.services.badgersbay: `configFile` and `settings` are both
+          set. An explicit `configFile` replaces the generated file whole, so
+          `settings` would be discarded without a word. Set one of the two:
+          move the values into `settings` and drop `configFile`, or keep
+          `configFile` and leave `settings` alone.
+        '';
+      }
+      {
+        assertion = cfg.settings.networkport == cfg.port;
+        message = ''
+          elastinix.services.badgersbay: `settings.networkport`
+          (${toString cfg.settings.networkport}) differs from `port`
+          (${toString cfg.port}). The firewall rule and the nginx proxy
+          follow `port`, so the server would listen where neither reaches it.
+          Set `port` instead.
+        '';
+      }
+      {
+        assertion = !(cfg.settings.compliance ? asset_register);
+        message = ''
+          elastinix.services.badgersbay: `settings.compliance.asset_register`
+          is set. The service passes `--asset-register`, which overrides the
+          configuration file, so this value would never be used. Set
+          `assetRegisterFile` instead - and keep the register an agenix
+          secret, since it pairs employee names with hardware serials.
+        '';
+      }
+    ]
+    ++ lib.concatMap (
+      secret:
+      let
+        declared = declaredSecret secret.value;
+        # Kept out of the message body so it is never forced when there is
+        # no declared secret to describe.
+        ownership =
+          if declared == null then
+            "unknown"
+          else
+            "${declared.owner}:${declared.group} at mode ${declared.mode}";
+      in
       [
         {
-          assertion = !(setByHost opt.configFile && setByHost opt.settings);
+          assertion = !(inNixStore secret.value);
           message = ''
-            elastinix.services.badgersbay: `configFile` and `settings` are both
-            set. An explicit `configFile` replaces the generated file whole, so
-            `settings` would be discarded without a word. Set one of the two:
-            move the values into `settings` and drop `configFile`, or keep
-            `configFile` and leave `settings` alone.
+            elastinix.services.badgersbay: `${secret.option}`
+            (${toString secret.value}) ${
+              if builtins.isPath secret.value then
+                "is a path literal, which is copied into the nix store the moment the unit interpolates it"
+              else
+                "is a nix store path"
+            }. The store is world-readable on every machine that has the path,
+            so a secret must never be written there - not by `pkgs.writeText`,
+            and not by a path literal. Deliver the file with agenix and pass
+            its `.path`.
           '';
         }
         {
-          assertion = cfg.settings.networkport == cfg.port;
+          assertion = !(underAgenix secret.value) || declared != null;
           message = ''
-            elastinix.services.badgersbay: `settings.networkport`
-            (${toString cfg.settings.networkport}) differs from `port`
-            (${toString cfg.port}). The firewall rule and the nginx proxy
-            follow `port`, so the server would listen where neither reaches it.
-            Set `port` instead.
+            elastinix.services.badgersbay: `${secret.option}` points at
+            ${toString secret.value}, under `age.secretsDir`, but no
+            `age.secrets` entry produces that path. Nothing will write the
+            file, and the service will fail at start instead of here. Declare
+            the secret, or correct the path.
           '';
         }
         {
-          assertion = !(cfg.settings.compliance ? asset_register);
+          assertion = declared == null || !(unreadableByService declared);
           message = ''
-            elastinix.services.badgersbay: `settings.compliance.asset_register`
-            is set. The service passes `--asset-register`, which overrides the
-            configuration file, so this value would never be used. Set
-            `assetRegisterFile` instead - and keep the register an agenix
-            secret, since it pairs employee names with hardware serials.
+            elastinix.services.badgersbay: the agenix secret behind
+            `${secret.option}` (${toString secret.value}) is ${ownership},
+            which the service user ${cfg.user} cannot read. agenix defaults to
+            root-owned 0400, so this is the usual case rather than an exotic
+            one. Set `owner = "${cfg.user}"` on that secret, or give it
+            `group = "${cfg.group}"` with a group-readable mode.
           '';
         }
       ]
-      ++ lib.concatMap
-        (secret:
-        let
-          declared = declaredSecret secret.value;
-          # Kept out of the message body so it is never forced when there is
-          # no declared secret to describe.
-          ownership =
-            if declared == null then "unknown"
-            else "${declared.owner}:${declared.group} at mode ${declared.mode}";
-        in [
-          {
-            assertion = !(inNixStore secret.value);
-            message = ''
-              elastinix.services.badgersbay: `${secret.option}`
-              (${toString secret.value}) ${
-                if builtins.isPath secret.value
-                then "is a path literal, which is copied into the nix store the moment the unit interpolates it"
-                else "is a nix store path"
-              }. The store is world-readable on every machine that has the path,
-              so a secret must never be written there - not by `pkgs.writeText`,
-              and not by a path literal. Deliver the file with agenix and pass
-              its `.path`.
-            '';
-          }
-          {
-            assertion = !(underAgenix secret.value) || declared != null;
-            message = ''
-              elastinix.services.badgersbay: `${secret.option}` points at
-              ${toString secret.value}, under `age.secretsDir`, but no
-              `age.secrets` entry produces that path. Nothing will write the
-              file, and the service will fail at start instead of here. Declare
-              the secret, or correct the path.
-            '';
-          }
-          {
-            assertion = declared == null || !(unreadableByService declared);
-            message = ''
-              elastinix.services.badgersbay: the agenix secret behind
-              `${secret.option}` (${toString secret.value}) is ${ownership},
-              which the service user ${cfg.user} cannot read. agenix defaults to
-              root-owned 0400, so this is the usual case rather than an exotic
-              one. Set `owner = "${cfg.user}"` on that secret, or give it
-              `group = "${cfg.group}"` with a group-readable mode.
-            '';
-          }
-        ])
-        secretFiles;
+    ) secretFiles;
 
     environment.systemPackages = [ badgersbayPackage ];
 
     users.users.${cfg.user} = lib.mkIf (cfg.user == "badgersbay") {
       isSystemUser = true;
       uid = 994;
-      group = cfg.group;
+      inherit (cfg) group;
       description = "Badgersbay service user";
     };
 
@@ -529,8 +566,7 @@ in
           --config ${cfg.configFile} \
           --token-file ${cfg.tokenFile} \
           --dashboard-password-file ${cfg.dashboardPasswordFile} \
-          ${lib.optionalString (cfg.assetRegisterFile != null)
-            "--asset-register ${cfg.assetRegisterFile}"}
+          ${lib.optionalString (cfg.assetRegisterFile != null) "--asset-register ${cfg.assetRegisterFile}"}
       '';
 
       serviceConfig = {
@@ -550,13 +586,19 @@ in
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
-        RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
+        RestrictAddressFamilies = [
+          "AF_INET"
+          "AF_INET6"
+        ];
         RestrictNamespaces = true;
         LockPersonality = true;
         RestrictRealtime = true;
         RestrictSUIDSGID = true;
         RemoveIPC = true;
-        SystemCallFilter = [ "@system-service" "~@privileged" ];
+        SystemCallFilter = [
+          "@system-service"
+          "~@privileged"
+        ];
         ReadWritePaths = [ cfg.storagePath ];
       };
     };

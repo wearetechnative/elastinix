@@ -3,6 +3,11 @@
 ## Next version
 
 ### Added
+- **Vaultwarden release monitor** (`elastinix.services.vaultwarden-release-monitor`): an hourly, weekday GitHub-release check that posts to Slack only when a release is newer than the Vaultwarden we run, for ISO 27001 A.8.8/A.8.19 ([docs](docs/services/vaultwarden-release-monitor.md))
+  - The running version comes from `elastinix.services.vaultwarden.package` on the same host, so it follows `source`; `versionUrl` reads Vaultwarden's public `GET /api/version` instead, which also works from another host
+  - Each release is announced once (`notified.json`), and the tag is only recorded after a successful post so a Slack failure is retried on the next run
+  - A failed run warns once per outage and the next good run says it recovered, instead of one warning every hour; `heartbeatUrl` covers the failures the script cannot report itself
+  - With no running version to compare, nothing is announced and no tag is recorded, so the release is announced by the first run that can read the version again
 - **Zammad built from upstream source** (`pkgs/zammad/`, flake output `packages.<linux>.zammad`): the default of `elastinix.services.zammad.package` is now elastinix's own build of `zammad/zammad` at the revision pinned in `pkgs/zammad/source.json`, starting at **7.1.3**. The Zammad version no longer follows the nixpkgs pin ([docs](docs/services/zammad.md))
   - The recipe is the nixpkgs one (`pkgs/by-name/za/zammad`), with `version` moved into `source.json` so one file decides it
   - Built per service with `callPackage`, no overlay: `pkgs.zammad` is unchanged for other modules, and `package = pkgs.zammad` still selects the nixpkgs build
@@ -31,6 +36,8 @@
 - **Evidence bundle export** (`vulnerability-scan-central`) — each scan run is normalized into one schema-versioned `evidence.json`, optionally uploaded write-only to versioned S3 so the history is tamper-evident, letting an ISO 27001 report be generated from a single immutable snapshot without live access to hosts or AWS ([docs](docs/services/vulnerability-scan-central.md)).
 
 ### Changed
+- **Repository is nixfmt- and statix-clean**: the new `nix-lint` workflow runs `statix check .` and `nixfmt --check` over every `.nix` file, and both were red on the whole tree. Assignments that repeat their right-hand side now `inherit`, seventeen sets of repeated attribute paths are nested into one attrset, and all 71 files are formatted with the style the workflow uses. No evaluation changed: `nix-instantiate --parse` produces identical ASTs and `nix flake check --no-build` passes
+  - Review this from `git diff -w` or file by file; the formatting pass touches every module and hides the two real changes (`inherit`, nesting)
 - **Zammad 7.2.2 on Elasticsearch 8** (`elastinix.services.zammad`) — **breaking for hosts**: Zammad moves from 7.1.3 to 7.2.2 and its Elasticsearch from nixpkgs' 7.17 to an elastinix build of **8.19.23** (`pkgs/elasticsearch/`, flake output `packages.<linux>.elasticsearch`). Neither can be downgraded once started; follow the upgrade runbook (database dump, fresh Elasticsearch data directory, search index rebuild) ([docs](docs/services/zammad.md#upgrading-a-host-from-zammad-71--elasticsearch-7))
   - Zammad 7.2 refuses Elasticsearch below 8.15, and nixpkgs only ships 7.17. The new package repackages Elastic's tarball like nixpkgs' 7.x derivation: `ES_HOME` from the upstream module, nixpkgs' JDK 25 instead of the bundled JDK (JDK 21 fails Elasticsearch's entitlement checks at startup), autoPatchelf for native code. It is set inside the zammad module only; `pkgs.elasticsearch` is unchanged
   - Local single-node with xpack security and ML off. `single_node` is set via `extraConf`, because the upstream module's option adds `gateway.auto_import_dangling_indices`, which Elasticsearch 8 rejects. The `ingest-attachment` plugin is gone: it has been a bundled module since 8.4

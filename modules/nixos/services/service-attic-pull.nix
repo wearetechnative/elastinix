@@ -107,9 +107,8 @@ in
         '';
       }
       {
-        assertion = !(set cfg.public_key)
-          || matches secretKeyRe cfg.public_key
-          || matches publicKeyRe cfg.public_key;
+        assertion =
+          !(set cfg.public_key) || matches secretKeyRe cfg.public_key || matches publicKeyRe cfg.public_key;
         message = "${opt}.public_key must have the form <name>:<base64 of 32 bytes>.";
       }
       {
@@ -125,10 +124,12 @@ in
     # mkAfter, never a bare assignment: a bare one drops cache.nixos.org. Attic
     # advertises priority 41 against upstream's 40, so public paths still come
     # from upstream and this cache serves what only we built.
-    nix.settings = lib.mkIf (set cfg.endpoint && set cfg.cache && set cfg.public_key && set cfg.netrc_file) {
-      substituters = lib.mkAfter [ substituter ];
-      trusted-public-keys = lib.mkAfter [ cfg.public_key ];
-      netrc-file = cfg.netrc_file;
-    };
+    nix.settings =
+      lib.mkIf (set cfg.endpoint && set cfg.cache && set cfg.public_key && set cfg.netrc_file)
+        {
+          substituters = lib.mkAfter [ substituter ];
+          trusted-public-keys = lib.mkAfter [ cfg.public_key ];
+          netrc-file = cfg.netrc_file;
+        };
   };
 }

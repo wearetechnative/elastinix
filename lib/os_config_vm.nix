@@ -1,18 +1,30 @@
-{inputs}:
-  { nixpkgs, targetSystem, machineConfig, varsfile, rootAuthorizedKeys ? [],... }:
+{ inputs }:
+{
+  nixpkgs,
+  targetSystem,
+  machineConfig,
+  varsfile,
+  rootAuthorizedKeys ? [ ],
+  ...
+}:
 
 (nixpkgs.lib.nixosSystem {
   system = targetSystem;
   modules =
     let
-      tfvars = if varsfile == ""
-        then
-        {}
-      else
-        builtins.fromJSON (builtins.readFile varsfile);
+      tfvars = if varsfile == "" then { } else builtins.fromJSON (builtins.readFile varsfile);
     in
     [
-      { _module.args = { inherit nixpkgs tfvars inputs targetSystem; }; }
+      {
+        _module.args = {
+          inherit
+            nixpkgs
+            tfvars
+            inputs
+            targetSystem
+            ;
+        };
+      }
       {
         virtualisation.diskSize = 8 * 1024;
 
@@ -22,10 +34,14 @@
           autoResize = true;
         };
 
-        boot.growPartition = true;
-        boot.kernelParams = [ "console=ttyS0" ];
-        boot.loader.grub.device = "/dev/vda";
-        boot.loader.timeout = 0;
+        boot = {
+          growPartition = true;
+          kernelParams = [ "console=ttyS0" ];
+          loader = {
+            grub.device = "/dev/vda";
+            timeout = 0;
+          };
+        };
 
         users.extraUsers.root.password = "";
       }

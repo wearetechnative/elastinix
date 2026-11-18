@@ -1,8 +1,12 @@
-{config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 let
   cfg = config.elastinix.services.postgresql;
 in
-  {
+{
   options.elastinix.services.postgresql = {
 
     enable = lib.mkEnableOption "postgresql Database";
@@ -33,15 +37,15 @@ in
       enableTCPIP = true;
       ensureUsers = [ { name = "postgres"; } ];
       settings = {
-        port = cfg.port;
+        inherit (cfg) port;
         ssl = false;
       };
       authentication = ''
-    #type database DBuser origin-address auth-method
-    # ipv4 from everywhere (including dockers) firewall and SG blocks real outside connections
-      host  all      all     0.0.0.0/0      scram-sha-256
-    # ipv6 from localhost
-      host all       all     ::1/128        scram-sha-256
+        #type database DBuser origin-address auth-method
+        # ipv4 from everywhere (including dockers) firewall and SG blocks real outside connections
+          host  all      all     0.0.0.0/0      scram-sha-256
+        # ipv6 from localhost
+          host all       all     ::1/128        scram-sha-256
       '';
       initialScript = cfg.initial_script;
     };

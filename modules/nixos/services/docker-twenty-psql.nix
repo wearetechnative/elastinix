@@ -1,10 +1,15 @@
-{ lib, config, pkgs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.twenty-psql;
   networkName = "psql-twenty-net";
 in
-  {
+{
   options.elastinix.services.twenty-psql = {
 
     enable = lib.mkEnableOption "Twenty postgresql";
@@ -39,22 +44,21 @@ in
         backend = config.virtualisation.oci-containers.backend;
         backendBin = "${pkgs.${backend}}/bin/${backend}";
       in
-        ''
+      ''
         ${backendBin} network inspect ${networkName} >/dev/null 2>&1 || \
         ${backendBin} network create --driver bridge ${networkName}
       '';
 
-    virtualisation.oci-containers.containers."twenty-psql" =
-      {
-        image = "postgres:${cfg.version}";
-        ports = [ "${cfg.forward_port}:5432" ];
-        environmentFiles = [ cfg.environment_file ];
-        dependsOn = [ ];
-        volumes = [
-          "db-data:${cfg.data_dir}"
-        ];
-        extraOptions = [ "--network=${networkName}" ];
-      };
+    virtualisation.oci-containers.containers."twenty-psql" = {
+      image = "postgres:${cfg.version}";
+      ports = [ "${cfg.forward_port}:5432" ];
+      environmentFiles = [ cfg.environment_file ];
+      dependsOn = [ ];
+      volumes = [
+        "db-data:${cfg.data_dir}"
+      ];
+      extraOptions = [ "--network=${networkName}" ];
+    };
 
     systemd.services."docker-twenty-psql".serviceConfig.ExecStartPre = [
       "${pkgs.bash}/bin/bash -c 'chown -R 71:postgres ${cfg.data_dir}'"

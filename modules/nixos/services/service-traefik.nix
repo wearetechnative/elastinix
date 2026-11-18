@@ -39,8 +39,8 @@ in
 
         certificatesResolvers = {
           letsencrypt.acme = {
-            email = cfg.email;
-            storage = cfg.storage;
+            inherit (cfg) email;
+            inherit (cfg) storage;
             tlsChallenge = true;
           };
         };
@@ -53,4 +53,3 @@ in
     };
   };
 }
-

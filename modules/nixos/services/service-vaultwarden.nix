@@ -1,8 +1,15 @@
-{ lib, config, pkgs, inputs, tfvars, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  inputs,
+  tfvars,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.vaultwarden;
-  environment_domain = tfvars.environment_domain;
+  inherit (tfvars) environment_domain;
 
   # Oldest release allowed against the production database (migrations are
   # forward-only). Raise this after every production upgrade.
@@ -17,13 +24,17 @@ let
   };
 in
 
-  {
+{
   options.elastinix.services.vaultwarden = {
 
     enable = lib.mkEnableOption "vaultwarden";
 
     source = lib.mkOption {
-      type = lib.types.enum [ "pinned" "nixpkgs" "unstable" ];
+      type = lib.types.enum [
+        "pinned"
+        "nixpkgs"
+        "unstable"
+      ];
       default = "nixpkgs";
       description = ''
         Where the default `package` comes from: "pinned" builds the upstream
@@ -61,7 +72,7 @@ in
     # Vaultwarden service configuration
     services.vaultwarden = {
       enable = true;
-      package = cfg.package;
+      inherit (cfg) package;
       # The upstream module takes the web vault from pkgs.vaultwarden; keep it
       # matched to the selected server.
       webVaultPackage = cfg.package.webvault or pkgs.vaultwarden.webvault;

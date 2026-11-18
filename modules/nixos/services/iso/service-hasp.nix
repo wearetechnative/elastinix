@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.elastinix.hasp;
@@ -7,43 +12,141 @@ let
   registryVersion = 2;
 
   hostRegistry = {
-    "identity.hostname" = { type = "string"; source = "derived"; };
-    "identity.environment" = { type = "string"; source = "declared"; };
-    "identity.role" = { type = "string"; source = "declared"; };
-    "identity.owner" = { type = "string"; source = "declared"; };
-    "identity.dataClassification" = { type = "string"; source = "declared"; };
+    "identity.hostname" = {
+      type = "string";
+      source = "derived";
+    };
+    "identity.environment" = {
+      type = "string";
+      source = "declared";
+    };
+    "identity.role" = {
+      type = "string";
+      source = "declared";
+    };
+    "identity.owner" = {
+      type = "string";
+      source = "declared";
+    };
+    "identity.dataClassification" = {
+      type = "string";
+      source = "declared";
+    };
 
-    "network.securityGroupIds" = { type = "list"; source = "aws"; tier = "metadata"; };
-    "network.subnetId" = { type = "string"; source = "aws"; tier = "metadata"; };
-    "network.publicIpAttached" = { type = "bool"; source = "aws"; tier = "metadata"; };
+    "network.securityGroupIds" = {
+      type = "list";
+      source = "aws";
+      tier = "metadata";
+    };
+    "network.subnetId" = {
+      type = "string";
+      source = "aws";
+      tier = "metadata";
+    };
+    "network.publicIpAttached" = {
+      type = "bool";
+      source = "aws";
+      tier = "metadata";
+    };
 
-    "network.subnetTier" = { type = "string"; source = "aws"; tier = "api"; };
-    "network.ingressRules" = { type = "list"; source = "aws"; tier = "api"; };
-    "network.internetReachablePorts" = { type = "list"; source = "aws"; tier = "api"; };
-    "network.internetAllPortsOpen" = { type = "bool"; source = "aws"; tier = "api"; };
-    "network.reachableFromGroups" = { type = "list"; source = "aws"; tier = "api"; };
-    "network.behindLoadBalancer" = { type = "bool"; source = "aws"; tier = "api"; };
-    "network.egressUnrestricted" = { type = "bool"; source = "aws"; tier = "api"; };
+    "network.subnetTier" = {
+      type = "string";
+      source = "aws";
+      tier = "api";
+    };
+    "network.ingressRules" = {
+      type = "list";
+      source = "aws";
+      tier = "api";
+    };
+    "network.internetReachablePorts" = {
+      type = "list";
+      source = "aws";
+      tier = "api";
+    };
+    "network.internetAllPortsOpen" = {
+      type = "bool";
+      source = "aws";
+      tier = "api";
+    };
+    "network.reachableFromGroups" = {
+      type = "list";
+      source = "aws";
+      tier = "api";
+    };
+    "network.behindLoadBalancer" = {
+      type = "bool";
+      source = "aws";
+      tier = "api";
+    };
+    "network.egressUnrestricted" = {
+      type = "bool";
+      source = "aws";
+      tier = "api";
+    };
 
-    "network.firewallEnabled" = { type = "bool"; source = "derived"; };
-    "network.firewallOpenTcpPorts" = { type = "list"; source = "derived"; };
-    "network.firewallOpenUdpPorts" = { type = "list"; source = "derived"; };
-    "network.isJumphost" = { type = "bool"; source = "declared"; };
+    "network.firewallEnabled" = {
+      type = "bool";
+      source = "derived";
+    };
+    "network.firewallOpenTcpPorts" = {
+      type = "list";
+      source = "derived";
+    };
+    "network.firewallOpenUdpPorts" = {
+      type = "list";
+      source = "derived";
+    };
+    "network.isJumphost" = {
+      type = "bool";
+      source = "declared";
+    };
 
-    "runtime.dockerEnabled" = { type = "bool"; source = "derived"; };
-    "runtime.localDatabases" = { type = "list"; source = "derived"; };
-    "runtime.nixosStateVersion" = { type = "string"; source = "derived"; };
+    "runtime.dockerEnabled" = {
+      type = "bool";
+      source = "derived";
+    };
+    "runtime.localDatabases" = {
+      type = "list";
+      source = "derived";
+    };
+    "runtime.nixosStateVersion" = {
+      type = "string";
+      source = "derived";
+    };
 
-    "data.persistentVolumes" = { type = "list"; source = "aws"; tier = "api"; };
+    "data.persistentVolumes" = {
+      type = "list";
+      source = "aws";
+      tier = "api";
+    };
   };
 
   fleetRegistry = {
-    "fleet.systemdHardeningDefault" = { type = "bool"; source = "derived"; };
-    "fleet.fail2banEnabled" = { type = "bool"; source = "derived"; };
-    "fleet.auditdEnabled" = { type = "bool"; source = "derived"; };
-    "fleet.centralLogShipping" = { type = "bool"; source = "derived"; };
-    "fleet.sshPasswordAuthentication" = { type = "bool"; source = "derived"; };
-    "fleet.inUseSamplerEnabled" = { type = "bool"; source = "derived"; };
+    "fleet.systemdHardeningDefault" = {
+      type = "bool";
+      source = "derived";
+    };
+    "fleet.fail2banEnabled" = {
+      type = "bool";
+      source = "derived";
+    };
+    "fleet.auditdEnabled" = {
+      type = "bool";
+      source = "derived";
+    };
+    "fleet.centralLogShipping" = {
+      type = "bool";
+      source = "derived";
+    };
+    "fleet.sshPasswordAuthentication" = {
+      type = "bool";
+      source = "derived";
+    };
+    "fleet.inUseSamplerEnabled" = {
+      type = "bool";
+      source = "derived";
+    };
   };
 
   # The AWS document is written straight into the directory hostinfo serves, so
@@ -51,35 +154,43 @@ let
   # the Nix store, with no runtime state to place anywhere.
   hostinfoDir = "/var/lib/hostinfo";
 
-  registryManifest = pkgs.writeText "hasp-registry.json"
-    (builtins.toJSON (hostRegistry // fleetRegistry));
+  registryManifest = pkgs.writeText "hasp-registry.json" (
+    builtins.toJSON (hostRegistry // fleetRegistry)
+  );
 
   # ── Helpers ───────────────────────────────────────────────────────────────
 
   mkFact = source: evidence: value: { inherit value source evidence; };
 
-  factLessThan = a: b:
-    if builtins.isInt a && builtins.isInt b
-    then a < b
-    else builtins.toJSON a < builtins.toJSON b;
+  factLessThan =
+    a: b: if builtins.isInt a && builtins.isInt b then a < b else builtins.toJSON a < builtins.toJSON b;
 
   isSorted = l: l == lib.sort factLessThan l;
 
-  typeOfValue = v:
-    if builtins.isBool v then "bool"
-    else if builtins.isInt v then "int"
-    else if builtins.isString v then "string"
-    else if builtins.isList v then "list"
-    else if builtins.isAttrs v then "attrs"
-    else "unknown";
+  typeOfValue =
+    v:
+    if builtins.isBool v then
+      "bool"
+    else if builtins.isInt v then
+      "int"
+    else if builtins.isString v then
+      "string"
+    else if builtins.isList v then
+      "list"
+    else if builtins.isAttrs v then
+      "attrs"
+    else
+      "unknown";
 
   # ── Derived facts ─────────────────────────────────────────────────────────
 
   firewallEnabled = config.networking.firewall.enable or false;
 
-  openPorts = attr:
-    lib.optionals firewallEnabled
-      (lib.sort factLessThan (lib.unique (config.networking.firewall.${attr} or [ ])));
+  openPorts =
+    attr:
+    lib.optionals firewallEnabled (
+      lib.sort factLessThan (lib.unique (config.networking.firewall.${attr} or [ ]))
+    );
 
   databaseProbes = {
     postgresql = config.services.postgresql.enable or false;
@@ -90,8 +201,7 @@ let
 
   databaseEngines = lib.attrNames databaseProbes;
 
-  localDatabases = lib.sort factLessThan
-    (lib.attrNames (lib.filterAttrs (_: v: v) databaseProbes));
+  localDatabases = lib.sort factLessThan (lib.attrNames (lib.filterAttrs (_: v: v) databaseProbes));
 
   logShippingEnabled =
     (config.services.alloy.enable or false)
@@ -99,59 +209,58 @@ let
     || (config.services.fluent-bit.enable or false);
 
   sshPasswordAuth =
-    let v = (config.services.openssh.settings or { }).PasswordAuthentication or null;
-    in if v == null then true else v;
+    let
+      v = (config.services.openssh.settings or { }).PasswordAuthentication or null;
+    in
+    if v == null then true else v;
 
   derivedHostFacts = {
-    "identity.hostname" =
-      mkFact "derived" "config.networking.hostName" config.networking.hostName;
-    "network.firewallEnabled" =
-      mkFact "derived" "config.networking.firewall.enable" firewallEnabled;
-    "network.firewallOpenTcpPorts" =
-      mkFact "derived"
-        (if firewallEnabled
-         then "config.networking.firewall.allowedTCPPorts"
-         else "firewall disabled, every TCP port reachable")
-        (openPorts "allowedTCPPorts");
-    "network.firewallOpenUdpPorts" =
-      mkFact "derived"
-        (if firewallEnabled
-         then "config.networking.firewall.allowedUDPPorts"
-         else "firewall disabled, every UDP port reachable")
-        (openPorts "allowedUDPPorts");
-    "runtime.dockerEnabled" =
-      mkFact "derived" "config.virtualisation.docker.enable"
-        (config.virtualisation.docker.enable or false);
+    "identity.hostname" = mkFact "derived" "config.networking.hostName" config.networking.hostName;
+    "network.firewallEnabled" = mkFact "derived" "config.networking.firewall.enable" firewallEnabled;
+    "network.firewallOpenTcpPorts" = mkFact "derived" (
+      if firewallEnabled then
+        "config.networking.firewall.allowedTCPPorts"
+      else
+        "firewall disabled, every TCP port reachable"
+    ) (openPorts "allowedTCPPorts");
+    "network.firewallOpenUdpPorts" = mkFact "derived" (
+      if firewallEnabled then
+        "config.networking.firewall.allowedUDPPorts"
+      else
+        "firewall disabled, every UDP port reachable"
+    ) (openPorts "allowedUDPPorts");
+    "runtime.dockerEnabled" = mkFact "derived" "config.virtualisation.docker.enable" (
+      config.virtualisation.docker.enable or false
+    );
     "runtime.localDatabases" =
       mkFact "derived"
         "config.services.{${lib.concatStringsSep "," databaseEngines}}.enable (partial list)"
         localDatabases;
     "runtime.nixosStateVersion" =
-      mkFact "derived" "config.system.stateVersion" config.system.stateVersion;
+      mkFact "derived" "config.system.stateVersion"
+        config.system.stateVersion;
   };
 
   declaredEvidence = "${cfg.declared.reviewedBy}, ${cfg.declared.reviewedAt}";
 
   declaredHostFacts = {
-    "identity.environment" =
-      mkFact "declared" declaredEvidence cfg.declared.environment;
+    "identity.environment" = mkFact "declared" declaredEvidence cfg.declared.environment;
     "identity.role" = mkFact "declared" declaredEvidence cfg.declared.role;
     "identity.owner" = mkFact "declared" declaredEvidence cfg.declared.owner;
-    "identity.dataClassification" =
-      mkFact "declared" declaredEvidence cfg.declared.dataClassification;
-    "network.isJumphost" =
-      mkFact "declared" declaredEvidence cfg.declared.isJumphost;
+    "identity.dataClassification" = mkFact "declared" declaredEvidence cfg.declared.dataClassification;
+    "network.isJumphost" = mkFact "declared" declaredEvidence cfg.declared.isJumphost;
   };
 
   fleetFacts = {
     "fleet.systemdHardeningDefault" =
-      mkFact "derived" "elastinix service modules apply hardening by default" true;
-    "fleet.fail2banEnabled" =
-      mkFact "derived" "modules/nixos/services/base-system.nix"
-        (config.services.fail2ban.enable or false);
-    "fleet.auditdEnabled" =
-      mkFact "derived" "config.security.auditd.enable"
-        (config.security.auditd.enable or false);
+      mkFact "derived" "elastinix service modules apply hardening by default"
+        true;
+    "fleet.fail2banEnabled" = mkFact "derived" "modules/nixos/services/base-system.nix" (
+      config.services.fail2ban.enable or false
+    );
+    "fleet.auditdEnabled" = mkFact "derived" "config.security.auditd.enable" (
+      config.security.auditd.enable or false
+    );
     "fleet.centralLogShipping" =
       mkFact "derived" "config.services.{alloy,vector,fluent-bit}.enable"
         logShippingEnabled;
@@ -171,9 +280,8 @@ let
 
   valuesOf = facts: lib.mapAttrs (_: f: f.value) facts;
 
-  hashOf = facts:
-    builtins.substring 0 16
-      (builtins.hashString "sha256" (builtins.toJSON (valuesOf facts)));
+  hashOf =
+    facts: builtins.substring 0 16 (builtins.hashString "sha256" (builtins.toJSON (valuesOf facts)));
 
   document = {
     inherit schemaVersion registryVersion;
@@ -191,43 +299,36 @@ let
   haspJson = pkgs.writeText "hasp.json" (builtins.toJSON document);
 
   collectorPython =
-    if cfg.awsFacts == "api"
-    then pkgs.python3.withPackages (ps: [ ps.boto3 ])
-    else pkgs.python3;
+    if cfg.awsFacts == "api" then pkgs.python3.withPackages (ps: [ ps.boto3 ]) else pkgs.python3;
 
-  awsCollector = pkgs.writeText "hasp-aws-collector.py"
-    (builtins.readFile ./hasp-aws-collector.py);
+  awsCollector = pkgs.writeText "hasp-aws-collector.py" (builtins.readFile ./hasp-aws-collector.py);
 
   # ── Validation ────────────────────────────────────────────────────────────
 
   registered = registry: facts: lib.filterAttrs (k: _: registry ? ${k}) facts;
 
-  unregisteredIn = registry: facts:
-    lib.subtractLists (lib.attrNames registry) (lib.attrNames facts);
+  unregisteredIn = registry: facts: lib.subtractLists (lib.attrNames registry) (lib.attrNames facts);
 
-  wrongSourceIn = registry: facts: lib.attrNames (lib.filterAttrs
-    (k: f: (registry.${k}.source or null) != f.source)
-    (registered registry facts));
+  wrongSourceIn =
+    registry: facts:
+    lib.attrNames (
+      lib.filterAttrs (k: f: (registry.${k}.source or null) != f.source) (registered registry facts)
+    );
 
-  wrongTypeIn = registry: facts: lib.attrNames (lib.filterAttrs
-    (k: f: typeOfValue f.value != registry.${k}.type)
-    (registered registry facts));
+  wrongTypeIn =
+    registry: facts:
+    lib.attrNames (
+      lib.filterAttrs (k: f: typeOfValue f.value != registry.${k}.type) (registered registry facts)
+    );
 
-  unsortedIn = facts: lib.attrNames (lib.filterAttrs
-    (_: f: builtins.isList f.value && !(isSorted f.value))
-    facts);
+  unsortedIn =
+    facts: lib.attrNames (lib.filterAttrs (_: f: builtins.isList f.value && !(isSorted f.value)) facts);
 
-  unregisteredKeys =
-    unregisteredIn hostRegistry hostFacts
-    ++ unregisteredIn fleetRegistry fleetFacts;
+  unregisteredKeys = unregisteredIn hostRegistry hostFacts ++ unregisteredIn fleetRegistry fleetFacts;
 
-  wrongSource =
-    wrongSourceIn hostRegistry hostFacts
-    ++ wrongSourceIn fleetRegistry fleetFacts;
+  wrongSource = wrongSourceIn hostRegistry hostFacts ++ wrongSourceIn fleetRegistry fleetFacts;
 
-  wrongType =
-    wrongTypeIn hostRegistry hostFacts
-    ++ wrongTypeIn fleetRegistry fleetFacts;
+  wrongType = wrongTypeIn hostRegistry hostFacts ++ wrongTypeIn fleetRegistry fleetFacts;
 
   unsortedLists = unsortedIn hostFacts ++ unsortedIn fleetFacts;
 
@@ -245,7 +346,11 @@ in
 
     declared = {
       environment = lib.mkOption {
-        type = lib.types.enum [ "prod" "nonprod" "dev" ];
+        type = lib.types.enum [
+          "prod"
+          "nonprod"
+          "dev"
+        ];
         description = "Deployment environment. Declared with no default: a substituted value would be a claim nobody made.";
       };
 
@@ -260,7 +365,12 @@ in
       };
 
       dataClassification = lib.mkOption {
-        type = lib.types.enum [ "public" "internal" "confidential" "special" ];
+        type = lib.types.enum [
+          "public"
+          "internal"
+          "confidential"
+          "special"
+        ];
         description = "Classification of data this host handles. Bears on the risk threshold, not on exploitability.";
       };
 
@@ -282,7 +392,11 @@ in
     };
 
     awsFacts = lib.mkOption {
-      type = lib.types.enum [ "none" "metadata" "api" ];
+      type = lib.types.enum [
+        "none"
+        "metadata"
+        "api"
+      ];
       default = "none";
       description = "Collect infrastructure facts on a timer as hasp-aws.json: `metadata` needs no IAM, `api` adds ingress and reachability but requires account-wide ec2:Describe*. See docs/services/hasp.md.";
     };
@@ -349,12 +463,11 @@ in
 
     elastinix.hasp.documentFile = haspJson;
 
-    systemd.tmpfiles.rules = [
-      "L+ ${hostinfoDir}/hasp.json - - - - ${haspJson}"
-    ];
-
-    systemd.services.elastinix-hasp-aws-collector =
-      lib.mkIf (cfg.awsFacts != "none") {
+    systemd = {
+      tmpfiles.rules = [
+        "L+ ${hostinfoDir}/hasp.json - - - - ${haspJson}"
+      ];
+      services.elastinix-hasp-aws-collector = lib.mkIf (cfg.awsFacts != "none") {
         description = "Collect AWS infrastructure facts for the HASP profile";
         after = [ "network-online.target" ];
         wants = [ "network-online.target" ];
@@ -391,15 +504,18 @@ in
           RemoveIPC = true;
           ProtectProc = "invisible";
 
-          RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_NETLINK" ];
-        } // lib.optionalAttrs (cfg.awsFacts == "metadata") {
+          RestrictAddressFamilies = [
+            "AF_INET"
+            "AF_INET6"
+            "AF_NETLINK"
+          ];
+        }
+        // lib.optionalAttrs (cfg.awsFacts == "metadata") {
           IPAddressDeny = "any";
           IPAddressAllow = "169.254.169.254/32";
         };
       };
-
-    systemd.timers.elastinix-hasp-aws-collector =
-      lib.mkIf (cfg.awsFacts != "none") {
+      timers.elastinix-hasp-aws-collector = lib.mkIf (cfg.awsFacts != "none") {
         description = "Timer for HASP AWS fact collection";
         wantedBy = [ "timers.target" ];
 
@@ -409,5 +525,7 @@ in
           AccuracySec = "30s";
         };
       };
+    };
+
   };
 }

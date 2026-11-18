@@ -1,10 +1,15 @@
-{ lib, config, pkgs, tfvarsfile, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.twenty-redis;
   networkName = "twenty-net";
 in
-  {
+{
   options.elastinix.services.twenty-redis = {
 
     enable = lib.mkEnableOption "Twenty redis";
@@ -47,24 +52,28 @@ in
         backend = config.virtualisation.oci-containers.backend;
         backendBin = "${pkgs.${backend}}/bin/${backend}";
       in
-        ''
+      ''
         ${backendBin} network inspect ${networkName} >/dev/null 2>&1 || \
         ${backendBin} network create --driver bridge ${networkName}
       '';
 
-    virtualisation.oci-containers.containers."redis" =
-      {
-        image = "redis:${cfg.version}";
-        ports = [ "${cfg.forward_port}:6379" ];
-        environment = {
-          REDIS_HOST="${cfg.host}";
-        };
-        dependsOn = [ ];
-        volumes = [
-          "redis:${cfg.data_dir}"
-        ];
-        extraOptions = [ "--network=${networkName}" ];
-        cmd = ["--maxmemory-policy" "noeviction" "--appendonly" "yes"];
+    virtualisation.oci-containers.containers."redis" = {
+      image = "redis:${cfg.version}";
+      ports = [ "${cfg.forward_port}:6379" ];
+      environment = {
+        REDIS_HOST = "${cfg.host}";
       };
+      dependsOn = [ ];
+      volumes = [
+        "redis:${cfg.data_dir}"
+      ];
+      extraOptions = [ "--network=${networkName}" ];
+      cmd = [
+        "--maxmemory-policy"
+        "noeviction"
+        "--appendonly"
+        "yes"
+      ];
+    };
   };
 }

@@ -1,6 +1,12 @@
-{ config, lib, inputs, tfvars, ... }:
+{
+  config,
+  lib,
+  inputs,
+  tfvars,
+  ...
+}:
 let
-  environment_domain = tfvars.environment_domain;
+  inherit (tfvars) environment_domain;
   cfg = config.elastinix.services.optscale;
 in
 {
@@ -75,7 +81,10 @@ in
       };
 
       protocol = lib.mkOption {
-        type = lib.types.enum [ "TLS" "SSL" ];
+        type = lib.types.enum [
+          "TLS"
+          "SSL"
+        ];
         default = "TLS";
         description = ''
           "TLS" means STARTTLS on a plain connection (port 587); "SSL" means implicit
@@ -88,35 +97,39 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Pin the substrate to OptScale's tested versions (ClickHouse 24.12 /
-    # RabbitMQ 4.1.4) and permit the datastores. Scoped to this machine via
-    # `enable` — an OptScale box is a dedicated appliance, so overriding
-    # clickhouse/rabbitmq system-wide here is safe.
-    nixpkgs.overlays = [ inputs.optscale.overlays.default ];
-    nixpkgs.config.allowUnfreePredicate = pkg: lib.hasPrefix "mongodb" (lib.getName pkg);
-    nixpkgs.config.allowInsecurePredicate = pkg: lib.getName pkg == "minio";
+    nixpkgs = {
+      # Pin the substrate to OptScale's tested versions (ClickHouse 24.12 /
+      # RabbitMQ 4.1.4) and permit the datastores. Scoped to this machine via
+      # `enable` — an OptScale box is a dedicated appliance, so overriding
+      # clickhouse/rabbitmq system-wide here is safe.
+      overlays = [ inputs.optscale.overlays.default ];
+      config = {
+        allowUnfreePredicate = pkg: lib.hasPrefix "mongodb" (lib.getName pkg);
+        allowInsecurePredicate = pkg: lib.getName pkg == "minio";
+      };
+    };
 
-    # Bring up the whole appliance (substrate + configurator + services + ngui);
-    # secrets come from the agenix-managed EnvironmentFile.
-    services.optscale.enable = true;
-    services.optscale.secrets.environmentFile = cfg.secretsFile;
-
-    # The host used to build the links inside generated email. OptScale defaults it
-    # to "localhost", which produces verification links nobody can act on — set it
-    # to the same FQDN nginx serves the UI on.
-    services.optscale.configurator.publicHost = "${cfg.subdomain}.${environment_domain}";
-
-    # Guarded so `server` (which has no sensible default) is only demanded when SMTP
-    # is actually in use; without the guard every OptScale host would have to define
-    # a relay it never talks to.
-    services.optscale.smtp = lib.mkIf cfg.smtp.enable {
+    services.optscale = {
+      # Bring up the whole appliance (substrate + configurator + services + ngui);
+      # secrets come from the agenix-managed EnvironmentFile.
       enable = true;
-      inherit (cfg.smtp)
-        server
-        port
-        from
-        protocol
-        ;
+      secrets.environmentFile = cfg.secretsFile;
+      # The host used to build the links inside generated email. OptScale defaults it
+      # to "localhost", which produces verification links nobody can act on — set it
+      # to the same FQDN nginx serves the UI on.
+      configurator.publicHost = "${cfg.subdomain}.${environment_domain}";
+      # Guarded so `server` (which has no sensible default) is only demanded when SMTP
+      # is actually in use; without the guard every OptScale host would have to define
+      # a relay it never talks to.
+      smtp = lib.mkIf cfg.smtp.enable {
+        enable = true;
+        inherit (cfg.smtp)
+          server
+          port
+          from
+          protocol
+          ;
+      };
     };
 
     # Front the ngui UI (localhost:4000) with TLS; the backend services stay on

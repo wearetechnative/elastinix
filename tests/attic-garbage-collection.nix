@@ -8,7 +8,8 @@
 { pkgs, lib, ... }:
 
 let
-  evalWith = extra:
+  evalWith =
+    extra:
     (import (pkgs.path + "/nixos/lib/eval-config.nix") {
       system = pkgs.stdenv.hostPlatform.system;
       specialArgs.tfvars = {
@@ -22,11 +23,15 @@ let
             enable = true;
             environment_file = "/run/attic.env";
             s3_bucket = "attic-test";
-          } // extra;
+          }
+          // extra;
           # Not under test, and it drags in ACME.
           services.nginx.enable = lib.mkForce false;
           boot.loader.grub.enable = false;
-          fileSystems."/" = { device = "none"; fsType = "tmpfs"; };
+          fileSystems."/" = {
+            device = "none";
+            fsType = "tmpfs";
+          };
           system.stateVersion = lib.trivial.release;
         }
       ];
@@ -36,30 +41,35 @@ let
   logOf = c: c.systemd.services.atticd.environment.RUST_LOG or null;
 
   defaults = gcOf (evalWith { });
-  customInterval = gcOf (evalWith { garbage_collection.interval = "1 hour"; });
-  noRetention = gcOf (evalWith { garbage_collection.default_retention_period = null; });
+  customInterval = gcOf (evalWith {
+    garbage_collection.interval = "1 hour";
+  });
+  noRetention = gcOf (evalWith {
+    garbage_collection.default_retention_period = null;
+  });
 
   logDefault = logOf (evalWith { });
-  logCustom = logOf (evalWith { log_filter = "attic_server=debug"; });
-  logOff = logOf (evalWith { log_filter = null; });
+  logCustom = logOf (evalWith {
+    log_filter = "attic_server=debug";
+  });
+  logOff = logOf (evalWith {
+    log_filter = null;
+  });
 
   checks = [
     {
       name = "defaults render both keys";
-      ok = defaults.interval == "12 hours"
-        && defaults.default-retention-period == "90 days";
+      ok = defaults.interval == "12 hours" && defaults.default-retention-period == "90 days";
       got = builtins.toJSON defaults;
     }
     {
       name = "interval is overridable";
-      ok = customInterval.interval == "1 hour"
-        && customInterval.default-retention-period == "90 days";
+      ok = customInterval.interval == "1 hour" && customInterval.default-retention-period == "90 days";
       got = builtins.toJSON customInterval;
     }
     {
       name = "null retention renders zero, key still present";
-      ok = noRetention.default-retention-period == "0"
-        && noRetention.interval == "12 hours";
+      ok = noRetention.default-retention-period == "0" && noRetention.interval == "12 hours";
       got = builtins.toJSON noRetention;
     }
     {
@@ -83,11 +93,12 @@ let
 
   failures = builtins.filter (c: !c.ok) checks;
 in
-if failures != [ ]
-then throw ''
-  attic garbage-collection test failed:
-  ${lib.concatMapStringsSep "\n" (c: "  - ${c.name}: got ${c.got}") failures}
-''
-else pkgs.runCommand "attic-garbage-collection-test" { } ''
-  echo "${toString (builtins.length checks)} checks passed" > $out
-''
+if failures != [ ] then
+  throw ''
+    attic garbage-collection test failed:
+    ${lib.concatMapStringsSep "\n" (c: "  - ${c.name}: got ${c.got}") failures}
+  ''
+else
+  pkgs.runCommand "attic-garbage-collection-test" { } ''
+    echo "${toString (builtins.length checks)} checks passed" > $out
+  ''

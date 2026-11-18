@@ -1,10 +1,18 @@
-{ lib, config, inputs, pkgs, tfvars, ... }:
+{
+  lib,
+  config,
+  inputs,
+  pkgs,
+  tfvars,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.pontifex;
   system = pkgs.stdenv.hostPlatform.system;
-  environment_domain = tfvars.environment_domain;
-in {
+  inherit (tfvars) environment_domain;
+in
+{
   options.elastinix.services.pontifex = {
 
     enable = lib.mkEnableOption "Pontifex";
@@ -21,7 +29,7 @@ in {
     ];
     services.pontifex = {
       enable = true;
-      envFile = cfg.envFile;
+      inherit (cfg) envFile;
     };
 
     services.nginx.virtualHosts."pontifex.${environment_domain}" = {
@@ -35,4 +43,3 @@ in {
     };
   };
 }
-

@@ -1,10 +1,10 @@
-{config, lib, ... }:
+{ config, lib, ... }:
 
 let
   cfg = config.elastinix.services.matterbridge;
 in
 
-  {
+{
   options.elastinix.services.matterbridge = {
 
     enable = lib.mkEnableOption "matterbridge";
@@ -18,7 +18,7 @@ in
   config = lib.mkIf cfg.enable {
 
     nixpkgs.overlays = [
-      (final: prev: {
+      (_final: prev: {
         matterbridge = prev.buildGoModule rec {
           pname = "matterbridge";
           version = "c4157a4d5b49fce79c80a30730dc7c404bacd663";
@@ -29,7 +29,8 @@ in
           };
           vendorHash = null;
         };
-      })];
+      })
+    ];
 
     services.matterbridge = {
       enable = true;

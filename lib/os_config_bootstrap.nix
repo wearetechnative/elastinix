@@ -1,11 +1,12 @@
-{inputs, nixpkgs}:
-  targetSystem: rootAuthorizedKeys:
+{ nixpkgs, ... }:
+targetSystem: rootAuthorizedKeys:
 
 (nixpkgs.lib.nixosSystem {
   system = targetSystem;
   modules = [
     "${nixpkgs}/nixos/maintainers/scripts/ec2/amazon-image.nix"
-    { nixpkgs.config.allowUnfree = true;
+    {
+      nixpkgs.config.allowUnfree = true;
       image.baseName = "nixos_image";
       virtualisation.diskSize = 16 * 1024;
     }
