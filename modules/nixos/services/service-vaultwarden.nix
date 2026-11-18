@@ -100,7 +100,7 @@ in
           proxyWebsockets = true;
         };
       };
-      client_max_body_size = "525M";
+      clientMaxBodySize = "525M";
       recommendedProxySettings = true;
     };
   };
