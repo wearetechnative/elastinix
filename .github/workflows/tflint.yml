@@ -1,0 +1,83 @@
+name: "CI: Terraform Lint"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      terraform: ${{ steps.filter.outputs.terraform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            terraform:
+              - '**/*.tf'
+              - '**/*.tfvars'
+              - '**/*.json'
+
+  discover:
+    needs: changes
+    if: needs.changes.outputs.terraform == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      stacks: ${{ steps.find.outputs.stacks }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Discover Terraform stacks
+        id: find
+        run: |
+          stacks=$(ls stack/ | jq -R . | jq -sc .)
+          echo "stacks=$stacks" >> "$GITHUB_OUTPUT"
+
+  tflint:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        stack: ${{ fromJson(needs.discover.outputs.stacks) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        name: Cache tflint plugins
+        with:
+          path: ~/.tflint.d/plugins
+          key: tflint-${{ hashFiles('.tflint.hcl') }}
+
+      - uses: terraform-linters/setup-tflint@v4
+        name: Setup TFLint
+        with:
+          tflint_version: v0.50.3
+
+      - name: Init TFLint
+        run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Run TFLint
+        run: tflint --chdir=stack/${{ matrix.stack }}
+
+  tflint-complete:
+    needs: tflint
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check tflint results
+        run: |
+          if [[ "${{ needs.tflint.result }}" == "failure" ]]; then
+            exit 1
+          fi

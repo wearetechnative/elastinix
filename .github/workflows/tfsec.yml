@@ -1,0 +1,82 @@
+name: "CI: Terraform Security Scan"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      terraform: ${{ steps.filter.outputs.terraform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            terraform:
+              - '**/*.tf'
+              - '**/*.tfvars'
+              - '**/*.json'
+
+  discover:
+    needs: changes
+    if: needs.changes.outputs.terraform == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      stacks: ${{ steps.find.outputs.stacks }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Discover Terraform stacks
+        id: find
+        run: |
+          stacks=$(ls stack/ | jq -R . | jq -sc .)
+          echo "stacks=$stacks" >> "$GITHUB_OUTPUT"
+
+  tfsec:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stack: ${{ fromJson(needs.discover.outputs.stacks) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install and run the tfsec CLI directly instead of aquasecurity/tfsec-action.
+      # That action's PR-commenter code path crashes on pull_request events
+      # (`jq: Cannot iterate over null` on zero-finding stacks) and needs
+      # pull-requests: write, which broke tfsec-complete on every PR. Mirrors
+      # the setup-tool-then-run pattern already used by tflint.yml.
+      - name: Install tfsec
+        run: |
+          TFSEC_VERSION=v1.28.14
+          curl -sSL "https://github.com/aquasecurity/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64" -o /tmp/tfsec
+          chmod +x /tmp/tfsec
+          sudo mv /tmp/tfsec /usr/local/bin/tfsec
+          tfsec --version
+
+      - name: Run tfsec
+        working-directory: stack/${{ matrix.stack }}
+        run: tfsec --soft-fail --exclude-path=cloudwatch_log_group_imports.tf .
+
+  tfsec-complete:
+    needs: tfsec
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check tfsec results
+        run: |
+          if [[ "${{ needs.tfsec.result }}" == "failure" ]]; then
+            exit 1
+          fi

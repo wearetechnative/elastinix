@@ -1,0 +1,67 @@
+name: "CI: Nix Code Quality"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  nix-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            nix:
+              - '**/*.nix'
+              - 'stack/hoo_stateless/**/hostconf/**'
+
+      - uses: nixbuild/nix-quick-install-action@v28
+        if: steps.filter.outputs.nix == 'true'
+
+      - name: statix
+        if: steps.filter.outputs.nix == 'true'
+        run: nix run nixpkgs#statix -- check .
+
+      - name: nixfmt
+        if: steps.filter.outputs.nix == 'true'
+        run: |
+          find . -name "*.nix" -not -path "./.git/*" \
+            | xargs nix run nixpkgs#nixfmt -- --check
+
+      - name: deadnix
+        if: steps.filter.outputs.nix == 'true'
+        run: nix run nixpkgs#deadnix -- --fail .
+
+      # Evaluates every role of every hoo_stateless hostconf flake (including the
+      # template), which runs common/validate-ids.nix. Each hostconf is copied first:
+      # the template path contains <customer_name>, which a flake reference cannot hold.
+      - name: hostconf eval
+        if: steps.filter.outputs.nix == 'true'
+        run: |
+          rc=0
+          n=0
+          while IFS= read -r -d '' flake; do
+            src=$(dirname "$flake")
+            n=$((n + 1))
+            dir="$RUNNER_TEMP/hostconf-$n"
+            cp -r "$src" "$dir"
+            echo "::group::$src"
+            if ! nix eval --extra-experimental-features 'nix-command flakes' --json \
+              "path:$dir#packages.x86_64-linux" \
+              --apply 'ps: builtins.mapAttrs (_: p: p.drvPath) ps'; then
+              echo "::error::evaluation failed: $src"
+              rc=1
+            fi
+            echo "::endgroup::"
+          done < <(find stack/hoo_stateless -path '*/hostconf/flake.nix' -print0 | sort -z)
+          exit $rc
