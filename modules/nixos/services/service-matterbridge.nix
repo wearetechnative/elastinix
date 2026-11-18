@@ -1,10 +1,10 @@
-{config, lib, ... }:
+{ config, lib, ... }:
 
 let
   cfg = config.elastinix.services.matterbridge;
 in
 
-  {
+{
   options.elastinix.services.matterbridge = {
 
     enable = lib.mkEnableOption "matterbridge";
@@ -29,7 +29,8 @@ in
           };
           vendorHash = null;
         };
-      })];
+      })
+    ];
 
     services.matterbridge = {
       enable = true;

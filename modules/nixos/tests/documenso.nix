@@ -5,4 +5,4 @@
 #
 # To run the standalone test, see: tests/standalone/documenso-test.nix
 
-{}
+{ }

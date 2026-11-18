@@ -1,10 +1,17 @@
-{config, pkgs, lib, tfvars, ...}:
+{
+  config,
+  pkgs,
+  lib,
+  tfvars,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.freshrss;
-  environment_domain = tfvars.environment_domain;
+  inherit (tfvars) environment_domain;
 
-in {
+in
+{
 
   options.elastinix.services.freshrss = {
 
@@ -38,13 +45,33 @@ in {
       defaults.email = cfg.acme_email;
     };
 
-    services.nginx = {
-      enable = true;
-      recommendedGzipSettings = true;
-      recommendedOptimisation = true;
-      recommendedProxySettings = true;
-      recommendedTlsSettings = true;
-      clientMaxBodySize = "25m";
+    services = {
+      nginx = {
+        enable = true;
+        recommendedGzipSettings = true;
+        recommendedOptimisation = true;
+        recommendedProxySettings = true;
+        recommendedTlsSettings = true;
+        clientMaxBodySize = "25m";
+      };
+      freshrss = {
+        enable = true;
+        package = pkgs.freshrss;
+        user = "freshrss";
+        baseUrl = "https://${cfg.baseurl}";
+        virtualHost = cfg.baseurl;
+        passwordFile = cfg.passwordfile;
+        dataDir = "/var/lib/freshrss";
+
+        database = {
+          name = "freshrss";
+          host = cfg.database_host;
+          user = "freshrss";
+          passFile = cfg.database_passfile;
+          type = "pgsql";
+          port = 5432;
+        };
+      };
     };
 
     services.nginx.virtualHosts."freshrss.${environment_domain}" = {
@@ -52,23 +79,5 @@ in {
       forceSSL = true;
     };
 
-    services.freshrss = {
-      enable = true;
-      package = pkgs.freshrss;
-      user = "freshrss";
-      baseUrl = "https://${cfg.baseurl}";
-      virtualHost = cfg.baseurl;
-      passwordFile = cfg.passwordfile;
-      dataDir = "/var/lib/freshrss";
-
-      database = {
-        name = "freshrss";
-        host = cfg.database_host;
-        user = "freshrss";
-        passFile = cfg.database_passfile;
-        type = "pgsql";
-        port = 5432;
-      };
-    };
   };
 }

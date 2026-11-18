@@ -1,15 +1,22 @@
-{ lib, config, pkgs, tfvars, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  tfvars,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.systemd-monitoring;
-  infra_environment = tfvars.infra_environment;
+  inherit (tfvars) infra_environment;
 
   bin = {
     systemctl = "${pkgs.systemd}/bin/systemctl";
     logger = "${pkgs.logger}/bin/logger";
   };
 
-in {
+in
+{
   options.elastinix.services.systemd-monitoring = {
     enable = lib.mkEnableOption "Systemd systemd-monitoring";
 
@@ -23,7 +30,7 @@ in {
   config = lib.mkIf cfg.enable {
 
     # Create logrotate config per monitored service
-    services.logrotate.settings = lib.mkIf (cfg.services != []) {
+    services.logrotate.settings = lib.mkIf (cfg.services != [ ]) {
       # Dynamically generate per-service rotation entries
       "monitored-services" = {
         files = map (s: "/var/log/${s}-systemd-monitoring.log") cfg.services;
@@ -43,26 +50,28 @@ in {
 
     systemd.services =
       lib.mapAttrs'
-      (s: v: {
-        name = "${infra_environment}-${s}-systemd-monitoring";
-        value = v;
-      })
-      (lib.genAttrs cfg.services (s: {
-        serviceConfig.Type = "oneshot";
-        wantedBy = [ "multi-user.target" ];
-        script = ''
-        exec > >(tee -a /var/log/${s}-systemd-monitoring.log | while read line; do ${bin.logger} -t ${infra_environment}-${s}-systemd-monitoring.* "$line"; done) 2>&1
+        (s: v: {
+          name = "${infra_environment}-${s}-systemd-monitoring";
+          value = v;
+        })
+        (
+          lib.genAttrs cfg.services (s: {
+            serviceConfig.Type = "oneshot";
+            wantedBy = [ "multi-user.target" ];
+            script = ''
+              exec > >(tee -a /var/log/${s}-systemd-monitoring.log | while read line; do ${bin.logger} -t ${infra_environment}-${s}-systemd-monitoring.* "$line"; done) 2>&1
 
-        active=$(${bin.systemctl} status ${s}.service | grep -o 'Active: active' || echo "inactive")
-        success="Active: active"
+              active=$(${bin.systemctl} status ${s}.service | grep -o 'Active: active' || echo "inactive")
+              success="Active: active"
 
-        echo "---- Timestamp: $(date)"
-        if [ "$active" = "$success" ]; then
-        echo "---- Service '${s}' is running successfully ----"
-        else
-        echo "---- Service '${s}' encountered issues ----"
-        fi
-        '';
-      }));
+              echo "---- Timestamp: $(date)"
+              if [ "$active" = "$success" ]; then
+              echo "---- Service '${s}' is running successfully ----"
+              else
+              echo "---- Service '${s}' encountered issues ----"
+              fi
+            '';
+          })
+        );
   };
 }

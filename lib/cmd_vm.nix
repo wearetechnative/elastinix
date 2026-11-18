@@ -1,17 +1,30 @@
-{ inputs, ... } :
-  { nixpkgs,
-    runSystem,
-    machineConfig ? {},
-    targetSystem ? "x86_64-linux",
-    tfBinOverride ? "",
-    terraformBinConf ? { distribution = "terraform"; version = "1-5-3"; },
-    cmd ? "apply",
-    varsfile ? "" ,
-    rootAuthorizedKeys ? [],
-    ... } :
+{ inputs, ... }:
+{
+  nixpkgs,
+  runSystem,
+  machineConfig ? { },
+  targetSystem ? "x86_64-linux",
+  tfBinOverride ? "",
+  terraformBinConf ? {
+    distribution = "terraform";
+    version = "1-5-3";
+  },
+  cmd ? "apply",
+  varsfile ? "",
+  rootAuthorizedKeys ? [ ],
+  ...
+}:
 let
   pkgsRunSys = import nixpkgs { system = runSystem; };
-  qcowImage = (import ./os_config_vm.nix { inherit inputs; }) { inherit nixpkgs targetSystem rootAuthorizedKeys machineConfig varsfile;};
+  qcowImage = (import ./os_config_vm.nix { inherit inputs; }) {
+    inherit
+      nixpkgs
+      targetSystem
+      rootAuthorizedKeys
+      machineConfig
+      varsfile
+      ;
+  };
   mem = "4G";
   threads = 4;
   cores = 2;

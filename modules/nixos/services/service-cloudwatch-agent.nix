@@ -1,9 +1,14 @@
-{ config, lib, tfvars, ... }:
+{
+  config,
+  lib,
+  tfvars,
+  ...
+}:
 let
   cfg = config.elastinix.services.cloudwatch-agent;
-  infra_environment = tfvars.infra_environment;
+  inherit (tfvars) infra_environment;
 in
-  {
+{
   options.elastinix.services.cloudwatch-agent = {
 
     enable = lib.mkEnableOption "Cloudwatch agent";
@@ -43,8 +48,10 @@ in
           };
           net = {
             measurement = [
-              "bytes_sent" "bytes_recv"
-              "packets_sent" "packets_recv"
+              "bytes_sent"
+              "bytes_recv"
+              "packets_sent"
+              "packets_recv"
             ];
             metrics_collection_interval = 60;
             resources = [ "*" ];
@@ -56,8 +63,8 @@ in
         };
       };
     }
-      // lib.optionalAttrs (builtins.pathExists cfg.configPath) {
-        configurationFile = config.age.secrets.${cfg.config}.path;
-      };
+    // lib.optionalAttrs (builtins.pathExists cfg.configPath) {
+      configurationFile = config.age.secrets.${cfg.config}.path;
+    };
   };
 }

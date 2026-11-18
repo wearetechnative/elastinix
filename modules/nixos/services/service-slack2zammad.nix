@@ -1,11 +1,17 @@
-{ inputs, pkgs, lib, config, ... }:
+{
+  inputs,
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.slack2zammad;
   system = pkgs.stdenv.hostPlatform.system;
 in
 
-  {
+{
   options.elastinix.services.slack2zammad = {
 
     enable = lib.mkEnableOption "slack to zammad";
@@ -23,7 +29,7 @@ in
     ];
 
     services.slack2zammad = {
-      enable  = true;
+      enable = true;
       envFile = cfg.environment_file;
     };
   };

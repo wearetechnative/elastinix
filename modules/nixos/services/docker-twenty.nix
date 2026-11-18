@@ -1,10 +1,17 @@
-{ lib, config, pkgs, tfvars, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  tfvars,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.twenty;
   networkName = "twenty-net";
-  environment_domain = tfvars.environment_domain;
-in {
+  inherit (tfvars) environment_domain;
+in
+{
   options.elastinix.services.twenty = {
 
     enable = lib.mkEnableOption "Twenty CRM";
@@ -42,13 +49,15 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    system.activationScripts.TwentyNetwork = let
-      backend = config.virtualisation.oci-containers.backend;
-      backendBin = "${pkgs.${backend}}/bin/${backend}";
-    in ''
-      ${backendBin} network inspect ${networkName} >/dev/null 2>&1 || \
-      ${backendBin} network create --driver bridge ${networkName}
-    '';
+    system.activationScripts.TwentyNetwork =
+      let
+        backend = config.virtualisation.oci-containers.backend;
+        backendBin = "${pkgs.${backend}}/bin/${backend}";
+      in
+      ''
+        ${backendBin} network inspect ${networkName} >/dev/null 2>&1 || \
+        ${backendBin} network create --driver bridge ${networkName}
+      '';
 
     virtualisation.oci-containers.containers."twenty" = {
       image = "twentycrm/twenty:${cfg.version}";
@@ -80,7 +89,10 @@ in {
         "server-local-data:/app/packages/twenty-server/.local-storage"
         "docker-data:/app/docker-data"
       ];
-      cmd = [ "yarn" "worker:prod" ];
+      cmd = [
+        "yarn"
+        "worker:prod"
+      ];
       extraOptions = [
         "--network=${networkName}"
         "--add-host=host.docker.internal:host-gateway"

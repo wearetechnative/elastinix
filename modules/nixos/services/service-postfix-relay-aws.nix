@@ -1,11 +1,17 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 with lib;
 
 let
   cfg = config.elastinix.services.postfix-relay-aws;
 
-in {
+in
+{
   options.elastinix.services.postfix-relay-aws = {
     enable = mkEnableOption "AWS SES Postfix relay service";
 
@@ -51,8 +57,15 @@ in {
 
     trustedNetworks = mkOption {
       type = types.listOf types.str;
-      default = [ "127.0.0.0/8" "::1/128" ];
-      example = [ "10.0.0.0/16" "127.0.0.0/8" "::1/128" ];
+      default = [
+        "127.0.0.0/8"
+        "::1/128"
+      ];
+      example = [
+        "10.0.0.0/16"
+        "127.0.0.0/8"
+        "::1/128"
+      ];
       description = ''
         Network addresses allowed to relay mail through this host (mynetworks).
         Postfix will only accept mail from these networks.
@@ -80,7 +93,7 @@ in {
 
     senderMaps = mkOption {
       type = types.attrsOf types.str;
-      default = {};
+      default = { };
       example = {
         "root@" = "sysadmin@example.com";
         "www-data@" = "webserver@example.com";
@@ -173,10 +186,9 @@ in {
         generic_regexp = pkgs.writeText "postfix-generic-regexp" (
           concatStringsSep "\n" (
             # senderMaps: "user@" matches that user on any host, a full address matches exactly
-            (mapAttrsToList (from: to:
-              if hasSuffix "@" from
-              then "/^${escapeRegex from}/ ${to}"
-              else "/^${escapeRegex from}$/ ${to}"
+            (mapAttrsToList (
+              from: to:
+              if hasSuffix "@" from then "/^${escapeRegex from}/ ${to}" else "/^${escapeRegex from}$/ ${to}"
             ) cfg.senderMaps)
             ++ [
               # Catch-all: addresses without a public domain go to defaultSenderAddress.
@@ -185,7 +197,8 @@ in {
               "/^.+@[^.]+$/ ${cfg.defaultSenderAddress}"
               "/^.+@.+\\.(internal|local|localdomain)$/ ${cfg.defaultSenderAddress}"
             ]
-          ) + "\n"
+          )
+          + "\n"
         );
 
         # Local mail aliases

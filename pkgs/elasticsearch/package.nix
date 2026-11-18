@@ -31,7 +31,8 @@ let
       x86_64-linux = "x86_64";
       aarch64-linux = "aarch64";
     }
-    .${stdenv.hostPlatform.system} or (throw "elasticsearch: unsupported system ${stdenv.hostPlatform.system}");
+    .${stdenv.hostPlatform.system}
+      or (throw "elasticsearch: unsupported system ${stdenv.hostPlatform.system}");
   # sha512 from https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-<version>-linux-<arch>.tar.gz.sha512
   hashes = {
     x86_64 = "sha512:ccec1037814ef8051717d09adf22fde4edd93135284eb84948eb8fd82cb4e95513bb8c0780deb555e570fef549968f1d59ebe1ba81683afc6f8fab939ad03e6f";

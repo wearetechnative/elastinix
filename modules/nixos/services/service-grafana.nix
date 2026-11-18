@@ -1,8 +1,13 @@
-{ lib, config, tfvars, ... }:
+{
+  lib,
+  config,
+  tfvars,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.grafana-prometheus;
-  environment_domain = tfvars.environment_domain;
+  inherit (tfvars) environment_domain;
 
   # Customer submodule for elastinix
   customerModule = lib.types.submodule {
@@ -21,7 +26,7 @@ let
 
       alertRules = lib.mkOption {
         type = lib.types.listOf lib.types.path;
-        default = [];
+        default = [ ];
         description = "List of alert rule files for this customer";
         example = [ ./customers/technative/alerts/alert-ssl_expiration.yml ];
       };
@@ -34,19 +39,21 @@ let
       };
 
       dashboardFiles = lib.mkOption {
-        type = lib.types.listOf (lib.types.submodule {
-          options = {
-            name = lib.mkOption {
-              type = lib.types.str;
-              description = "Dashboard filename (e.g., 'ssl-check.json')";
+        type = lib.types.listOf (
+          lib.types.submodule {
+            options = {
+              name = lib.mkOption {
+                type = lib.types.str;
+                description = "Dashboard filename (e.g., 'ssl-check.json')";
+              };
+              source = lib.mkOption {
+                type = lib.types.path;
+                description = "Path to the dashboard JSON file (can be an agenix secret path at runtime)";
+              };
             };
-            source = lib.mkOption {
-              type = lib.types.path;
-              description = "Path to the dashboard JSON file (can be an agenix secret path at runtime)";
-            };
-          };
-        });
-        default = [];
+          }
+        );
+        default = [ ];
         description = ''
           List of individual dashboard files for this customer.
           Use this option when dashboards are stored as individual files (e.g., agenix secrets)
@@ -76,13 +83,14 @@ let
     };
   };
 
-in {
+in
+{
   options.elastinix.services.grafana-prometheus = {
     enable = lib.mkEnableOption "Prometheus and Grafana monitoring stack";
 
     customers = lib.mkOption {
       type = lib.types.listOf customerModule;
-      default = [];
+      default = [ ];
       description = "List of customers to monitor with their specific configurations";
       example = lib.literalExpression ''
         [
@@ -182,7 +190,7 @@ in {
 
       configuration = lib.mkOption {
         type = lib.types.attrs;
-        default = {};
+        default = { };
         description = ''
           Alertmanager configuration as a Nix attribute set.
           See https://prometheus.io/docs/alerting/latest/configuration/ for available options.
@@ -219,8 +227,8 @@ in {
 
     services.grafana-prometheus = {
       enable = true;
-      customers = cfg.customers;
-      root_domain = cfg.root_domain;
+      inherit (cfg) customers;
+      inherit (cfg) root_domain;
       alertmanager = {
         enable = cfg.alertmanager.enable;
         configuration = cfg.alertmanager.configuration;

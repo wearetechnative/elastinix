@@ -1,10 +1,15 @@
-{ config, lib, tfvars, ... }:
+{
+  config,
+  lib,
+  tfvars,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.onlyoffice;
-  environment_domain = tfvars.environment_domain;
+  inherit (tfvars) environment_domain;
 in
-  {
+{
   options.elastinix.services.onlyoffice = {
 
     enable = lib.mkEnableOption "Only-office for file storage";
@@ -32,4 +37,3 @@ in
     };
   };
 }
-

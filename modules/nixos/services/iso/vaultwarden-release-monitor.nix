@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 # Vaultwarden release monitor (ISO 27001 A.8.8 / A.8.19)
 #
@@ -12,20 +17,34 @@ let
   # If Vaultwarden runs on this same host via elastinix, Nix already knows its version
   vaultwardenCfg = config.elastinix.services.vaultwarden;
 
-  monitorScript = pkgs.writeText "vaultwarden-release-monitor.py"
-    (builtins.readFile ./vaultwarden-release-monitor.py);
+  monitorScript = pkgs.writeText "vaultwarden-release-monitor.py" (
+    builtins.readFile ./vaultwarden-release-monitor.py
+  );
 
   commonArgs = [
     "${pkgs.python3}/bin/python3"
     "${monitorScript}"
-    "--repository" cfg.repository
-    "--hostname" config.networking.hostName
+    "--repository"
+    cfg.repository
+    "--hostname"
+    config.networking.hostName
   ];
 
-  checkCommand = lib.escapeShellArgs (commonArgs
-    ++ lib.optionals (cfg.installedVersion != null) [ "--installed-version" cfg.installedVersion ]
-    ++ lib.optionals (cfg.versionUrl != null) [ "--version-url" cfg.versionUrl ]
-    ++ lib.optionals (cfg.heartbeatUrl != null) [ "--heartbeat-url" cfg.heartbeatUrl ]);
+  checkCommand = lib.escapeShellArgs (
+    commonArgs
+    ++ lib.optionals (cfg.installedVersion != null) [
+      "--installed-version"
+      cfg.installedVersion
+    ]
+    ++ lib.optionals (cfg.versionUrl != null) [
+      "--version-url"
+      cfg.versionUrl
+    ]
+    ++ lib.optionals (cfg.heartbeatUrl != null) [
+      "--heartbeat-url"
+      cfg.heartbeatUrl
+    ]
+  );
 
   # No separate OnFailure unit: the script remembers its own health in
   # $STATE_DIRECTORY and warns once per failure episode, not once per run.
@@ -39,13 +58,20 @@ let
     ProtectKernelTunables = true;
     ProtectKernelModules = true;
     ProtectControlGroups = true;
-    RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
+    RestrictAddressFamilies = [
+      "AF_INET"
+      "AF_INET6"
+      "AF_UNIX"
+    ];
     RestrictNamespaces = true;
     LockPersonality = true;
     RestrictRealtime = true;
     RestrictSUIDSGID = true;
     RemoveIPC = true;
-    SystemCallFilter = [ "@system-service" "~@privileged" ];
+    SystemCallFilter = [
+      "@system-service"
+      "~@privileged"
+    ];
   };
 
 in
@@ -62,8 +88,7 @@ in
     installedVersion = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = if vaultwardenCfg.enable then vaultwardenCfg.package.version else null;
-      defaultText = lib.literalExpression
-        "if config.elastinix.services.vaultwarden.enable then config.elastinix.services.vaultwarden.package.version else null";
+      defaultText = lib.literalExpression "if config.elastinix.services.vaultwarden.enable then config.elastinix.services.vaultwarden.package.version else null";
       example = "1.37.5";
       description = ''
         Vaultwarden version we run. Detected automatically when
@@ -118,10 +143,12 @@ in
       serviceConfig = hardening // {
         Type = "oneshot";
         ExecStart = checkCommand;
-        StateDirectory = "vaultwarden-release-monitor";   # -> $STATE_DIRECTORY
-        LoadCredential =                                   # -> $CREDENTIALS_DIRECTORY
-          [ "slack-webhook:${cfg.slackWebhookFile}" ]
-          ++ lib.optional (cfg.githubTokenFile != null) "github-token:${cfg.githubTokenFile}";
+        StateDirectory = "vaultwarden-release-monitor"; # -> $STATE_DIRECTORY
+        LoadCredential = # -> $CREDENTIALS_DIRECTORY
+        [
+          "slack-webhook:${cfg.slackWebhookFile}"
+        ]
+        ++ lib.optional (cfg.githubTokenFile != null) "github-token:${cfg.githubTokenFile}";
       };
     };
 

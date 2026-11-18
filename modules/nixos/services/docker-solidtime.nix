@@ -1,12 +1,18 @@
-{ lib, config, pkgs, tfvars, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  tfvars,
+  ...
+}:
 
 let
   cfg = config.elastinix.services.solidtime;
   forwardPort = "8000";
   networkName = "solidtime-network";
-  environment_domain = tfvars.environment_domain;
+  inherit (tfvars) environment_domain;
 in
-  {
+{
   options.elastinix.services.solidtime = {
 
     enable = lib.mkEnableOption "Solidtime Time Tracking";
@@ -29,13 +35,13 @@ in
         backend = config.virtualisation.oci-containers.backend;
         backendBin = "${pkgs.${backend}}/bin/${backend}";
       in
-        ''
+      ''
         ${backendBin} network inspect ${networkName} >/dev/null 2>&1 || \
         ${backendBin} network create --driver bridge ${networkName}
       '';
 
-    virtualisation.oci-containers.containers."solidtime-app" =
-      {
+    virtualisation.oci-containers.containers = {
+      "solidtime-app" = {
         image = "solidtime/solidtime:${cfg.version}";
         ports = [ "${forwardPort}:8000" ];
         user = "1000:1000";
@@ -54,9 +60,7 @@ in
           "--add-host=host.docker.internal:host-gateway"
         ];
       };
-
-    virtualisation.oci-containers.containers."solidtime-scheduler" =
-      {
+      "solidtime-scheduler" = {
         image = "solidtime/solidtime:${cfg.version}";
         user = "1000:1000";
         dependsOn = [ ];
@@ -74,9 +78,7 @@ in
           "--add-host=host.docker.internal:host-gateway"
         ];
       };
-
-    virtualisation.oci-containers.containers."solidtime-queue" =
-      {
+      "solidtime-queue" = {
         image = "solidtime/solidtime:${cfg.version}";
         user = "1000:1000";
         dependsOn = [ ];
@@ -95,9 +97,7 @@ in
           "--add-host=host.docker.internal:host-gateway"
         ];
       };
-
-    virtualisation.oci-containers.containers."gotenberg" =
-      {
+      "gotenberg" = {
         image = "gotenberg/gotenberg:8";
         dependsOn = [ ];
         extraOptions = [
@@ -105,6 +105,7 @@ in
           "--add-host=host.docker.internal:host-gateway"
         ];
       };
+    };
 
     services.nginx.virtualHosts."solidtime.${environment_domain}" = {
       enableACME = true;

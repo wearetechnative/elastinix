@@ -1,7 +1,12 @@
-{config, lib, tfvars, ...}:
+{
+  config,
+  lib,
+  tfvars,
+  ...
+}:
 let
 
-  environment_domain = tfvars.environment_domain;
+  inherit (tfvars) environment_domain;
   cfg = config.elastinix.services.hedgedoc;
 
 in
@@ -44,9 +49,7 @@ in
         "/socket.io/" = {
           proxyPass = "http://localhost:3001";
           proxyWebsockets = true;
-          extraConfig =
-            "proxy_ssl_server_name on;"
-            ;
+          extraConfig = "proxy_ssl_server_name on;";
         };
       };
     };

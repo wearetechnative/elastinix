@@ -23,7 +23,10 @@
     agenix.url = "github:ryantm/agenix";
 
     slack2zammad.url = "github:wearetechnative/slack2zammad";
-    pontifex = { url = "ssh://git@github.com/technative-mcs/pontifex.git"; type = "git"; };
+    pontifex = {
+      url = "ssh://git@github.com/technative-mcs/pontifex.git";
+      type = "git";
+    };
     jsonify-aws-dotfiles.url = "github:wearetechnative/jsonify-aws-dotfiles";
     jirasync.url = "github:wearetechnative/jirasync";
     jirasync.inputs.nixpkgs.follows = "nixpkgs";
@@ -42,7 +45,8 @@
     grafana-prometheus.url = "github:wearetechnative/monitoring";
   };
 
-  outputs = inputs@{ flake-parts, ... }:
+  outputs =
+    inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
 
       imports = [
@@ -50,49 +54,62 @@
         inputs.nixos-healthchecks.flakeModule
       ];
 
-      systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+        "x86_64-darwin"
+      ];
 
-      perSystem = { pkgs, lib, system, ... }: {
-        # Default nixpkgs, except that the vendored Elasticsearch (elastic20,
-        # unfree) may be built for the packages and checks below.
-        _module.args.pkgs = import inputs.nixpkgs {
-          inherit system;
-          config.allowUnfreePredicate = pkg: lib.getName pkg == "elasticsearch";
-        };
-
-        devshells.default = {};
-
-        # Zammad built from the upstream source pinned in pkgs/zammad/source.json.
-        # Linux only, like the recipe's meta.platforms.
-        packages = lib.optionalAttrs pkgs.stdenv.isLinux {
-          zammad = pkgs.callPackage ./pkgs/zammad/package.nix { };
-          # Elasticsearch 8 for the zammad service; nixpkgs only ships 7.17.
-          elasticsearch = pkgs.callPackage ./pkgs/elasticsearch/package.nix { };
-          # Vaultwarden built from the upstream source pinned in
-          # pkgs/vaultwarden/source.json; used with services.vaultwarden.source = "pinned".
-          vaultwarden = pkgs.callPackage ./pkgs/vaultwarden/package.nix { dbBackend = "postgresql"; };
-        };
-
-        # NixOS VM tests only build on Linux.
-        checks = lib.optionalAttrs pkgs.stdenv.isLinux {
-          attic-database = import ./tests/attic-database.nix { inherit pkgs lib; };
-          attic-garbage-collection = import ./tests/attic-garbage-collection.nix { inherit pkgs lib; };
-          attic-pull = import ./tests/attic-pull.nix {
-            inherit pkgs lib;
-            agenix = inputs.agenix.nixosModules.default;
+      perSystem =
+        {
+          pkgs,
+          lib,
+          system,
+          ...
+        }:
+        {
+          # Default nixpkgs, except that the vendored Elasticsearch (elastic20,
+          # unfree) may be built for the packages and checks below.
+          _module.args.pkgs = import inputs.nixpkgs {
+            inherit system;
+            config.allowUnfreePredicate = pkg: lib.getName pkg == "elasticsearch";
           };
-          attic-pull-vm = import ./tests/attic-pull-vm.nix { inherit pkgs lib; };
-          kernel-hostname-vm = import ./tests/kernel-hostname-vm.nix { inherit pkgs lib; };
-          zammad-vm = import ./tests/zammad-vm.nix { inherit pkgs lib inputs; };
+
+          devshells.default = { };
+
+          # Zammad built from the upstream source pinned in pkgs/zammad/source.json.
+          # Linux only, like the recipe's meta.platforms.
+          packages = lib.optionalAttrs pkgs.stdenv.isLinux {
+            zammad = pkgs.callPackage ./pkgs/zammad/package.nix { };
+            # Elasticsearch 8 for the zammad service; nixpkgs only ships 7.17.
+            elasticsearch = pkgs.callPackage ./pkgs/elasticsearch/package.nix { };
+            # Vaultwarden built from the upstream source pinned in
+            # pkgs/vaultwarden/source.json; used with services.vaultwarden.source = "pinned".
+            vaultwarden = pkgs.callPackage ./pkgs/vaultwarden/package.nix { dbBackend = "postgresql"; };
+          };
+
+          # NixOS VM tests only build on Linux.
+          checks = lib.optionalAttrs pkgs.stdenv.isLinux {
+            attic-database = import ./tests/attic-database.nix { inherit pkgs lib; };
+            attic-garbage-collection = import ./tests/attic-garbage-collection.nix { inherit pkgs lib; };
+            attic-pull = import ./tests/attic-pull.nix {
+              inherit pkgs lib;
+              agenix = inputs.agenix.nixosModules.default;
+            };
+            attic-pull-vm = import ./tests/attic-pull-vm.nix { inherit pkgs lib; };
+            kernel-hostname-vm = import ./tests/kernel-hostname-vm.nix { inherit pkgs lib; };
+            zammad-vm = import ./tests/zammad-vm.nix { inherit pkgs lib inputs; };
+          };
         };
-      };
 
       flake = {
-        #lib.tf_bin = import ./lib/tf_bin.nix { inherit inputs; };
-        lib.tf_command = import ./lib/tf_command.nix { inherit inputs; };
-        lib.os_config_live = import ./lib/os_config_live.nix { inherit inputs; };
-
-        lib.run_as_vm = import ./lib/cmd_vm.nix { inherit inputs; };
+        lib = {
+          #tf_bin = import ./lib/tf_bin.nix { inherit inputs; };
+          tf_command = import ./lib/tf_command.nix { inherit inputs; };
+          os_config_live = import ./lib/os_config_live.nix { inherit inputs; };
+          run_as_vm = import ./lib/cmd_vm.nix { inherit inputs; };
+        };
 
         # HOWTO
         # cp ./result/nixos.qcow2 /tmp/
@@ -100,7 +117,6 @@
         # qemu-kvm -name nixos -m 4G -smp 2 -drive cache=writeback,file=/tmp/nixos.qcow2,id=drive1,if=none,index=1,werror=report \
         #   -device virtio-blk-pci,bootindex=1,drive=drive1 \
         #   -nographic
-
 
       };
     };

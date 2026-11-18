@@ -1,11 +1,16 @@
-{ lib, config, tfvars, ... }:
+{
+  lib,
+  config,
+  tfvars,
+  ...
+}:
 let
   cfg = config.elastinix.services.attic;
-  environment_domain = tfvars.environment_domain;
-  infra_environment = tfvars.infra_environment;
+  inherit (tfvars) environment_domain;
+  inherit (tfvars) infra_environment;
 in
 
-  {
+{
   options.elastinix.services.attic = {
 
     enable = lib.mkEnableOption "Attic cache";
@@ -105,9 +110,12 @@ in
   config = lib.mkIf cfg.enable {
     assertions = [
       {
-        assertion = cfg.database_url == null
-          || (builtins.match "[^:]+://[^/@]*:[^/@]*@.*" cfg.database_url == null
-            && builtins.match ".*[?&]password=.*" cfg.database_url == null);
+        assertion =
+          cfg.database_url == null
+          || (
+            builtins.match "[^:]+://[^/@]*:[^/@]*@.*" cfg.database_url == null
+            && builtins.match ".*[?&]password=.*" cfg.database_url == null
+          );
         message = ''
           elastinix.services.attic.database_url contains a password. It would be
           written to the world-readable Nix store. Leave database_url null and set
@@ -159,19 +167,17 @@ in
         };
         # No url in the TOML: attic then reads ATTIC_SERVER_DATABASE_URL from the
         # environment file. mkForce discards the upstream mkDefault SQLite url.
-        database =
-          if cfg.database_url == null
-          then lib.mkForce { }
-          else { url = cfg.database_url; };
+        database = if cfg.database_url == null then lib.mkForce { } else { url = cfg.database_url; };
 
         garbage-collection = {
           interval = cfg.garbage_collection.interval;
           # Attic reads a zero period as "time-based collection disabled". The key
           # stays present either way, so the configuration always says what happens.
           default-retention-period =
-            if cfg.garbage_collection.default_retention_period == null
-            then "0"
-            else cfg.garbage_collection.default_retention_period;
+            if cfg.garbage_collection.default_retention_period == null then
+              "0"
+            else
+              cfg.garbage_collection.default_retention_period;
         };
 
         storage = {
@@ -187,7 +193,7 @@ in
       enableACME = true;
       forceSSL = true;
 
-      extraConfig = ''client_max_body_size 0;'';
+      extraConfig = "client_max_body_size 0;";
 
       locations = {
         "/" = {

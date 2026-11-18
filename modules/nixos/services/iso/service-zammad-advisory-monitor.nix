@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 # Zammad security advisory monitor (ISO 27001 A.8.8 / A.5.7)
 #
@@ -11,22 +16,36 @@ let
 
   # Same pattern as service-vulnerability-prometheus-exporter.nix:
   # copy the .py file into the Nix store and run it with python3.
-  monitorScript = pkgs.writeText "zammad-advisory-monitor.py"
-    (builtins.readFile ./zammad-advisory-monitor.py);
+  monitorScript = pkgs.writeText "zammad-advisory-monitor.py" (
+    builtins.readFile ./zammad-advisory-monitor.py
+  );
 
   # Command-line arguments passed to the script
   commonArgs = [
     "${pkgs.python3}/bin/python3"
     "${monitorScript}"
-    "--repository" cfg.repository
-    "--hostname" config.networking.hostName
+    "--repository"
+    cfg.repository
+    "--hostname"
+    config.networking.hostName
   ];
 
-  checkCommand = lib.escapeShellArgs (commonArgs
-    ++ lib.optionals (cfg.heartbeatUrl != null) [ "--heartbeat-url" cfg.heartbeatUrl ]
-    ++ lib.optionals (cfg.zammadVersion != null) [ "--zammad-version" cfg.zammadVersion ]
-    ++ lib.optionals (cfg.zammadApiUrl != null) [ "--zammad-api-url" cfg.zammadApiUrl ]
-    ++ lib.optional cfg.notifyUnaffected "--notify-unaffected");
+  checkCommand = lib.escapeShellArgs (
+    commonArgs
+    ++ lib.optionals (cfg.heartbeatUrl != null) [
+      "--heartbeat-url"
+      cfg.heartbeatUrl
+    ]
+    ++ lib.optionals (cfg.zammadVersion != null) [
+      "--zammad-version"
+      cfg.zammadVersion
+    ]
+    ++ lib.optionals (cfg.zammadApiUrl != null) [
+      "--zammad-api-url"
+      cfg.zammadApiUrl
+    ]
+    ++ lib.optional cfg.notifyUnaffected "--notify-unaffected"
+  );
 
   # If Zammad runs on this same host via elastinix, Nix already knows its version
   zammadCfg = config.elastinix.services.zammad;
@@ -43,13 +62,20 @@ let
     ProtectKernelTunables = true;
     ProtectKernelModules = true;
     ProtectControlGroups = true;
-    RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
+    RestrictAddressFamilies = [
+      "AF_INET"
+      "AF_INET6"
+      "AF_UNIX"
+    ];
     RestrictNamespaces = true;
     LockPersonality = true;
     RestrictRealtime = true;
     RestrictSUIDSGID = true;
     RemoveIPC = true;
-    SystemCallFilter = [ "@system-service" "~@privileged" ];
+    SystemCallFilter = [
+      "@system-service"
+      "~@privileged"
+    ];
   };
 
 in
@@ -87,8 +113,7 @@ in
     zammadVersion = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = if zammadCfg.enable then zammadCfg.package.version else null;
-      defaultText = lib.literalExpression
-        "if config.elastinix.services.zammad.enable then config.elastinix.services.zammad.package.version else null";
+      defaultText = lib.literalExpression "if config.elastinix.services.zammad.enable then config.elastinix.services.zammad.package.version else null";
       example = "7.1.3";
       description = ''
         Zammad version to check advisories against. Detected automatically when
@@ -134,45 +159,52 @@ in
 
   config = lib.mkIf cfg.enable {
 
-    assertions = [{
-      assertion = cfg.zammadApiUrl == null || cfg.zammadTokenFile != null;
-      message = "elastinix.services.zammad-advisory-monitor: zammadApiUrl requires zammadTokenFile.";
-    }];
+    assertions = [
+      {
+        assertion = cfg.zammadApiUrl == null || cfg.zammadTokenFile != null;
+        message = "elastinix.services.zammad-advisory-monitor: zammadApiUrl requires zammadTokenFile.";
+      }
+    ];
 
-    systemd.services.zammad-advisory-monitor = {
-      description = "Check ${cfg.repository} GitHub security advisories";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      onFailure = [ "zammad-advisory-monitor-failure.service" ];
-      serviceConfig = hardening // {
-        Type = "oneshot";
-        ExecStart = checkCommand;
-        StateDirectory = "zammad-advisory-monitor";   # -> $STATE_DIRECTORY
-        LoadCredential =                               # -> $CREDENTIALS_DIRECTORY
-          [ "slack-webhook:${cfg.slackWebhookFile}" ]
-          ++ lib.optional (cfg.githubTokenFile != null) "github-token:${cfg.githubTokenFile}"
-          ++ lib.optional (cfg.zammadTokenFile != null) "zammad-token:${cfg.zammadTokenFile}";
+    systemd = {
+      services = {
+        zammad-advisory-monitor = {
+          description = "Check ${cfg.repository} GitHub security advisories";
+          after = [ "network-online.target" ];
+          wants = [ "network-online.target" ];
+          onFailure = [ "zammad-advisory-monitor-failure.service" ];
+          serviceConfig = hardening // {
+            Type = "oneshot";
+            ExecStart = checkCommand;
+            StateDirectory = "zammad-advisory-monitor"; # -> $STATE_DIRECTORY
+            LoadCredential = # -> $CREDENTIALS_DIRECTORY
+            [
+              "slack-webhook:${cfg.slackWebhookFile}"
+            ]
+            ++ lib.optional (cfg.githubTokenFile != null) "github-token:${cfg.githubTokenFile}"
+            ++ lib.optional (cfg.zammadTokenFile != null) "zammad-token:${cfg.zammadTokenFile}";
+          };
+        };
+        # Runs only when the check above fails
+        zammad-advisory-monitor-failure = {
+          description = "Notify Slack that the Zammad advisory monitor failed";
+          serviceConfig = hardening // {
+            Type = "oneshot";
+            ExecStart = failureCommand;
+            LoadCredential = [ "slack-webhook:${cfg.slackWebhookFile}" ];
+          };
+        };
+      };
+      timers.zammad-advisory-monitor = {
+        description = "Timer for the Zammad advisory monitor";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = cfg.schedule;
+          Persistent = true; # catch up on runs missed while powered off
+          RandomizedDelaySec = "5m";
+        };
       };
     };
 
-    # Runs only when the check above fails
-    systemd.services.zammad-advisory-monitor-failure = {
-      description = "Notify Slack that the Zammad advisory monitor failed";
-      serviceConfig = hardening // {
-        Type = "oneshot";
-        ExecStart = failureCommand;
-        LoadCredential = [ "slack-webhook:${cfg.slackWebhookFile}" ];
-      };
-    };
-
-    systemd.timers.zammad-advisory-monitor = {
-      description = "Timer for the Zammad advisory monitor";
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = cfg.schedule;
-        Persistent = true;          # catch up on runs missed while powered off
-        RandomizedDelaySec = "5m";
-      };
-    };
   };
 }

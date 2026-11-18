@@ -1,4 +1,9 @@
-{ pkgs, config, lib, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
 
 {
   options.elastinix.services.locate.enable = lib.mkEnableOption "enable locate service";

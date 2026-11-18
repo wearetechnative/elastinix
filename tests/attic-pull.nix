@@ -7,27 +7,42 @@
 # No tfvars in specialArgs on purpose: the module must not need them.
 #
 # Exposed as checks.<linux-system>.attic-pull in flake.nix.
-{ pkgs, lib, agenix, ... }:
+{
+  pkgs,
+  lib,
+  agenix,
+  ...
+}:
 
 let
   base = {
     boot.loader.grub.enable = false;
-    fileSystems."/" = { device = "none"; fsType = "tmpfs"; };
+    fileSystems."/" = {
+      device = "none";
+      fsType = "tmpfs";
+    };
     system.stateVersion = lib.trivial.release;
     # Real hosts get this from openssh; agenix asserts on it otherwise.
     age.identityPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
   };
 
-  evalModules = modules:
+  evalModules =
+    modules:
     (import (pkgs.path + "/nixos/lib/eval-config.nix") {
       system = pkgs.stdenv.hostPlatform.system;
-      modules = [ base agenix ] ++ modules;
+      modules = [
+        base
+        agenix
+      ]
+      ++ modules;
     }).config;
 
-  evalWith = cfg: evalModules [
-    ../modules/nixos/services/service-attic-pull.nix
-    cfg
-  ];
+  evalWith =
+    cfg:
+    evalModules [
+      ../modules/nixos/services/service-attic-pull.nix
+      cfg
+    ];
 
   # The example from docs/services/attic-pull.md, verbatim.
   documented = { config, ... }: {
@@ -78,17 +93,83 @@ let
 
   # Each broken variant must fail naming its own problem; the valid ones pass.
   rejects = [
-    { name = "missing endpoint"; opts = { endpoint = null; }; says = "attic_pull.endpoint is not set"; }
-    { name = "empty endpoint"; opts = { endpoint = ""; }; says = "attic_pull.endpoint is not set"; }
-    { name = "endpoint without scheme"; opts = { endpoint = "attic.example.com"; }; says = "must start with http"; }
-    { name = "missing cache"; opts = { cache = null; }; says = "attic_pull.cache is not set"; }
-    { name = "cache with slash"; opts = { cache = "infra/x"; }; says = "not a valid Attic cache name"; }
-    { name = "cache too long"; opts = { cache = lib.strings.replicate 51 "a"; }; says = "not a valid Attic cache name"; }
-    { name = "missing public key"; opts = { public_key = null; }; says = "attic_pull.public_key is not set"; }
-    { name = "malformed public key"; opts = { public_key = "infra"; }; says = "<name>:<base64 of 32 bytes>"; }
-    { name = "secret key as public key"; opts = { public_key = secretKey; }; says = "is a secret key"; }
-    { name = "missing netrc"; opts = { netrc_file = null; }; says = "attic_pull.netrc_file is not set"; }
-    { name = "relative netrc"; opts = { netrc_file = "secrets/attic-pull"; }; says = "attic_pull.netrc_file must be an absolute path"; }
+    {
+      name = "missing endpoint";
+      opts = {
+        endpoint = null;
+      };
+      says = "attic_pull.endpoint is not set";
+    }
+    {
+      name = "empty endpoint";
+      opts = {
+        endpoint = "";
+      };
+      says = "attic_pull.endpoint is not set";
+    }
+    {
+      name = "endpoint without scheme";
+      opts = {
+        endpoint = "attic.example.com";
+      };
+      says = "must start with http";
+    }
+    {
+      name = "missing cache";
+      opts = {
+        cache = null;
+      };
+      says = "attic_pull.cache is not set";
+    }
+    {
+      name = "cache with slash";
+      opts = {
+        cache = "infra/x";
+      };
+      says = "not a valid Attic cache name";
+    }
+    {
+      name = "cache too long";
+      opts = {
+        cache = lib.strings.replicate 51 "a";
+      };
+      says = "not a valid Attic cache name";
+    }
+    {
+      name = "missing public key";
+      opts = {
+        public_key = null;
+      };
+      says = "attic_pull.public_key is not set";
+    }
+    {
+      name = "malformed public key";
+      opts = {
+        public_key = "infra";
+      };
+      says = "<name>:<base64 of 32 bytes>";
+    }
+    {
+      name = "secret key as public key";
+      opts = {
+        public_key = secretKey;
+      };
+      says = "is a secret key";
+    }
+    {
+      name = "missing netrc";
+      opts = {
+        netrc_file = null;
+      };
+      says = "attic_pull.netrc_file is not set";
+    }
+    {
+      name = "relative netrc";
+      opts = {
+        netrc_file = "secrets/attic-pull";
+      };
+      says = "attic_pull.netrc_file must be an absolute path";
+    }
   ];
 
   checks = [
@@ -99,10 +180,14 @@ let
     }
     {
       name = "documented example evaluates";
-      ok = failed doc == [ ]
+      ok =
+        failed doc == [ ]
         && (nixOf doc).netrc == doc.age.secrets.attic-pull.path
         && lib.elem "https://attic.example.com/infra" (nixOf doc).substituters;
-      got = builtins.toJSON { failed = failed doc; nix = nixOf doc; };
+      got = builtins.toJSON {
+        failed = failed doc;
+        nix = nixOf doc;
+      };
     }
     {
       name = "valid configuration passes every assertion";
@@ -111,7 +196,10 @@ let
     }
     {
       name = "upstream cache kept, attic cache after it";
-      ok = let s = (nixOf enabled).substituters; in
+      ok =
+        let
+          s = (nixOf enabled).substituters;
+        in
         indexOf upstream s != null
         && indexOf "https://attic.example.com/infra" s != null
         && indexOf upstream s < indexOf "https://attic.example.com/infra" s;
@@ -119,7 +207,10 @@ let
     }
     {
       name = "upstream key kept, cache key after it";
-      ok = let k = (nixOf enabled).keys; in
+      ok =
+        let
+          k = (nixOf enabled).keys;
+        in
         indexOf upstreamKey k != null
         && indexOf valid.public_key k != null
         && indexOf upstreamKey k < indexOf valid.public_key k;
@@ -132,23 +223,36 @@ let
     }
     {
       name = "trailing slash on the endpoint gives no double slash";
-      ok = lib.elem "https://attic.example.com/infra" (nixOf slash).substituters
+      ok =
+        lib.elem "https://attic.example.com/infra" (nixOf slash).substituters
         && !(builtins.any (lib.hasInfix "//infra") (nixOf slash).substituters);
       got = builtins.toJSON (nixOf slash).substituters;
     }
     {
       name = "no systemd unit added";
       ok = builtins.attrNames enabled.systemd.services == builtins.attrNames disabled.systemd.services;
-      got = builtins.toJSON (lib.subtractLists
-        (builtins.attrNames disabled.systemd.services)
-        (builtins.attrNames enabled.systemd.services));
+      got = builtins.toJSON (
+        lib.subtractLists (builtins.attrNames disabled.systemd.services) (
+          builtins.attrNames enabled.systemd.services
+        )
+      );
     }
     {
       name = "http endpoint and +/_/- cache names are accepted";
-      ok = failed (withOpts { endpoint = "http://server:8080"; cache = "tn-infra_2+x"; }) == [ ];
-      got = builtins.toJSON (failed (withOpts { endpoint = "http://server:8080"; cache = "tn-infra_2+x"; }));
+      ok =
+        failed (withOpts {
+          endpoint = "http://server:8080";
+          cache = "tn-infra_2+x";
+        }) == [ ];
+      got = builtins.toJSON (
+        failed (withOpts {
+          endpoint = "http://server:8080";
+          cache = "tn-infra_2+x";
+        })
+      );
     }
-  ] ++ map (r: {
+  ]
+  ++ map (r: {
     name = "rejects ${r.name}";
     ok = mentions r.says (withOpts r.opts);
     got = builtins.toJSON (failed (withOpts r.opts));
@@ -156,11 +260,12 @@ let
 
   failures = builtins.filter (c: !c.ok) checks;
 in
-if failures != [ ]
-then throw ''
-  attic-pull test failed:
-  ${lib.concatMapStringsSep "\n" (c: "  - ${c.name}: got ${c.got}") failures}
-''
-else pkgs.runCommand "attic-pull-test" { } ''
-  echo "${toString (builtins.length checks)} checks passed" > $out
-''
+if failures != [ ] then
+  throw ''
+    attic-pull test failed:
+    ${lib.concatMapStringsSep "\n" (c: "  - ${c.name}: got ${c.got}") failures}
+  ''
+else
+  pkgs.runCommand "attic-pull-test" { } ''
+    echo "${toString (builtins.length checks)} checks passed" > $out
+  ''

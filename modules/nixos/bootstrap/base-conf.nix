@@ -1,5 +1,5 @@
 rootAuthorizedKeys:
-  { config, lib, ... } :
+{ config, lib, ... }:
 
 {
   # options.elastinix.rootAuthorizedKey = lib.mkOption {
