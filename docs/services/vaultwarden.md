@@ -9,12 +9,14 @@ proxies to Vaultwarden on `127.0.0.1:8222`.
 
 All options live under `elastinix.services.vaultwarden`.
 
-| Option             | Type    | Default              | Description                                |
-| ------------------ | ------- | -------------------- | ------------------------------------------ |
-| `enable`           | bool    | `false`              | Enable Vaultwarden                         |
-| `source`           | enum    | `"nixpkgs"`          | Where the default `package` comes from     |
-| `package`          | package | selected by `source` | Vaultwarden package to run                 |
-| `environment_file` | str     | —                    | Path to the Vaultwarden environment file   |
+| Option                  | Type    | Default                       | Description                                |
+| ----------------------- | ------- | ----------------------------- | ------------------------------------------ |
+| `enable`                | bool    | `false`                       | Enable Vaultwarden                         |
+| `source`                | enum    | `"nixpkgs"`                   | Where the default `package` comes from     |
+| `package`               | package | selected by `source`          | Vaultwarden package to run                 |
+| `environment_file`      | str     | —                             | Path to the Vaultwarden environment file   |
+| `nginx.enable`          | bool    | `true`                        | Render the module's virtual host and cert  |
+| `nginx.domain`          | str     | `vaultwarden.<env domain>`    | Domain of the virtual host and cert        |
 
 `environment_file` is a path string, so its secrets (`DATABASE_URL`,
 `ADMIN_TOKEN`, SMTP credentials, …) never enter the Nix store. Point it at an
@@ -25,6 +27,25 @@ elastinix.services.vaultwarden = {
   enable = true;
   environment_file = config.age.secrets.vaultwarden-env.path;
 };
+```
+
+## nginx virtual host
+
+By default the module publishes Vaultwarden at
+`vaultwarden.<environment_domain>` (from `tfvars`) with its own ACME
+certificate and forced SSL. The host picks a different domain by setting
+`nginx.domain`; the certificate follows the same name:
+
+```nix
+elastinix.services.vaultwarden.nginx.domain = "vaultwarden.example.eu";
+```
+
+When the host renders its own `services.nginx.virtualHosts` entry for
+Vaultwarden, set `nginx.enable = false` so the module does not add a second
+virtual host and certificate next to it:
+
+```nix
+elastinix.services.vaultwarden.nginx.enable = false;
 ```
 
 ## `source` and `package`
