@@ -25,9 +25,11 @@ secrets and hardening, and runs the script.
    one Slack message is posted with both versions and a link to the release notes.
 5. Announced tags are stored in `/var/lib/private/vaultwarden-release-monitor/notified.json`,
    so each release is announced only once.
-6. On the first run, one status message is posted: up to date, or update available.
-7. If the service fails, `vaultwarden-release-monitor-failure.service` posts a
-   warning to Slack.
+6. On the first run, one status message is posted: up to date, update available,
+   or (when the running version could not be read) no comparison yet.
+7. A run that fails writes `health.json` in the same directory and posts one
+   warning. Further failing runs stay quiet, and the first successful run after
+   that posts a recovery message.
 
 ## Example configuration
 
@@ -42,7 +44,9 @@ elastinix.services.vaultwarden-release-monitor = {
 
 The same Slack webhook as the Zammad advisory monitor can be reused, so both
 post to the same channel. For a separate channel, create a second webhook and
-agenix secret.
+agenix secret. The two monitors are deliberately separate modules: each one has
+its own source, schedule, state directory and message format, and this one can
+be enabled without the Zammad service existing.
 
 ### Version from the Vaultwarden API
 
@@ -57,10 +61,20 @@ elastinix.services.vaultwarden-release-monitor = {
 };
 ```
 
-This also works when the monitor runs on another host than Vaultwarden. If
-the call fails (Vaultwarden down, network error), new releases are still
-announced, with the version shown as "lookup FAILED", and the run is marked
-failed, which triggers the failure notification.
+This also works when the monitor runs on another host than Vaultwarden.
+
+## Failure behaviour
+
+Without a running version the monitor cannot tell whether we are behind, so it
+announces nothing and records no tag: the release is announced by the first run
+that can read the version again. That run fails on purpose (non-zero exit), so
+the gap is visible in `journalctl` and in `systemctl --failed`.
+
+The Slack warning is posted once per outage, not once per run. A run that
+crashes before it can read the version is caught and reported the same way.
+
+For failures the script cannot report itself (killed, OOM, unit never starts),
+set `heartbeatUrl` to a dead-man's switch that alerts when the pings stop.
 
 ## Options
 
@@ -82,9 +96,11 @@ systemctl list-timers vaultwarden-release-monitor.timer   # next / last run
 systemctl start vaultwarden-release-monitor.service       # run now
 journalctl -u vaultwarden-release-monitor.service         # run history (evidence)
 sudo cat /var/lib/private/vaultwarden-release-monitor/notified.json  # announced releases
+sudo cat /var/lib/private/vaultwarden-release-monitor/health.json    # last run healthy?
 ```
 
 Re-announcing the current status: delete `notified.json` and start the service.
+Repeating the failure warning: delete `health.json`.
 
 ## Upgrading after an announcement
 
@@ -100,3 +116,5 @@ production upgrade.
   only the newest is announced (it includes the older one's changes).
 - The monitor only compares version numbers. Read the release notes of every
   announced release to judge how urgent the upgrade is.
+- A release published while the version lookup is broken is not announced until
+  the lookup works again, which can be later than its release date.

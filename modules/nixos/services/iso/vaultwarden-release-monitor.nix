@@ -1,5 +1,11 @@
 { config, lib, pkgs, ... }:
 
+# Vaultwarden release monitor (ISO 27001 A.8.8 / A.8.19)
+#
+# All logic lives in ./vaultwarden-release-monitor.py (Python stdlib only).
+# This module only wires it up: options, systemd service + timer,
+# secrets via LoadCredential and systemd hardening.
+
 let
   cfg = config.elastinix.services.vaultwarden-release-monitor;
 
@@ -21,8 +27,8 @@ let
     ++ lib.optionals (cfg.versionUrl != null) [ "--version-url" cfg.versionUrl ]
     ++ lib.optionals (cfg.heartbeatUrl != null) [ "--heartbeat-url" cfg.heartbeatUrl ]);
 
-  failureCommand = lib.escapeShellArgs (commonArgs ++ [ "--notify-failure" ]);
-
+  # No separate OnFailure unit: the script remembers its own health in
+  # $STATE_DIRECTORY and warns once per failure episode, not once per run.
   hardening = {
     DynamicUser = true;
     PrivateTmp = true;
@@ -109,7 +115,6 @@ in
       description = "Check ${cfg.repository} for new releases";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
-      onFailure = [ "vaultwarden-release-monitor-failure.service" ];
       serviceConfig = hardening // {
         Type = "oneshot";
         ExecStart = checkCommand;
@@ -120,22 +125,12 @@ in
       };
     };
 
-    # Runs only when the check above fails
-    systemd.services.vaultwarden-release-monitor-failure = {
-      description = "Notify Slack that the Vaultwarden release monitor failed";
-      serviceConfig = hardening // {
-        Type = "oneshot";
-        ExecStart = failureCommand;
-        LoadCredential = [ "slack-webhook:${cfg.slackWebhookFile}" ];
-      };
-    };
-
     systemd.timers.vaultwarden-release-monitor = {
       description = "Timer for the Vaultwarden release monitor";
       wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = cfg.schedule;
-        Persistent = true;          
+        Persistent = true;
         RandomizedDelaySec = "5m";
       };
     };
