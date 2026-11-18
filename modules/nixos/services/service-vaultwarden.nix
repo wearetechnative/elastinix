@@ -91,6 +91,7 @@ in
 
     systemd.services.vaultwarden.serviceConfig.ReadWritePaths = "/vaultwarden"; # needed to get systemd vaultwarden.service read outside system folders
 
+    services.nginx.recommendedProxySettings = true;
     services.nginx.virtualHosts."vaultwarden.${environment_domain}" = {
       enableACME = true;
       forceSSL = true;
