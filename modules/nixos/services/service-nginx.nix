@@ -10,7 +10,7 @@
   config = lib.mkMerge [
     {
       nixpkgs.overlays = [(final: prev: {
-        inherit (inputs.nixpkgs-nginx.legacyPackages.${prev.stdenv.hostPlatform.system}) nginx;
+        inherit (inputs.nixpkgs-nginx.legacyPackages.${prev.stdenv.hostPlatform.system}) nginxStable;
       })];
     }
     (lib.mkIf config.elastinix.services.nginx.enable {
