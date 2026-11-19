@@ -11,6 +11,9 @@
     # here. Main nixpkgs stays on nixos-26.05; no other service is affected.
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
+    # nginx 1.30.7, not yet in nixos-26.05 or unstable
+    nixpkgs-nginx.url = "github:NixOS/nixpkgs/f0a5d452ddf1d33975d62054a1999327d952a98d";
+
     #first setup to support multiple terraforms make this a remote module, or just remove
     nixpkgs-terraform-v1-5-3.url = "github:NixOS/nixpkgs/nixos-23.05";
     nixpkgs-terraform-v1-5-7.url = "github:nixos/nixpkgs/3f293ea9ecd5c50e5bd393fd1c560275ea0e6975";
