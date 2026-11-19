@@ -10,6 +10,7 @@
 
 (nixpkgs.lib.nixosSystem {
   system = targetSystem;
+  specialArgs = { inherit inputs; };
   modules =
     let
       tfvars = if varsfile == "" then { } else builtins.fromJSON (builtins.readFile varsfile);
@@ -20,7 +21,6 @@
           inherit
             nixpkgs
             tfvars
-            inputs
             targetSystem
             ;
         };

@@ -1,29 +1,32 @@
-{ config, lib, pkgs, inputs, ... }:
+{ config, lib, pkgs, inputs, modulesPath, ... }:
 
 {
-  disabledModules = [ "${inputs.nixpkgs}/nixos/modules/services/web-servers/nginx/default.nix" ];
+  disabledModules = [ (modulesPath + "/services/web-servers/nginx/default.nix") ];
 
   imports = [ "${inputs.nixpkgs-nginx}/nixos/modules/services/web-servers/nginx/default.nix" ];
 
   options.elastinix.services.nginx.enable = lib.mkEnableOption "enable std nginx";
 
-  config = lib.mkIf config.elastinix.services.nginx.enable {
-    nixpkgs.overlays = [(final: prev: {
-      inherit (inputs.nixpkgs-nginx.legacyPackages.${prev.stdenv.hostPlatform.system}) nginx;
-    })];
+  config = lib.mkMerge [
+    {
+      nixpkgs.overlays = [(final: prev: {
+        inherit (inputs.nixpkgs-nginx.legacyPackages.${prev.stdenv.hostPlatform.system}) nginx;
+      })];
+    }
+    (lib.mkIf config.elastinix.services.nginx.enable {
+      security.acme = {
+        acceptTerms = true;
+        defaults.email = "sysadmin@technative.eu";
+      };
 
-    security.acme = {
-      acceptTerms = true;
-      defaults.email = "sysadmin@technative.eu";
-    };
-
-    services.nginx = {
-      enable = true;
-      recommendedGzipSettings = true;
-      recommendedOptimisation = true;
-      recommendedProxySettings = true;
-      recommendedTlsSettings = true;
-      clientMaxBodySize = "25m";
-    };
-  };
+      services.nginx = {
+        enable = true;
+        recommendedGzipSettings = true;
+        recommendedOptimisation = true;
+        recommendedProxySettings = true;
+        recommendedTlsSettings = true;
+        clientMaxBodySize = "25m";
+      };
+    })
+  ];
 }

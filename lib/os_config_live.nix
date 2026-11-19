@@ -14,14 +14,14 @@ let
   liveConfig = nixpkgs.lib.nixosSystem {
     system = targetSystem;
     specialArgs = {
-      inherit tfvars;
+      inherit tfvars inputs;
       ec2orAmi = "ec2";
     };
     modules = [
 
       {
         _module.args = {
-          inherit nixpkgs inputs targetSystem;
+          inherit nixpkgs targetSystem;
         };
 
       }
